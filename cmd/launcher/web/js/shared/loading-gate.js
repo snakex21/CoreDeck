@@ -27,7 +27,7 @@ const coreDeckLoadingGate = (() => {
         visibleAt = performance.now();
         overlay.classList.add('is-visible');
         overlay.setAttribute('aria-hidden', 'false');
-    }, 140);
+    }, 550);
 
     function finish() {
         if (finished) return;

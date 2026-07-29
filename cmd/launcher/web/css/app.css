@@ -155,7 +155,7 @@ body {
     min-height: 100vh;
 }
 
-/* Initial loading gate — only becomes visible when startup exceeds 140 ms. */
+/* Initial loading gate — only becomes visible when startup exceeds 550 ms. */
 .coredeck-loading {
     position: fixed;
     inset: 0;
