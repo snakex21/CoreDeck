@@ -1,0 +1,891 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Przewodnik MCP dla LM Studio</title>
+<style>
+  :root{
+    --bg:#0a0e14;
+    --fg:#e6edf3;
+    --muted:#8b949e;
+    --card:#161b22;
+    --border:#30363d;
+    --accent:#58a6ff;
+    --accent-hover:#79c0ff;
+    --success:#3fb950;
+    --warning:#d29922;
+    --danger:#f85149;
+    --code-bg:#0d1117;
+    --gradient-1:#1f6feb;
+    --gradient-2:#8957e5;
+  }
+  
+  *{box-sizing:border-box;margin:0;padding:0}
+  
+  html,body{
+    background:var(--bg);
+    color:var(--fg);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+    line-height:1.6;
+  }
+  
+  body{
+    padding:20px;
+    background:linear-gradient(180deg,#0a0e14 0%,#161b22 100%);
+    min-height:100vh;
+  }
+  
+  .container{
+    max-width:1200px;
+    margin:0 auto;
+  }
+  
+  /* Header */
+  header{
+    text-align:center;
+    padding:40px 20px;
+    margin-bottom:40px;
+    background:linear-gradient(135deg,var(--gradient-1) 0%,var(--gradient-2) 100%);
+    border-radius:16px;
+    box-shadow:0 8px 32px rgba(31,111,235,0.3);
+  }
+  
+  header h1{
+    font-size:2.5rem;
+    font-weight:700;
+    color:#fff;
+    margin-bottom:12px;
+    text-shadow:0 2px 8px rgba(0,0,0,0.3);
+  }
+  
+  header p{
+    font-size:1.1rem;
+    color:rgba(255,255,255,0.9);
+    font-weight:400;
+  }
+  
+  /* Navigation */
+  .nav-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:30px;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 20px;
+    background:var(--card);
+    color:var(--fg);
+    text-decoration:none;
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-weight:500;
+    transition:all 0.2s;
+  }
+  
+  .btn:hover{
+    background:var(--border);
+    border-color:var(--accent);
+    transform:translateY(-2px);
+  }
+  
+  .btn-primary{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+  }
+  
+  .btn-primary:hover{
+    background:var(--accent-hover);
+    border-color:var(--accent-hover);
+  }
+  
+  /* Sections */
+  .section{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:24px;
+    margin-bottom:24px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.1);
+  }
+  
+  .section h2{
+    font-size:1.8rem;
+    color:var(--accent);
+    margin-bottom:16px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  
+  .section h3{
+    font-size:1.3rem;
+    color:var(--fg);
+    margin:20px 0 12px;
+    padding-bottom:8px;
+    border-bottom:1px solid var(--border);
+  }
+  
+  .section h4{
+    font-size:1.1rem;
+    color:var(--accent);
+    margin:16px 0 8px;
+  }
+  
+  /* Lists */
+  ul,ol{
+    margin:12px 0;
+    padding-left:24px;
+  }
+  
+  li{
+    margin:8px 0;
+    line-height:1.7;
+  }
+  
+  li strong{
+    color:var(--accent);
+  }
+  
+  /* Code blocks */
+  pre{
+    background:var(--code-bg);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:16px;
+    overflow-x:auto;
+    margin:12px 0;
+    font-family:'Courier New',Consolas,Monaco,monospace;
+    font-size:0.9rem;
+    line-height:1.5;
+  }
+  
+  code{
+    background:var(--code-bg);
+    padding:2px 6px;
+    border-radius:4px;
+    font-family:'Courier New',Consolas,Monaco,monospace;
+    font-size:0.9em;
+    color:var(--success);
+  }
+  
+  pre code{
+    background:none;
+    padding:0;
+  }
+  
+  /* Alerts */
+  .alert{
+    padding:16px;
+    border-radius:8px;
+    margin:16px 0;
+    border-left:4px solid;
+  }
+  
+  .alert-info{
+    background:rgba(88,166,255,0.1);
+    border-color:var(--accent);
+  }
+  
+  .alert-success{
+    background:rgba(63,185,80,0.1);
+    border-color:var(--success);
+  }
+  
+  .alert-warning{
+    background:rgba(210,153,34,0.1);
+    border-color:var(--warning);
+  }
+  
+  .alert-danger{
+    background:rgba(248,81,73,0.1);
+    border-color:var(--danger);
+  }
+  
+  .alert strong{
+    display:block;
+    margin-bottom:8px;
+    font-size:1.05em;
+  }
+  
+  /* Grid for server cards */
+  .server-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+    gap:20px;
+    margin:20px 0;
+  }
+  
+  .server-card{
+    background:linear-gradient(135deg,var(--card) 0%,rgba(22,27,34,0.6) 100%);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:20px;
+    transition:all 0.3s;
+  }
+  
+  .server-card:hover{
+    border-color:var(--accent);
+    transform:translateY(-4px);
+    box-shadow:0 8px 24px rgba(88,166,255,0.2);
+  }
+  
+  .server-card h4{
+    color:var(--accent);
+    margin:0 0 12px;
+    font-size:1.2rem;
+  }
+  
+  .server-card p{
+    color:var(--muted);
+    margin:8px 0;
+    font-size:0.95rem;
+  }
+  
+  .server-card .tags{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:12px;
+  }
+  
+  .tag{
+    background:var(--border);
+    padding:4px 10px;
+    border-radius:6px;
+    font-size:0.85rem;
+    color:var(--muted);
+  }
+  
+  /* Path input */
+  .path-box{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    margin:12px 0;
+    flex-wrap:wrap;
+  }
+  
+  .path-input{
+    flex:1;
+    min-width:300px;
+    background:var(--code-bg);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px;
+    color:var(--fg);
+    font-family:'Courier New',Consolas,Monaco,monospace;
+    font-size:0.9rem;
+  }
+  
+  .path-input:focus{
+    outline:none;
+    border-color:var(--accent);
+  }
+  
+  /* Table of contents */
+  .toc{
+    background:rgba(88,166,255,0.05);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:20px;
+    margin-bottom:30px;
+  }
+  
+  .toc h3{
+    color:var(--accent);
+    margin:0 0 16px;
+    border:none;
+  }
+  
+  .toc ul{
+    list-style:none;
+    padding:0;
+  }
+  
+  .toc li{
+    margin:8px 0;
+  }
+  
+  .toc a{
+    color:var(--fg);
+    text-decoration:none;
+    transition:color 0.2s;
+  }
+  
+  .toc a:hover{
+    color:var(--accent);
+  }
+  
+  /* Steps counter */
+  .step-number{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:36px;
+    height:36px;
+    background:var(--accent);
+    color:#fff;
+    border-radius:50%;
+    font-weight:700;
+    font-size:1.1rem;
+  }
+  
+  /* Responsive */
+  @media(max-width:768px){
+    header h1{font-size:2rem}
+    .section h2{font-size:1.5rem}
+    .server-grid{grid-template-columns:1fr}
+    .nav-top{justify-content:center}
+  }
+  
+  /* Smooth scroll */
+  html{scroll-behavior:smooth}
+  
+  /* Copy button */
+  .copy-btn{
+    background:var(--accent);
+    border:none;
+    color:#fff;
+    padding:8px 16px;
+    border-radius:6px;
+    cursor:pointer;
+    font-weight:500;
+    transition:all 0.2s;
+  }
+  
+  .copy-btn:hover{
+    background:var(--accent-hover);
+  }
+  
+  .copy-btn:active{
+    transform:scale(0.95);
+  }
+
+  /* STICKY BACK BUTTON */
+  .back-home-fixed {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: var(--card);
+    color: var(--fg);
+    text-decoration: none;
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 12px 24px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: all 0.2s;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+  }
+  
+  .back-home-fixed:hover {
+    border-color: var(--accent);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+  }
+
+  @media(max-width: 1300px) {
+    /* Na mniejszych ekranach przycisk nie wchodzi na treść */
+    .back-home-fixed {
+      font-size: 0.85rem;
+      padding: 10px 16px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<a href="../index.html" class="back-home-fixed">← Wróć do szczegółów</a>
+
+<div class="container">
+
+<div class="nav-top" style="justify-content: flex-end;">
+  <a href="#quick-start" class="btn btn-primary">🚀 Szybki Start</a>
+</div>
+
+<header>
+  <h1>🔧 LM Studio + MCP</h1>
+  <p>Aktualny przewodnik po podłączaniu narzędzi lokalnych i zdalnych do modeli uruchamianych na komputerze.</p>
+</header>
+
+<div class="toc">
+  <h3>📋 Spis Treści</h3>
+  <ul>
+    <li><a href="#wymagania">0. Wymagania Wstępne</a></li>
+    <li><a href="#quick-start">1. Szybki Start w LM Studio</a></li>
+    <li><a href="#manual-install">2. Lokalne serwery MCP (Git/ZIP)</a></li>
+    <li><a href="#servers">3. Wszystkie Serwery MCP</a></li>
+    <li><a href="#config">4. Konfiguracja mcp.json</a></li>
+    <li><a href="#test">5. Test i Weryfikacja</a></li>
+    <li><a href="#troubleshooting">6. Rozwiązywanie Problemów</a></li>
+  </ul>
+</div>
+
+<div class="section" id="wymagania">
+  <h2><span class="step-number">0</span> Wymagania Wstępne</h2>
+  
+  <div class="alert alert-info">
+    <strong>🔍 Sprawdź przed rozpoczęciem:</strong>
+    <ul style="margin-top:8px">
+      <li>Windows 10/11 (64-bit)</li>
+      <li>LM Studio 0.3.17 lub nowsze</li>
+      <li>Node.js LTS tylko dla lokalnych serwerów korzystających z <code>node</code> lub <code>npx</code></li>
+      <li>Opcjonalnie: Git (do klonowania repozytoriów)</li>
+    </ul>
+  </div>
+  
+  <h3>Node.js dla lokalnych serwerów MCP</h3>
+  <ol>
+    <li>Pobierz Node.js LTS ze strony: <a href="https://nodejs.org/" style="color:var(--accent)">nodejs.org</a></li>
+    <li>Zainstaluj z domyślnymi opcjami</li>
+    <li>Sprawdź instalację: <code>node -v</code> i <code>npm -v</code></li>
+  </ol>
+</div>
+
+<div class="section" id="quick-start">
+  <h2><span class="step-number">1</span> Szybki Start w LM Studio</h2>
+  
+  <div class="alert alert-success">
+    <strong>✅ Najprostsza metoda</strong>
+    Zdalny serwer MCP nie wymaga kopiowania paczek ani tworzenia folderu <code>C:\Programy\MCP</code>.
+  </div>
+  
+  <h3>Krok po kroku:</h3>
+  
+  <ol>
+    <li>
+      <strong>Uruchom LM Studio i otwórz zakładkę Program</strong>
+      <p style="color:var(--muted);margin-top:8px">Znajdziesz ją w prawym panelu aplikacji.</p>
+    </li>
+    
+    <li>
+      <strong>Wybierz <code>Install</code> → <code>Edit mcp.json</code></strong>
+      <p style="color:var(--muted)">LM Studio otworzy własny edytor konfiguracji. Po zapisaniu pliku automatycznie przeładuje serwery.</p>
+    </li>
+    
+    <li>
+      <strong>Dodaj wybrany serwer</strong>
+      <p style="margin-top:8px">Możesz wkleić wpis do <code>mcp.json</code> albo użyć przycisku „Add to LM Studio”, jeżeli autor integracji go udostępnia.</p>
+    </li>
+    
+    <li>
+      <strong>Otwórz czat i wybierz narzędzia MCP</strong>
+      <p style="color:var(--success);margin-top:8px">✅ Dostępne narzędzia pojawią się przy modelu. Lokalne serwery oparte na <code>npx</code> wymagają działającego Node.js w zmiennej PATH.</p>
+    </li>
+  </ol>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px">
+    <a class="btn btn-primary" href="https://lmstudio.ai/docs/app/mcp">Oficjalna instrukcja MCP</a>
+    <a class="btn" href="https://lmstudio.ai/docs/app/mcp/deeplink">Przyciski „Add to LM Studio”</a>
+  </div>
+</div>
+
+<div class="section" id="manual-install">
+  <h2><span class="step-number">2</span> Instalacja Manualna (Git lub ZIP)</h2>
+  
+  <div class="alert alert-warning">
+    <strong>ℹ️ Sekcja zaawansowana</strong>
+    Te kroki są potrzebne tylko dla lokalnych serwerów uruchamianych poleceniem. Integracje zdalne zwykle wymagają jedynie adresu URL.
+  </div>
+  
+  <h3>Wariant A - Przez Git (polecany dla deweloperów)</h3>
+  <pre><code>cd C:\Programy\MCP
+git clone https://github.com/mrkrsl/web-search-mcp.git web-search-mcp-main
+cd web-search-mcp-main
+npm install
+npm run build</code></pre>
+  
+  <h3>Wariant B - Pobieranie ZIP</h3>
+  <ol>
+    <li>Wejdź na stronę repozytorium na GitHubie</li>
+    <li>Kliknij <code>Code</code> → <code>Download ZIP</code></li>
+    <li>Wypakuj do <code>C:\Programy\MCP\nazwa-serwera\</code></li>
+    <li>Otwórz PowerShell w folderze i wykonaj:
+      <pre><code>npm install
+npm run build</code></pre>
+    </li>
+  </ol>
+  
+  <div class="alert alert-info">
+    <strong>📝 Uwaga dla serwerów Playwright:</strong>
+    Dla web-search-mcp dodatkowo wykonaj: <code>npm run playwright:install</code>
+  </div>
+</div>
+
+<div class="section" id="servers">
+  <h2><span class="step-number">3</span> Wszystkie Dostępne Serwery MCP</h2>
+  
+  <p style="color:var(--muted);margin-bottom:20px">Oto kompletna lista serwerów, które możesz zainstalować:</p>
+  
+  <div class="server-grid">
+    
+    <div class="server-card">
+      <h4>🔍 Web Search MCP</h4>
+      <p><strong>Funkcja:</strong> Wyszukiwanie w internecie z dwoma trybami - linki i deep (pobieranie treści)</p>
+      <p><strong>Repozytorium:</strong> <code>mrkrsl/web-search-mcp</code></p>
+      <p><strong>Provider:</strong> DuckDuckGo (domyślnie), Brave, Google/SerpAPI</p>
+      <div class="tags">
+        <span class="tag">search</span>
+        <span class="tag">web</span>
+        <span class="tag">scraping</span>
+      </div>
+    </div>
+    
+    <div class="server-card">
+      <h4>📁 Filesystem</h4>
+      <p><strong>Funkcja:</strong> Dostęp do systemu plików - czytanie, zapisywanie, modyfikacja plików</p>
+      <p><strong>Pakiet:</strong> <code>@modelcontextprotocol/server-filesystem</code></p>
+      <p><strong>Uwaga:</strong> Określ dozwolone foldery w konfiguracji!</p>
+      <div class="tags">
+        <span class="tag">files</span>
+        <span class="tag">system</span>
+      </div>
+    </div>
+    
+    <div class="server-card">
+      <h4>🧠 Memory</h4>
+      <p><strong>Funkcja:</strong> Pamięć długoterminowa - zapisywanie i odczytywanie informacji między sesjami</p>
+      <p><strong>Pakiet:</strong> <code>@modelcontextprotocol/server-memory</code></p>
+      <p><strong>Plik:</strong> Dane przechowywane w <code>memory.json</code></p>
+      <div class="tags">
+        <span class="tag">memory</span>
+        <span class="tag">storage</span>
+      </div>
+    </div>
+    
+    <div class="server-card">
+      <h4>🤔 Sequential Thinking</h4>
+      <p><strong>Funkcja:</strong> Ulepszone rozumowanie krok po kroku dla złożonych problemów</p>
+      <p><strong>Pakiet:</strong> <code>@modelcontextprotocol/server-sequential-thinking</code></p>
+      <p><strong>Zastosowanie:</strong> Matematyka, logika, planowanie</p>
+      <div class="tags">
+        <span class="tag">reasoning</span>
+        <span class="tag">logic</span>
+      </div>
+    </div>
+    
+    <div class="server-card">
+      <h4>⏰ Time</h4>
+      <p><strong>Funkcja:</strong> Dostęp do aktualnego czasu i daty, strefy czasowe</p>
+      <p><strong>Pakiet:</strong> <code>time-mcp</code></p>
+      <p><strong>Format:</strong> ISO 8601, różne strefy czasowe</p>
+      <div class="tags">
+        <span class="tag">time</span>
+        <span class="tag">date</span>
+      </div>
+    </div>
+    
+    <div class="server-card">
+      <h4>📚 Docs MCP</h4>
+      <p><strong>Funkcja:</strong> Przechowywanie i wyszukiwanie w dokumentacji technicznej</p>
+      <p><strong>Pakiet:</strong> <code>@arabold/docs-mcp-server</code></p>
+      <p><strong>Format:</strong> Markdown, HTML, tekstowe</p>
+      <div class="tags">
+        <span class="tag">docs</span>
+        <span class="tag">search</span>
+      </div>
+    </div>
+    
+    <div class="server-card">
+      <h4>💻 MCP Shell Server</h4>
+      <p><strong>Funkcja:</strong> Wykonywanie poleceń shell/cmd bezpośrednio</p>
+      <p><strong>⚠️ Ostrzeżenie:</strong> Używaj ostrożnie! Pełen dostęp do systemu</p>
+      <p><strong>Zastosowanie:</strong> Automatyzacja, skrypty, narzędzia CLI</p>
+      <div class="tags">
+        <span class="tag">shell</span>
+        <span class="tag">cmd</span>
+        <span class="tag">automation</span>
+      </div>
+    </div>
+    
+    <div class="server-card">
+      <h4>📂 Workspace</h4>
+      <p><strong>Funkcja:</strong> Dedykowany folder roboczy dla projektów AI</p>
+      <p><strong>Zastosowanie:</strong> Przechowywanie plików generowanych przez AI</p>
+      <p><strong>Lokalizacja:</strong> <code>C:\Programy\MCP\workspace</code></p>
+      <div class="tags">
+        <span class="tag">workspace</span>
+        <span class="tag">projects</span>
+      </div>
+    </div>
+    
+  </div>
+</div>
+
+<div class="section" id="config">
+  <h2><span class="step-number">4</span> Konfiguracja mcp.json</h2>
+  
+  <div class="alert alert-info">
+    <strong>📍 Lokalizacja pliku:</strong>
+    <ul style="margin-top:8px">
+      <li>LM Studio przechowuje <code>mcp.json</code> w katalogu ustawień</li>
+      <li>Zwykle: <code>%APPDATA%\LMStudio\mcp.json</code></li>
+      <li>Możesz też edytować przez interfejs LM Studio</li>
+    </ul>
+  </div>
+  
+  <h3>Kompletna konfiguracja (mcp.json):</h3>
+  
+  <pre><code>{
+  "mcpServers": {
+    "websearch_links": {
+      "command": "node",
+      "args": [
+        "C:/Programy/MCP/web-search-mcp-main/dist/index.js"
+      ],
+      "env": {
+        "SEARCH_PROVIDER": "duckduckgo",
+        "WEBSEARCH_MAX_RESULTS": "10",
+        "WEBSEARCH_FETCH_CONTENT": "false",
+        "WEBSEARCH_FOLLOW_LINKS": "0",
+        "WEBSEARCH_SUMMARIZE": "false",
+        "WEBSEARCH_TIMEOUT_MS": "8000",
+        "WEBSEARCH_LOCALE": "pl-PL"
+      }
+    },
+    "websearch_deep": {
+      "command": "node",
+      "args": [
+        "C:/Programy/MCP/web-search-mcp-main/dist/index.js"
+      ],
+      "env": {
+        "SEARCH_PROVIDER": "duckduckgo",
+        "WEBSEARCH_MAX_RESULTS": "10",
+        "WEBSEARCH_FETCH_CONTENT": "true",
+        "WEBSEARCH_FOLLOW_LINKS": "1",
+        "WEBSEARCH_SUMMARIZE": "true",
+        "WEBSEARCH_TIMEOUT_MS": "15000",
+        "WEBSEARCH_LOCALE": "pl-PL"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "C:/Programy/MCP/workspace"
+      ]
+    },
+    "memory": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "node",
+        "C:/Programy/MCP/memory/node_modules/@modelcontextprotocol/server-memory/dist/index.js"
+      ],
+      "env": {
+        "MEMORY_FILE_PATH": "C:/Programy/MCP/memory/memory.json"
+      }
+    },
+    "sequential_thinking": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "node",
+        "C:/Programy/MCP/sequentialthinking/node_modules/@modelcontextprotocol/server-sequential-thinking/dist/index.js"
+      ]
+    },
+    "time": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "node",
+        "C:/Programy/MCP/time/node_modules/time-mcp/dist/index.js"
+      ]
+    },
+    "docs_mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@arabold/docs-mcp-server@latest"
+      ],
+      "env": {
+        "DOCS_MCP_STORE_PATH": "C:/Programy/MCP/docs-mcp-data",
+        "DOCS_MCP_TELEMETRY": "false"
+      }
+    },
+    "shell": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "node",
+        "C:/Programy/MCP/mcp-shell-server/dist/index.js"
+      ]
+    }
+  }
+}</code></pre>
+  
+  <div class="alert alert-warning">
+    <strong>⚠️ Ważne uwagi:</strong>
+    <ul style="margin-top:8px">
+      <li>W JSON zawsze używaj ukośników <code>/</code> zamiast <code>\</code></li>
+      <li>Upewnij się, że ścieżki do plików <code>dist/index.js</code> są poprawne</li>
+      <li>Jeśli manualna instalacja - dodaj <code>"workingDirectory"</code> dla każdego serwera</li>
+    </ul>
+  </div>
+</div>
+
+<div class="section" id="test">
+  <h2><span class="step-number">5</span> Test i Weryfikacja</h2>
+  
+  <h3>Sprawdzanie działania:</h3>
+  
+  <ol>
+    <li>
+      <strong>Uruchom LM Studio i rozpocznij nowy czat</strong>
+    </li>
+    
+    <li>
+      <strong>Zapytaj o dostępne narzędzia:</strong>
+      <pre><code>Jakie masz dostępne narzędzia MCP?</code></pre>
+      <p style="color:var(--muted)">Powinieneś zobaczyć listę wszystkich zainstalowanych serwerów</p>
+    </li>
+    
+    <li>
+      <strong>Test Web Search (linki):</strong>
+      <pre><code>Użyj websearch_links do wyszukania "Audi A3 opinie" i pokaż 5 najlepszych wyników z linkami</code></pre>
+    </li>
+    
+    <li>
+      <strong>Test Web Search (deep):</strong>
+      <pre><code>Użyj websearch_deep do szczegółowego zbadania pierwszego wyniku - pobierz treść i streść w 5 punktach</code></pre>
+    </li>
+    
+    <li>
+      <strong>Test Memory:</strong>
+      <pre><code>Zapisz w pamięci: "Mój ulubiony kolor to niebieski". Potem zapytaj: "Jaki jest mój ulubiony kolor?"</code></pre>
+    </li>
+    
+    <li>
+      <strong>Test Filesystem:</strong>
+      <pre><code>Utwórz plik test.txt w workspace i zapisz w nim "Hello MCP!"</code></pre>
+    </li>
+    
+    <li>
+      <strong>Test Time:</strong>
+      <pre><code>Jaka jest aktualna data i godzina?</code></pre>
+    </li>
+  </ol>
+  
+  <div class="alert alert-success">
+    <strong>✅ Jeśli wszystko działa:</strong>
+    Gratulacje! Masz w pełni funkcjonalne środowisko MCP. Możesz teraz używać zaawansowanych funkcji AI!
+  </div>
+</div>
+
+<div class="section" id="troubleshooting">
+  <h2><span class="step-number">6</span> Rozwiązywanie Problemów</h2>
+  
+  <h3>❌ "Connection closed" / Serwer się nie uruchamia</h3>
+  <ul>
+    <li>Sprawdź czy plik <code>dist/index.js</code> istnieje w folderze serwera</li>
+    <li>Dla serwerów budowanych: wykonaj <code>npm run build</code></li>
+    <li>Sprawdź ścieżki w <code>mcp.json</code> - muszą być dokładne</li>
+    <li>Upewnij się że Node.js jest zainstalowany: <code>node -v</code></li>
+  </ul>
+  
+  <h3>🔍 Brak wyników w Web Search</h3>
+  <ul>
+    <li>Sprawdź połączenie internetowe</li>
+    <li>Zwiększ <code>WEBSEARCH_TIMEOUT_MS</code> do 20000 lub więcej</li>
+    <li>Zwiększ <code>WEBSEARCH_MAX_RESULTS</code></li>
+    <li>Sprawdź czy <code>WEBSEARCH_LOCALE</code> jest ustawione na "pl-PL"</li>
+  </ul>
+  
+  <h3>🌐 Chcę polskich wyników</h3>
+  <ul>
+    <li>Ustaw <code>"WEBSEARCH_LOCALE": "pl-PL"</code> w konfiguracji</li>
+    <li>W promptach dodawaj "po polsku" lub "w języku polskim"</li>
+  </ul>
+  
+  <h3>🚀 Chcę lepszych wyników wyszukiwania</h3>
+  <p>Rozważ użycie płatnych API dla lepszej jakości:</p>
+  
+  <h4>Brave Search API:</h4>
+  <pre><code>"env": {
+  "SEARCH_PROVIDER": "brave",
+  "BRAVE_API_KEY": "TWÓJ_KLUCZ_API",
+  ...
+}</code></pre>
+  
+  <h4>Google (przez SerpAPI):</h4>
+  <pre><code>"env": {
+  "SEARCH_PROVIDER": "serpapi",
+  "SERPAPI_API_KEY": "TWÓJ_KLUCZ_API",
+  ...
+}</code></pre>
+  
+  <h3>💾 Memory nie zapisuje danych</h3>
+  <ul>
+    <li>Sprawdź czy folder <code>C:\Programy\MCP\memory\</code> istnieje</li>
+    <li>Sprawdź uprawnienia do zapisu w tym folderze</li>
+    <li>Sprawdź czy ścieżka w <code>MEMORY_FILE_PATH</code> jest poprawna</li>
+  </ul>
+  
+  <h3>⚡ Ogólne problemy</h3>
+  <ul>
+    <li><strong>Restart LM Studio</strong> po zmianach w <code>mcp.json</code></li>
+    <li>Sprawdź logi w konsoli LM Studio (jeśli dostępne)</li>
+    <li>Upewnij się, że wszystkie zależności są zainstalowane: <code>npm install</code> w każdym folderze</li>
+    <li>Sprawdź czy nie ma konfliktów portów (bardzo rzadkie)</li>
+  </ul>
+  
+  <div class="alert alert-info">
+    <strong>💡 Pro tip:</strong>
+    Jeśli jakiś serwer nie działa, możesz go tymczasowo usunąć z <code>mcp.json</code> i dodać później - reszta będzie działać normalnie.
+  </div>
+</div>
+
+<div class="section">
+  <h2>🎉 Gotowe!</h2>
+  <p>Teraz możesz w pełni wykorzystać potencjał LM Studio z wszystkimi serwerami MCP. Eksperymentuj i odkrywaj nowe możliwości!</p>
+  
+  <div style="margin-top:30px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:0.9rem">
+    <p><strong>Stworzone dla prostej, bezproblemowej konfiguracji.</strong></p>
+    <p>Te serwery MCP dają LM Studio prawdziwą moc: wyszukiwanie w internecie, pamięć długoterminową, dostęp do plików i więcej!</p>
+  </div>
+</div>
+
+</div>
+
+<script>
+var returnProgram = new URLSearchParams(window.location.search).get('returnProgram');
+try {
+  returnProgram = returnProgram || sessionStorage.getItem('launcher-return-program') || 'LM Studio';
+  if (returnProgram) sessionStorage.setItem('launcher-return-program', returnProgram);
+} catch (error) {
+  console.warn('Nie udało się odczytać strony powrotnej:', error);
+}
+if (returnProgram) {
+  document.querySelector('.back-home-fixed').href = '../index.html?details=' + encodeURIComponent(returnProgram);
+}
+
+document.addEventListener('click', function (event) {
+  var link = event.target.closest('a[href]');
+  if (!link) return;
+  var href = link.getAttribute('href') || '';
+  if (!/^https?:/i.test(href)) return;
+  event.preventDefault();
+  if (window.api && typeof window.api.open_url === 'function') {
+    window.api.open_url(href);
+  } else {
+    window.open(href, '_blank', 'noopener');
+  }
+});
+</script>
+
+</body>
+</html>

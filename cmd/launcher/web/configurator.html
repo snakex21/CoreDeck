@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1 Konfiguracja</title>
+    <link rel="stylesheet" href="css/app.css">
+    <link rel="stylesheet" href="css/pages/configurator.css">
+</head>
+<body>
+    <!-- ===== Shared subpage header ===== -->
+    <header class="subpage-header">
+        <div class="header-brand">
+            <h1 data-i18n="cfg_title">CoreDeck</h1>
+            <span class="header-subtitle" data-i18n="cfg_subtitle">1 Konfiguracja</span>
+        </div>
+        <div class="header-controls">
+            <a href="index.html" class="subpage-back-btn" data-i18n="back_to_launcher">← Wróć do launchera</a>
+            <a href="manage.html" class="subpage-back-btn" data-i18n="nav_manage">🛠️ Zarządzanie</a>
+            <select id="lang-select" class="btn lang-select" aria-label="Language">
+                <option value="pl">🇵🇱 PL</option>
+                <option value="en">🇬🇧 EN</option>
+                <option value="de">🇩🇪 DE</option>
+                <option value="fr">🇫🇷 FR</option>
+                <option value="es">🇪🇸 ES</option>
+                <option value="it">🇮🇹 IT</option>
+                <option value="pt">🇵🇹 PT</option>
+                <option value="ru">🇷🇺 RU</option>
+                <option value="zh">🇨🇳 ZH</option>
+                <option value="ja">🇯🇵 JA</option>
+                <option value="ko">🇰🇷 KO</option>
+                <option value="tr">🇹🇷 TR</option>
+                <option value="nl">🇳🇱 NL</option>
+                <option value="sv">🇸🇪 SV</option>
+                <option value="cs">🇨🇿 CS</option>
+            </select>
+            <button id="theme-toggle-btn" class="btn theme-btn" title="Przełącz tryb ciemny/jasny" data-i18n-title="toggle_theme_title">
+                <span class="theme-icon">🌙</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="config-container">
+        <!-- Sidebar: System Info -->
+        <div class="config-sidebar">
+            <h3 style="color:var(--accent-primary);margin-bottom:16px;" data-i18n="cfg_system_info">Twój System</h3>
+            <div id="sys-info">
+                <p style="color:var(--text-muted)" data-i18n="cfg_loading">Ładowanie...</p>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="config-main">
+            <div class="config-tabs">
+                <div class="config-tab active" data-tab="profiles" data-i18n="tab_profiles">Profile</div>
+                <div class="config-tab" data-tab="programs" data-i18n="tab_programs">Programy</div>
+                <div class="config-tab" data-tab="tweaki" data-i18n="tab_tweaks">Tweaki</div>
+                <div class="config-tab" data-tab="debloat" data-i18n="tab_debloat">Debloat</div>
+            </div>
+
+            <!-- PROFILES TAB -->
+            <div id="tab-profiles" class="tab-content active">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                    <h2 style="color:var(--text-primary);margin:0;" data-i18n="cfg_select_profile">Wybierz profil</h2>
+                    <button class="btn-primary" onclick="createNewProfile()" style="padding:8px 16px;font-size:var(--fs-sm);" data-i18n="cfg_new_profile">+ Nowy profil</button>
+                </div>
+                <div id="profiles-grid" class="profiles-grid"></div>
+            </div>
+
+            <!-- PROGRAMY TAB (zaznaczanie gotowych programów do profilu / instalacji) -->
+            <div id="tab-programs" class="tab-content">
+                <div style="margin-bottom:16px;">
+                    <h2 style="color:var(--text-primary);margin:0;" data-i18n="tab_programs">Programy</h2>
+                    <p style="color:var(--text-muted);font-size:var(--fs-sm);margin-top:6px;line-height:1.5;" data-i18n="cfg_programs_intro">
+                        Zaznacz gotowe programy z katalogu, które chcesz zainstalować. Aby dodać nowy program do katalogu, przejdź do <a href="manage.html" style="color:var(--accent-blue);">Zarządzania</a>.
+                    </p>
+                </div>
+                <div class="programs-header">
+                    <input type="text" class="programs-search" id="search" data-i18n-placeholder="search_programs_ph" placeholder="Szukaj programów...">
+                    <select class="programs-filter" id="filter-type">
+                        <option value="all" data-i18n="filter_all_types">Wszystkie typy</option>
+                        <option value="installer" data-i18n="filter_installers">Instalatory</option>
+                        <option value="portable" data-i18n="filter_portable">Portable</option>
+                        <option value="script" data-i18n="filter_scripts">Skrypty</option>
+                        <option value="tool" data-i18n="filter_tools">Narzędzia</option>
+                        <option value="other" data-i18n="filter_other">Inne</option>
+                    </select>
+                    <select class="programs-filter" id="filter-category">
+                        <option value="all" data-i18n="filter_all_categories">Wszystkie kategorie</option>
+                    </select>
+                </div>
+                <div class="select-bar">
+                    <input type="checkbox" id="select-all">
+                    <label for="select-all" data-i18n="cfg_select_all">Zaznacz / odznacz wszystkie</label>
+                    <span id="selected-count" style="margin-left:auto;color:var(--text-muted);font-size:var(--fs-sm);" data-i18n="cfg_zero_selected">0 wybranych</span>
+                </div>
+                <div class="programs-list" id="programs-list"></div>
+                <div class="install-panel">
+                    <span class="selected-count" data-i18n="cfg_selected_label">Wybrano:</span> <strong id="install-count">0</strong> <span data-i18n="unit_programs">programów</span>
+                    <input type="text" class="target-dir" id="target-dir" data-i18n-placeholder="cfg_target_dir" placeholder="Folder docelowy (np. C:\Tools)">
+                    <button class="btn-secondary" onclick="openFolder()" data-i18n="cfg_open_folder">📂 Otwórz folder</button>
+                    <button class="btn-primary" onclick="startInstall()" data-i18n="cfg_start_config">Start konfiguracji</button>
+                </div>
+            </div>
+
+            <!-- DRIVERS TAB -->
+            <div id="tab-drivers" class="tab-content system-tool-tab">
+                <div class="tool-tab-heading">
+                    <div>
+                        <h2>Sterowniki</h2>
+                        <p>Znajdź przygotowany zestaw po nazwie urządzenia albo wybierz sprzęt z katalogu.</p>
+                    </div>
+                    <span class="tool-tab-status" id="drivers-data-status">Ładowanie bazy…</span>
+                </div>
+
+                <div class="system-tool-grid">
+                    <section class="system-tool-section driver-search-workspace">
+                        <div class="system-tool-section-heading">
+                            <span class="system-tool-step">01</span>
+                            <div>
+                                <h3>Szybkie wyszukiwanie</h3>
+                                <p>Wpisz producenta, serię albo typ urządzenia.</p>
+                            </div>
+                        </div>
+                        <input
+                            type="search"
+                            id="config-driver-search"
+                            class="system-tool-input"
+                            placeholder="Np. HP Victus 15, NVIDIA, chipset…"
+                            autocomplete="off">
+                        <div id="config-driver-search-section" class="config-driver-results hidden">
+                            <div class="config-driver-results-heading" id="config-driver-results-heading"></div>
+                            <div class="config-driver-results-list"></div>
+                        </div>
+                    </section>
+
+                    <section class="system-tool-section driver-catalog-workspace">
+                        <div class="system-tool-section-heading">
+                            <span class="system-tool-step">02</span>
+                            <div>
+                                <h3>Przeglądaj katalog</h3>
+                                <p>Wybierz kolejno typ, producenta i model.</p>
+                            </div>
+                        </div>
+                        <div class="driver-catalog-fields">
+                            <label>
+                                <span>Typ urządzenia</span>
+                                <select id="config-driver-type" class="system-tool-select">
+                                    <option value="">Wybierz typ…</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span>Producent</span>
+                                <select id="config-driver-brand" class="system-tool-select" disabled>
+                                    <option value="">Wybierz producenta…</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span>Seria lub model</span>
+                                <select id="config-driver-series" class="system-tool-select" disabled>
+                                    <option value="">Wybierz serię/model…</option>
+                                </select>
+                            </label>
+                        </div>
+                        <div id="config-driver-selection" class="system-tool-selection hidden">
+                            <div>
+                                <span>Wybrany zestaw</span>
+                                <strong id="config-driver-selection-name"></strong>
+                                <small id="config-driver-selection-path"></small>
+                            </div>
+                            <div class="system-tool-actions">
+                                <button id="config-driver-open" class="btn-primary">📂 Otwórz folder</button>
+                                <button id="config-driver-copy" class="btn-secondary">Skopiuj ścieżkę</button>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- SETTINGS TAB -->
+            <div id="tab-settings" class="tab-content system-tool-tab">
+                <div class="tool-tab-heading">
+                    <div>
+                        <h2>Ustawienia programów</h2>
+                        <p>Otwieraj przygotowane konfiguracje i kopiuj ich ścieżki bez szukania ich na dysku.</p>
+                    </div>
+                    <span class="tool-tab-status" id="settings-data-status">Ładowanie bazy…</span>
+                </div>
+
+                <div class="settings-workspace">
+                    <section class="settings-browser">
+                        <label class="system-tool-search-label" for="config-settings-search">Wyszukaj ustawienia</label>
+                        <input
+                            type="search"
+                            id="config-settings-search"
+                            class="system-tool-input"
+                            placeholder="Np. Logitech, OBS, przeglądarka…"
+                            autocomplete="off">
+                        <ul id="config-settings-list" class="config-settings-list"></ul>
+                        <p id="config-settings-empty" class="system-tool-empty hidden">Nie znaleziono pasujących ustawień.</p>
+                    </section>
+
+                    <aside class="settings-inspector" id="config-settings-inspector">
+                        <div class="settings-inspector-empty" id="config-settings-placeholder">
+                            <span aria-hidden="true">⚙</span>
+                            <h3>Wybierz ustawienia z listy</h3>
+                            <p>Tutaj zobaczysz ich lokalizację oraz dostępne działania.</p>
+                        </div>
+                        <div id="config-settings-selection" class="hidden">
+                            <span class="settings-inspector-label">Wybrane ustawienia</span>
+                            <h3 id="config-settings-name"></h3>
+                            <div id="config-settings-path" class="settings-inspector-path"></div>
+                            <div class="system-tool-actions">
+                                <button id="config-settings-open" class="btn-primary">📂 Otwórz folder</button>
+                                <button id="config-settings-copy" class="btn-secondary">Skopiuj ścieżkę</button>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+
+            <!-- TWEAKS TAB -->
+            <div id="tab-tweaki" class="tab-content">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                    <h2 style="color:var(--text-primary);margin:0;" data-i18n="cfg_tweaks_title">Tweaki systemowe</h2>
+                    <button class="btn-primary" onclick="editCurrentProfileTweaks()" style="padding:8px 16px;font-size:var(--fs-sm);" data-i18n="cfg_edit_profile_tweaks">✏️ Edytuj tweaki profilu</button>
+                </div>
+                <div style="margin-bottom:10px;color:var(--text-muted);font-size:var(--fs-sm);line-height:1.5;" data-i18n="cfg_tweaks_hint">
+                    ☑ checkbox = wybrane do zastosowania / część profilu.
+                    <span style="color:var(--info);">Niebieski badge "W profilu"</span> = tweak należy do zaznaczonego presetu.
+                    <span style="color:var(--success);">Zielony ● Aktywny</span> = już włączony na tym komputerze.
+                    <span style="color:var(--warn);">Żółty ○ Nieaktywny</span> = wybrany w presecie, ale jeszcze nie zastosowany.
+                </div>
+                <div class="select-bar">
+                    <input type="checkbox" id="select-all-tweaks">
+                    <label for="select-all-tweaks" data-i18n="cfg_select_all">Zaznacz / odznacz wszystkie</label>
+                    <button class="btn-secondary" onclick="scanTweakStates(true)" style="padding:6px 12px;font-size:var(--fs-xs);" data-i18n="cfg_refresh_state">🔄 Odśwież stan</button>
+                    <button class="btn-secondary" id="toggle-removed-btn" onclick="toggleRemoved()" style="padding:6px 12px;font-size:var(--fs-xs);display:none;" data-i18n="cfg_show_removed">👁 Pokaż wycięte</button>
+                    <button class="btn-secondary" id="toggle-active-btn" onclick="toggleActive()" style="padding:6px 12px;font-size:var(--fs-xs);" data-i18n="cfg_hide_active">👁 Ukryj aktywne</button>
+                    <span id="tweaks-scan-status" style="color:var(--text-muted);font-size:var(--fs-sm);" data-i18n="cfg_scan_initial">Stan: nie sprawdzono</span>
+                    <span id="tweaks-count" style="margin-left:auto;color:var(--text-muted);font-size:var(--fs-sm);" data-i18n="cfg_zero_selected">0 wybranych</span>
+                </div>
+                <div id="tweaks-list" class="programs-list"></div>
+                <div class="install-panel">
+                    <span class="selected-count"><span data-i18n="cfg_selected_label">Wybrano:</span> <strong id="tweaks-apply-count">0</strong> <span data-i18n="cfg_to_apply">do zastosowania</span></span>
+                    <span id="tweaks-active-count" style="color:var(--success);font-size:var(--fs-sm);margin-left:12px;" data-i18n="cfg_active_zero">0 już aktywnych</span>
+                    <button class="btn-primary" onclick="applyTweaks()" data-i18n="cfg_apply_selected">Zastosuj wybrane</button>
+                </div>
+            </div>
+
+            <!-- DEBLOAT TAB -->
+            <div id="tab-debloat" class="tab-content">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                    <h2 style="color:var(--text-primary);margin:0;" data-i18n="tab_debloat">Debloat</h2>
+                    <button class="btn-primary" onclick="editCurrentProfileDebloat()" style="padding:8px 16px;font-size:var(--fs-sm);" data-i18n="cfg_edit_profile_debloat">✏️ Edytuj debloat profilu</button>
+                </div>
+                <div style="margin-bottom:10px;color:var(--text-muted);font-size:var(--fs-sm);line-height:1.5;" data-i18n="cfg_debloat_desc">
+                    Usuń wbudowane aplikacje Windows. Usunięcie jest jednokierunkowe — bez cofania.
+                </div>
+                <div class="select-bar">
+                    <input type="checkbox" id="select-all-debloat">
+                    <label for="select-all-debloat" data-i18n="cfg_select_all">Zaznacz / odznacz wszystkie</label>
+                    <button class="btn-secondary" onclick="scanTweakStates(true)" style="padding:6px 12px;font-size:var(--fs-xs);" data-i18n="cfg_refresh_state">🔄 Odśwież stan</button>
+                    <button class="btn-secondary" id="toggle-removed-debloat" onclick="toggleRemovedDebloat()" style="padding:6px 12px;font-size:var(--fs-xs);display:none;" data-i18n="cfg_show_removed">👁 Ukryj usunięte</button>
+                    <span id="debloat-count" style="margin-left:auto;color:var(--text-muted);font-size:var(--fs-sm);" data-i18n="cfg_zero_selected">0 wybranych</span>
+                </div>
+                <div id="debloat-list" class="programs-list"></div>
+                <div class="install-panel">
+                    <span class="selected-count"><span data-i18n="cfg_selected_label">Wybrano:</span> <strong id="debloat-apply-count">0</strong> <span data-i18n="cfg_to_remove">do usunięcia</span></span>
+                    <span id="debloat-active-count" style="color:var(--success);font-size:var(--fs-sm);margin-left:12px;" data-i18n="cfg_active_removed">0 już usuniętych</span>
+                    <button class="btn-primary" onclick="applyDebloat()" data-i18n="cfg_apply_debloat">Zastosuj debloat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Overlay -->
+    <div class="progress-overlay" id="progress-overlay">
+        <div class="progress-box">
+            <h3 style="color:var(--text-primary);margin-bottom:8px;" data-i18n="cfg_progress_title">Instalowanie programów</h3>
+            <p id="progress-status" style="color:var(--text-secondary);font-size:var(--fs-base);" data-i18n="cfg_progress_preparing">Przygotowywanie...</p>
+            <div class="progress">
+                <div class="progress-fill" id="progress-bar"></div>
+            </div>
+            <div class="progress-log" id="progress-log"></div>
+            <div style="display:flex;gap:8px;margin-top:16px;">
+                <button class="btn-secondary" id="progress-cancel" onclick="cancelCurrentOperation()" style="display:none;" data-i18n="cfg_cancel">Anuluj</button>
+                <button class="btn-secondary" id="progress-close" onclick="closeProgress()" style="display:none;" data-i18n="btn_close">Zamknij</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Editor Modal -->
+    <div class="progress-overlay" id="profile-editor-overlay">
+        <div class="progress-box" style="width:600px;max-height:80vh;overflow-y:auto;">
+            <h3 id="profile-editor-title" style="color:var(--text-primary);margin-bottom:16px;" data-i18n="cfg_profile_editor">Edytuj profil</h3>
+            <div style="margin-bottom:12px;">
+                <label style="color:var(--text-secondary);font-size:var(--fs-sm);display:block;margin-bottom:4px;" data-i18n="cfg_profile_id">ID profilu</label>
+                <input type="text" id="profile-id" class="programs-search" style="width:100%;" data-i18n-placeholder="cfg_profile_id_ph" placeholder="np. my_custom_profile">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="color:var(--text-secondary);font-size:var(--fs-sm);display:block;margin-bottom:4px;" data-i18n="cfg_profile_name">Nazwa</label>
+                <input type="text" id="profile-name" class="programs-search" style="width:100%;" data-i18n-placeholder="cfg_profile_name_ph" placeholder="np. Mój profil">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="color:var(--text-secondary);font-size:var(--fs-sm);display:block;margin-bottom:4px;" data-i18n="cfg_profile_desc">Opis</label>
+                <input type="text" id="profile-desc" class="programs-search" style="width:100%;" data-i18n-placeholder="cfg_profile_desc_ph" placeholder="np. Moje ulubione programy">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="color:var(--text-secondary);font-size:var(--fs-sm);display:block;margin-bottom:4px;" data-i18n="cfg_profile_icon">Ikona (emoji)</label>
+                <input type="text" id="profile-icon" class="programs-search" style="width:60px;" placeholder="📦" value="📦">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="color:var(--text-secondary);font-size:var(--fs-sm);display:block;margin-bottom:8px;" data-i18n="cfg_profile_programs">Programy w profilu:</label>
+                <input type="text" id="profile-program-search" class="programs-search" style="width:100%;margin-bottom:8px;" data-i18n-placeholder="search_programs_ph" placeholder="Szukaj programów..." oninput="filterProfilePrograms()">
+                <div id="profile-programs-list" style="max-height:250px;overflow-y:auto;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--border-radius-md);padding:8px;"></div>
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="color:var(--text-secondary);font-size:var(--fs-sm);display:block;margin-bottom:8px;" data-i18n="cfg_profile_tweaks">Tweaki w profilu:</label>
+                <input type="text" id="profile-tweak-search" class="programs-search" style="width:100%;margin-bottom:8px;" data-i18n-placeholder="cfg_search_tweaks_ph" placeholder="Szukaj tweaków..." oninput="filterProfileTweaks()">
+                <div id="profile-tweaks-list" style="max-height:250px;overflow-y:auto;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--border-radius-md);padding:8px;"></div>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+                <button class="btn-secondary" onclick="closeProfileEditor()" data-i18n="btn_cancel">Anuluj</button>
+                <button class="btn-primary" onclick="saveProfile()" data-i18n="cfg_save_profile">Zapisz profil</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tweak Profile Editor Modal -->
+    <div class="progress-overlay" id="tweak-profile-editor-overlay">
+        <div class="progress-box" style="width:760px;max-height:84vh;overflow-y:auto;">
+            <h3 id="tweak-profile-editor-title" style="color:var(--text-primary);margin-bottom:8px;" data-i18n="cfg_edit_profile_tweaks">Edytuj tweaki profilu</h3>
+            <p id="tweak-profile-editor-hint" style="color:var(--text-muted);font-size:var(--fs-sm);margin-bottom:14px;line-height:1.5;" data-i18n="cfg_tweak_profile_editor_hint">
+                Ten popup edytuje tylko tweaki zaznaczonego profilu. Programy w profilu zostają bez zmian.
+            </p>
+            <div class="select-bar" style="margin-bottom:10px;">
+                <input type="text" id="tweak-profile-search" class="programs-search" style="flex:1;" data-i18n-placeholder="cfg_search_tweaks_ph" placeholder="Szukaj tweaków..." oninput="filterTweakProfileEditor()">
+                <button class="btn-secondary" onclick="toggleAllVisibleTweakProfileEditor(true)" style="padding:6px 12px;font-size:var(--fs-xs);" data-i18n="cfg_select_visible">Zaznacz widoczne</button>
+                <button class="btn-secondary" onclick="toggleAllVisibleTweakProfileEditor(false)" style="padding:6px 12px;font-size:var(--fs-xs);" data-i18n="cfg_unselect_visible">Odznacz widoczne</button>
+                <span id="tweak-profile-count" style="color:var(--text-muted);font-size:var(--fs-sm);margin-left:auto;">0 wybranych</span>
+            </div>
+            <div id="tweak-profile-list" style="max-height:52vh;overflow-y:auto;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--border-radius-md);padding:8px;"></div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
+                <button class="btn-secondary" onclick="closeTweakProfileEditor()" data-i18n="btn_cancel">Anuluj</button>
+                <button class="btn-primary" onclick="saveTweakProfileEditor()" data-i18n="cfg_save_profile">Zapisz profil</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/i18n/translations.js"></script>
+    <script src="js/i18n/runtime.js"></script>
+    <script src="js/i18n/tweak-translations.js"></script>
+    <script src="js/pages/configurator/core.js"></script>
+    <script src="js/pages/configurator/profiles.js"></script>
+    <script src="js/pages/configurator/programs.js"></script>
+    <script src="js/pages/configurator/install.js"></script>
+    <script src="js/pages/configurator/tweaks.js"></script>
+    <script src="js/pages/configurator/init.js"></script>
+    
+</body>
+</html>

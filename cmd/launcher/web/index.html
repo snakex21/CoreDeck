@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pl" data-i18n-lang>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CoreDeck — Portable Windows toolkit and launcher">
+    <title data-i18n="title">CoreDeck</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="css/app.css">
+</head>
+
+<body>
+
+    <!-- Górny, przyklejony pasek -->
+    <header class="main-header">
+        <div class="header-brand">
+            <h1 data-i18n="brand">CoreDeck</h1>
+            <span class="header-subtitle" data-i18n="subtitle">Windows Toolkit &amp; Launcher</span>
+        </div>
+        <div class="header-controls">
+            <!-- Theme Toggle -->
+            <button id="theme-toggle-btn" class="btn theme-btn" title="Przełącz tryb ciemny/jasny" data-i18n-title="theme_toggle">
+                <span class="theme-icon">🌙</span>
+            </button>
+            <!-- Language Selector -->
+            <select id="lang-select" class="btn lang-select" aria-label="Wybierz język">
+                <option value="pl">🇵🇱 PL</option>
+                <option value="en">🇬🇧 EN</option>
+                <option value="de">🇩🇪 DE</option>
+                <option value="fr">🇫🇷 FR</option>
+                <option value="es">🇪🇸 ES</option>
+                <option value="it">🇮🇹 IT</option>
+                <option value="pt">🇵🇹 PT</option>
+                <option value="ru">🇷🇺 RU</option>
+                <option value="zh">🇨🇳 ZH</option>
+                <option value="ja">🇯🇵 JA</option>
+                <option value="ko">🇰🇷 KO</option>
+                <option value="tr">🇹🇷 TR</option>
+                <option value="nl">🇳🇱 NL</option>
+                <option value="sv">🇸🇪 SV</option>
+                <option value="cs">🇨🇿 CS</option>
+            </select>
+            <!-- Search Mode Toggle -->
+            <div class="search-mode-container">
+                <div class="search-mode-toggle">
+                    <button class="mode-btn active" data-mode="normal" title="Szukaj po nazwie" data-i18n-title="mode_name_title" aria-pressed="true">
+                        <span class="mode-icon">🔍</span>
+                        <span class="mode-label" data-i18n="search_name">Nazwa</span>
+                    </button>
+                    <button class="mode-btn" data-mode="llm" title="LLM — opisz czego szukasz" data-i18n-title="mode_ai_title" aria-pressed="false">
+                        <span class="mode-icon">✨</span>
+                        <span class="mode-label" data-i18n="search_ai">Szukaj</span>
+                    </button>
+                </div>
+                <div class="search-input-wrapper">
+                    <input type="search" id="search-box" placeholder="Szukaj aplikacji..." autocomplete="off" data-i18n-placeholder="search_placeholder">
+                    <div class="ai-status" id="ai-status">
+                        <span class="status-loading hidden">
+                            <span class="spinner"></span> AI...
+                        </span>
+                        <span class="status-ready hidden">✨</span>
+                        <span class="status-error hidden">⚠️</span>
+                    </div>
+                </div>
+            </div>
+            <button id="manage-btn" class="btn btn-secondary" onclick="window.location.href='manage.html'">🛠️ <span data-i18n="manage">Zarządzanie</span></button>
+            <button id="config-btn" class="btn btn-secondary" onclick="window.location.href='configurator.html'">⚙️ <span data-i18n="config">1 Konfiguracja</span></button>
+            <button id="knowledge-btn" class="btn btn-secondary" onclick="window.location.href='knowledge.html'">📚 <span data-i18n="knowledge">Baza Wiedzy</span></button>
+            <details class="header-nav-menu">
+                <summary class="btn btn-secondary">🧰 System</summary>
+                <div class="header-nav-menu-popover">
+                    <a href="drivers.html" class="header-nav-menu-link">🧩 <span data-i18n="tab_drivers">Sterowniki</span></a>
+                    <a href="settings.html" class="header-nav-menu-link">⚙ <span data-i18n="tab_settings">Ustawienia</span></a>
+                    <button id="help-btn" class="header-nav-menu-link help-btn">? <span data-i18n="help">Pomoc</span></button>
+                </div>
+            </details>
+        </div>
+    </header>
+
+    <!-- Główny kontener -->
+    <div class="main-container">
+        <!-- Panel boczny -->
+        <aside class="sidebar">
+            <!-- Statystyki -->
+            <div class="sidebar-section stats-section">
+                <div class="stats-container">
+                    <div class="stat-item">
+                        <span class="stat-number" id="stats-total">0</span>
+                        <span class="stat-label" id="stats-programs-label" data-i18n="stats_programs">Programów</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="stats-categories">0</span>
+                        <span class="stat-label" data-i18n="stats_categories">Kategorii</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historia ostatnio używanych -->
+            <div class="sidebar-section history-section hidden" id="history-section">
+                <h2>🕐 <span data-i18n="recently_used">Ostatnio używane</span></h2>
+                <ul id="history-list"></ul>
+            </div>
+
+            <div class="sidebar-section">
+                <h2 data-i18n="applications">Aplikacje</h2>
+                <ul id="category-list"></ul>
+            </div>
+
+            <div class="sidebar-section driver-finder hidden" aria-hidden="true">
+                <h2 data-i18n="drivers">Sterowniki</h2>
+
+                <input type="search" id="driver-search-box" class="driver-select" placeholder="Szybkie wyszukiwanie..." data-i18n-placeholder="driver_search_placeholder">
+
+                <div class="driver-divider" data-i18n="driver_or_select">lub wybierz z menu:</div>
+
+                <select id="driver-type" class="driver-select">
+                    <option value="" data-i18n="driver_select_type">Wybierz typ...</option>
+                </select>
+                <select id="driver-brand" class="driver-select" disabled>
+                    <option value="" data-i18n="driver_select_brand">Wybierz producenta...</option>
+                </select>
+                <select id="driver-series" class="driver-select" disabled>
+                    <option value="" data-i18n="driver_select_series">Wybierz serię/model...</option>
+                </select>
+
+                <div id="driver-result-container" class="driver-result hidden">
+                    <p data-i18n="driver_selected_folder">Wybrany folder ze sterownikami:</p>
+                    <button id="driver-open-btn" class="btn open-folder-btn" data-i18n="open_folder">
+                        📂 Otwórz folder
+                    </button>
+                    <button id="driver-copy-path-btn" class="btn copy-folder-btn" data-i18n="driver_copy_path">
+                        Skopiuj ścieżkę
+                    </button>
+                </div>
+            </div>
+
+            <!-- Ustawienia -->
+            <div class="sidebar-section settings-finder hidden" aria-hidden="true">
+                <h2 data-i18n="settings">Ustawienia</h2>
+                <ul id="settings-list" class="settings-list"></ul>
+
+                <div id="settings-result-container" class="settings-result hidden">
+                    <p data-i18n="settings_selected_folder">Wybrany folder ustawień:</p>
+                    <div class="settings-result-name" id="settings-selected-name"></div>
+                    <div class="settings-result-path" id="settings-selected-path"></div>
+                    <button id="settings-open-btn" class="btn open-folder-btn" data-i18n="settings_open_folder">📂 Otwórz folder</button>
+                    <button id="settings-copy-btn" class="btn copy-folder-btn" data-i18n="copy_path">Skopiuj ścieżkę</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Główny obszar treści -->
+        <main class="content-area">
+            <div id="main-view">
+                <!-- AI Search Results -->
+                <div id="ai-search-results" class="search-results-section ai-results hidden">
+                    <div class="results-header">
+                        <h3 class="results-title">
+                            <span class="icon">🤖</span>
+                            <span id="ai-results-count">Wyniki AI</span>
+                        </h3>
+                        <button class="btn-clear-search" id="clear-ai-search" aria-label="Wyczyść wyniki AI" data-i18n-title="clear_results">✕</button>
+                    </div>
+                    <div class="ai-search-results-container"></div>
+                </div>
+
+                <!-- Driver Search Results -->
+                <div id="driver-search-section" class="search-results-section hidden">
+                    <h3 class="search-section-title"></h3>
+                    <div class="driver-search-results"></div>
+                </div>
+
+                <!-- Programs Grid -->
+                <section id="app-container"></section>
+            </div>
+
+            <div id="detail-view" class="hidden">
+                <header class="view-header">
+                    <button class="btn back-btn">&larr; <span data-i18n="back">Wróć do listy</span></button>
+                </header>
+                <section id="detail-content" class="details-page"></section>
+            </div>
+
+            <div id="workflow-view" class="hidden">
+                <header class="view-header">
+                    <button class="btn back-btn">&larr; <span data-i18n="back">Wróć do listy</span></button>
+                </header>
+                <section id="workflow-content"></section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Template -->
+    <template id="program-card-template">
+        <div class="program-card">
+            <img src="" alt="Ikona programu" class="program-icon" data-i18n-alt="program_icon_alt">
+            <div class="program-details">
+                <h3 class="program-title"></h3>
+                <p class="program-description"></p>
+                <div class="buttons"></div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Modal -->
+    <div class="modal-overlay hidden" id="help-modal">
+        <div class="modal-content">
+            <button id="close-modal-btn" class="close-btn" aria-label="Zamknij pomoc" data-i18n-aria="close_help">&times;</button>
+            <h2 data-i18n="help_title">Jak korzystać z launchera?</h2>
+
+            <div class="modal-section">
+                <h3 data-i18n="help_search_title">🔍 Dwa tryby wyszukiwania:</h3>
+                <ul>
+                    <li><strong>🔍 <span data-i18n="search_name">Nazwa</span>:</strong> <span data-i18n="help_name_desc">Wpisz nazwę programu (np. "crystaldisk")</span></li>
+                    <li><strong>✨ <span data-i18n="search_ai">Szukaj</span>:</strong> <span data-i18n="help_ai_desc">Opisz czego szukasz po polsku (np. "odzyskiwanie plików", "monitoring GPU")</span></li>
+                </ul>
+            </div>
+
+            <div class="modal-section">
+                <h3 data-i18n="help_sections_title">📂 Sekcje:</h3>
+                <ul>
+                    <li><strong data-i18n="applications">Aplikacje</strong>: <span data-i18n="help_apps_desc">Główna lista. Kliknij kategorię lub użyj wyszukiwarki.</span></li>
+                    <li><strong data-i18n="drivers">Sterowniki</strong>: <span data-i18n="help_drivers_desc">Lista na dole lewego panelu.</span></li>
+                </ul>
+            </div>
+
+            <div class="modal-section">
+                <h3 data-i18n="help_features_title">⚡ Funkcje:</h3>
+                <ul>
+                    <li><strong data-i18n="open_folder">Otwórz folder</strong>: <span data-i18n="help_open_desc">Otwiera folder bezpośrednio w Eksploratorze</span></li>
+                    <li><strong data-i18n="copy_path">Skopiuj ścieżkę</strong>: <span data-i18n="help_copy_desc">Kopiuje ścieżkę do schowka</span></li>
+                    <li><strong data-i18n="recently_used">Ostatnio używane</strong>: <span data-i18n="help_history_desc">Ostatnio używane programy w panelu bocznym</span></li>
+                    <li><strong data-i18n="theme_toggle">Przełącz tryb ciemny/jasny</strong>: <span data-i18n="help_theme_desc">Przełącznik w górnym pasku</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/i18n/translations.js"></script>
+    <script src="js/i18n/runtime.js"></script>
+    <script src="js/pages/launcher.js"></script>
+    <script src="js/shared/ai-helper.js"></script>
+</body>
+
+</html>

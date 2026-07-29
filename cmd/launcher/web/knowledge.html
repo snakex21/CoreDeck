@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baza Wiedzy — CoreDeck</title>
+    <link rel="stylesheet" href="css/app.css">
+    <link rel="stylesheet" href="css/pages/knowledge.css">
+</head>
+<body>
+    <header class="subpage-header">
+        <div class="header-brand">
+            <h1 data-i18n="kb_title">Baza Wiedzy</h1>
+            <span class="header-subtitle" data-i18n="title">CoreDeck</span>
+        </div>
+        <div class="header-controls">
+            <a href="index.html" class="subpage-back-btn" data-i18n="back_to_launcher">← Wróć do launchera</a>
+            <a href="manage.html" class="subpage-back-btn" data-i18n="nav_manage">🛠️ Zarządzanie</a>
+            <select id="lang-select" class="btn lang-select" aria-label="Language">
+                <option value="pl">🇵🇱 PL</option>
+                <option value="en">🇬🇧 EN</option>
+                <option value="de">🇩🇪 DE</option>
+                <option value="fr">🇫🇷 FR</option>
+                <option value="es">🇪🇸 ES</option>
+                <option value="it">🇮🇹 IT</option>
+                <option value="pt">🇵🇹 PT</option>
+                <option value="ru">🇷🇺 RU</option>
+                <option value="zh">🇨🇳 ZH</option>
+                <option value="ja">🇯🇵 JA</option>
+                <option value="ko">🇰🇷 KO</option>
+                <option value="tr">🇹🇷 TR</option>
+                <option value="nl">🇳🇱 NL</option>
+                <option value="sv">🇸🇪 SV</option>
+                <option value="cs">🇨🇿 CS</option>
+            </select>
+            <button id="theme-toggle-btn" class="btn theme-btn" title="Przełącz tryb ciemny/jasny" data-i18n-title="toggle_theme_title">
+                <span class="theme-icon">🌙</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="kb-container">
+        <!-- Hero -->
+        <div class="kb-hero">
+            <div class="kb-hero-copy">
+                <h2 data-i18n="kb_hero_title">📚 Baza Wiedzy</h2>
+                <p data-i18n="kb_hero_desc">Twoja kolekcja linków i zasobów. Kliknij kategorię lub szukaj.</p>
+            </div>
+            <div class="kb-search-wrap">
+                <span class="kb-search-icon">🔍</span>
+                <input type="search" id="kb-search" class="kb-search" placeholder="Szukaj po nazwie, tagu, kategorii..." data-i18n-placeholder="kb_search_ph">
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="kb-stats" id="kb-stats"></div>
+
+        <section class="kb-advisor" id="kb-advisor" aria-labelledby="kb-advisor-title">
+            <div class="kb-advisor-head">
+                <div class="kb-advisor-mark">✦</div>
+                <div class="kb-advisor-copy">
+                    <strong id="kb-advisor-title">Doradca stron</strong>
+                    <span>Poleca wyłącznie linki, które są już w Twojej Bazie Wiedzy.</span>
+                </div>
+                <button type="button" class="kb-advisor-toggle" id="kb-advisor-toggle" aria-expanded="false">Zapytaj doradcę</button>
+            </div>
+            <div class="kb-advisor-panel" id="kb-advisor-panel">
+                <form class="kb-advisor-form" id="kb-advisor-form">
+                    <input class="kb-advisor-input" id="kb-advisor-input" type="text" maxlength="500" placeholder="Np. szukam strony do darmowej nauki Pythona" autocomplete="off">
+                    <button class="kb-advisor-submit" id="kb-advisor-submit" type="submit">Zapytaj</button>
+                </form>
+                <div class="kb-advisor-results" id="kb-advisor-results" aria-live="polite"></div>
+            </div>
+        </section>
+
+        <!-- Category grid (main view) -->
+        <div id="kb-categories-view">
+            <div id="kb-group-header"></div>
+            <div class="kb-cat-grid" id="kb-cat-grid"></div>
+        </div>
+
+        <!-- Category detail (when clicked) -->
+        <div id="kb-detail-view" class="kb-detail">
+            <!-- Quick tabs -->
+            <div class="kb-tabs" id="kb-tabs"></div>
+            <div class="kb-detail-header">
+                <button class="kb-back-btn" onclick="backFromCategory()" data-i18n="kb_back_categories">← Wróć do kategorii</button>
+                <div class="kb-detail-title" id="kb-detail-title"></div>
+                <div style="flex:1"></div>
+                <button class="kb-review-btn" onclick="startCategoryReview()" title="Sprawdź do 50 linków z tej kategorii w stałej kolejce">🩺 Sprawdź linki</button>
+                <div class="kb-view-toggle">
+                    <button class="kb-view-btn active" id="kb-view-list" onclick="setView('list')" data-i18n="kb_view_list">📋 Lista</button>
+                    <button class="kb-view-btn" id="kb-view-grid" onclick="setView('grid')" data-i18n="kb_view_grid">🔲 Kafelki</button>
+                </div>
+            </div>
+            <section id="kb-review-panel" class="kb-review-panel" aria-live="polite"></section>
+            <div class="kb-content" id="kb-links"></div>
+        </div>
+
+        <!-- Search results -->
+        <div id="kb-search-view" class="kb-search-results">
+            <div id="kb-search-content"></div>
+        </div>
+
+        <!-- Empty state -->
+        <div id="kb-empty" class="kb-empty" style="display:none;">
+            <div class="kb-empty-icon">📚</div>
+            <div class="kb-empty-title" data-i18n="kb_empty_title">Baza jest pusta</div>
+            <div class="kb-empty-text">
+                Dodaj linki w <a href="manage.html">Zarządzaniu</a> → Baza Wiedzy
+            </div>
+        </div>
+    </div>
+
+    <script src="js/i18n/translations.js"></script>
+    <script src="js/i18n/runtime.js"></script>
+    <script src="js/pages/knowledge.js"></script>
+    <script src="js/pages/knowledge-advisor.js"></script>
+</body>
+</html>

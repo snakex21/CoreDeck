@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <base href="/cmd/launcher/web/">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zarządzanie — Centrum Narzędzi</title>
+    <link rel="stylesheet" href="css/app.css">
+    <link rel="stylesheet" href="css/pages/manage.css">
+</head>
+<body>
+    <!-- ===== Shared subpage header ===== -->
+    <header class="subpage-header">
+        <div class="header-brand">
+            <h1 data-i18n="mgmt_title">Centrum Narzędzi</h1>
+            <span class="header-subtitle" data-i18n="mgmt_subtitle">Zarządzanie</span>
+        </div>
+        <div class="header-controls">
+            <a href="index.html" class="subpage-back-btn" data-i18n="back_to_launcher">← Wróć do launchera</a>
+            <select id="lang-select" class="btn lang-select" aria-label="Language">
+                <option value="pl">🇵🇱 PL</option>
+                <option value="en">🇬🇧 EN</option>
+                <option value="de">🇩🇪 DE</option>
+                <option value="fr">🇫🇷 FR</option>
+                <option value="es">🇪🇸 ES</option>
+                <option value="it">🇮🇹 IT</option>
+                <option value="pt">🇵🇹 PT</option>
+                <option value="ru">🇷🇺 RU</option>
+                <option value="zh">🇨🇳 ZH</option>
+                <option value="ja">🇯🇵 JA</option>
+                <option value="ko">🇰🇷 KO</option>
+                <option value="tr">🇹🇷 TR</option>
+                <option value="nl">🇳🇱 NL</option>
+                <option value="sv">🇸🇪 SV</option>
+                <option value="cs">🇨🇿 CS</option>
+            </select>
+            <button id="theme-toggle-btn" class="btn theme-btn" data-i18n-title="toggle_theme_title" title="Przełącz tryb ciemny/jasny">
+                <span class="theme-icon">🌙</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="app">
+        <!-- ===== Sidebar ===== -->
+        <aside class="side">
+            <div class="side-head">
+                <!-- data-i18n goes on the label span, NOT on the button:
+                     applyTranslations() in i18n.js replaces the textContent of
+                     every [data-i18n] element, which silently deleted the
+                     nested .seg-count pills (they never rendered). -->
+                <div class="segmented" role="tablist">
+                    <button class="seg active" data-tab="programs" role="tab">
+                        <span data-i18n="tab_programs">Programy</span>
+                        <span class="seg-count" id="seg-count-programs">0</span>
+                    </button>
+                    <button class="seg" data-tab="drivers" role="tab">
+                        <span data-i18n="tab_drivers">Sterowniki</span>
+                        <span class="seg-count" id="seg-count-drivers">0</span>
+                    </button>
+                    <button class="seg" data-tab="settings" role="tab">
+                        <span data-i18n="tab_settings">Ustawienia</span>
+                        <span class="seg-count" id="seg-count-settings">0</span>
+                    </button>
+                    <button class="seg" data-tab="knowledge" role="tab">
+                        <span data-i18n="tab_knowledge">Baza Wiedzy</span>
+                        <span class="seg-count" id="seg-count-knowledge">0</span>
+                    </button>
+                    <button class="seg" data-tab="pages" role="tab">
+                        <span data-i18n="tab_custom_pages">Własne Strony</span>
+                        <span class="seg-count" id="seg-count-pages">0</span>
+                    </button>
+                    <button class="seg" data-tab="import-export" role="tab">
+                        <span data-i18n="tab_import_export">Import/Export</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="stats">
+                <div class="stat">
+                    <span class="stat-label" data-i18n="tab_programs">Programy</span>
+                    <span class="stat-value" id="stat-programs">—</span>
+                    <span class="stat-sub" id="stat-categories-sub">— kategorii</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label" data-i18n="tab_drivers">Sterowniki</span>
+                    <span class="stat-value" id="stat-driver-types">—</span>
+                    <span class="stat-sub" id="stat-driver-series-sub">— serii</span>
+                </div>
+            </div>
+
+            <div class="side-foot">
+                <div class="foot-hint" data-i18n="sidebar_hint">Kliknij program, żeby edytować. Dodaj nowy przyciskiem wyżej.</div>
+            </div>
+        </aside>
+
+        <!-- ===== Main ===== -->
+        <main class="main">
+            <!-- ===== Toolbar: Programs ===== -->
+            <div class="toolbar" id="toolbar-programs">
+                <div class="search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="search" data-i18n-placeholder="search_programs_ph" placeholder="Szukaj w programach..." />
+                </div>
+                <select class="filter-select" id="filter-type">
+                    <option value="all" data-i18n="filter_all_types">Wszystkie typy</option>
+                    <option value="installer" data-i18n="filter_installers">Instalatory</option>
+                    <option value="portable" data-i18n="filter_portable">Portable</option>
+                    <option value="script" data-i18n="filter_scripts">Skrypty</option>
+                    <option value="tool" data-i18n="filter_tools">Narzędzia</option>
+                    <option value="addon" data-i18n="filter_addons">Dodatki</option>
+                    <option value="collection" data-i18n="filter_collections">Kolekcje</option>
+                    <option value="other" data-i18n="filter_other">Inne</option>
+                </select>
+                <select class="filter-select" id="filter-category">
+                    <option value="all" data-i18n="filter_all_cats">Wszystkie kategorie</option>
+                </select>
+                <button class="btn btn-primary" onclick="openAddProgram()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span data-i18n="btn_new_program">Nowy program</span>
+                </button>
+            </div>
+
+            <!-- ===== Toolbar: Drivers ===== -->
+            <div class="toolbar" id="toolbar-drivers" style="display:none;">
+                <div class="search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="drivers-search" data-i18n-placeholder="search_drivers_ph" placeholder="Szukaj typ, producenta, serii..." />
+                </div>
+                <div style="flex:1"></div>
+                <button class="btn btn-secondary" onclick="openDriverAddType()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span data-i18n="btn_type">Typ</span>
+                </button>
+                <button class="btn btn-secondary" onclick="openDriverAddBrand()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span data-i18n="btn_brand">Producent</span>
+                </button>
+                <button class="btn btn-primary" onclick="openDriverAddSeries()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span data-i18n="btn_series_model">Seria / model</span>
+                </button>
+            </div>
+
+            <!-- ===== Toolbar: Settings ===== -->
+            <div class="toolbar" id="toolbar-settings" style="display:none;">
+                <div class="search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="settings-search" data-i18n-placeholder="search_settings_ph" placeholder="Szukaj ustawień..." />
+                </div>
+                <div style="flex:1"></div>
+                <button class="btn btn-primary" onclick="openAddSetting()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span data-i18n="btn_new_setting">Nowe ustawienie</span>
+                </button>
+            </div>
+
+            <!-- ===== Toolbar: Knowledge ===== -->
+            <div class="toolbar" id="toolbar-knowledge" style="display:none;">
+                <div class="search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="knowledge-search-manage" data-i18n-placeholder="search_knowledge_ph" placeholder="Szukaj linków..." />
+                </div>
+                <div style="flex:1"></div>
+                <button class="btn btn-secondary" onclick="openAddKnowledgeCategory()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span data-i18n="btn_category">Kategoria</span>
+                </button>
+                <button class="btn btn-primary" onclick="openAddKnowledgeLink()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span data-i18n="btn_new_link">Nowy link</span>
+                </button>
+            </div>
+
+            <!-- ===== Toolbar: Pages ===== -->
+            <div class="toolbar" id="toolbar-pages" style="display:none;">
+                <div class="search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="pages-search-manage" data-i18n-placeholder="search_pages_ph" placeholder="Szukaj stron..." />
+                </div>
+                <div style="flex:1"></div>
+                <button class="btn btn-primary" onclick="openAddPage()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span data-i18n="btn_new_page">Nowa strona</span>
+                </button>
+            </div>
+
+            <!-- ===== Workspace ===== -->
+            <div class="workspace">
+                <!-- Programs pane -->
+                <div id="pane-programs" class="tab-pane active">
+                    <div class="list" id="programs-list"></div>
+                </div>
+
+                <!-- Drivers pane -->
+                <div id="pane-drivers" class="tab-pane">
+                    <div class="drv-split">
+                        <aside class="drv-types" id="drivers-types-list"></aside>
+                        <section class="drv-detail" id="drivers-detail"></section>
+                    </div>
+                </div>
+
+                <!-- Settings pane -->
+                <div id="pane-settings" class="tab-pane">
+                    <div class="list" id="settings-list-manage"></div>
+                </div>
+
+                <!-- Knowledge pane -->
+                <div id="pane-knowledge" class="tab-pane">
+                    <div class="list" id="knowledge-list-manage"></div>
+                </div>
+
+                <!-- Pages pane -->
+                <div id="pane-pages" class="tab-pane">
+                    <div class="list" id="pages-list-manage"></div>
+                </div>
+
+                <!-- Import/Export pane -->
+                <div id="pane-import-export" class="tab-pane">
+                    <div class="impex-container">
+                        <div class="impex-tabs">
+                            <button class="impex-tab active" data-impex-tab="export" data-i18n="impex_export">Eksport</button>
+                            <button class="impex-tab" data-impex-tab="import" data-i18n="impex_import">Import</button>
+                            <button class="impex-tab" data-impex-tab="backups" data-i18n="impex_backups">Backupy</button>
+                        </div>
+                        <div id="impex-export-pane" class="impex-pane active"></div>
+                        <div id="impex-import-pane" class="impex-pane"></div>
+                        <div id="impex-backups-pane" class="impex-pane"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ===== Program editor ===== -->
+    <div class="modal-back" id="program-editor-overlay">
+        <div class="modal">
+            <div class="modal-head">
+                <h3 class="modal-title" id="program-editor-title" data-i18n="editor_add_program">Dodaj program</h3>
+                <p class="modal-sub" data-i18n="editor_sub_programs">Zmiany zapisują się do programs.json obok launchera.</p>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <label class="form-label" for="prog-name" data-i18n="label_name_star">Nazwa *</label>
+                    <input type="text" id="prog-name" class="form-input" placeholder="np. Firefox" />
+                </div>
+                <div class="form-row">
+                    <label class="form-label" for="prog-desc" data-i18n="label_desc">Opis</label>
+                    <input type="text" id="prog-desc" class="form-input" placeholder="np. Przeglądarka internetowa" />
+                </div>
+                <div class="form-row two">
+                    <div>
+                        <label class="form-label" for="prog-category" data-i18n="label_category">Kategoria</label>
+                        <input type="text" id="prog-category" class="form-input" placeholder="np. Internet" />
+                    </div>
+                    <div>
+                        <label class="form-label" data-i18n="label_icon">Ikona</label>
+                        <div class="icon-picker">
+                            <div class="icon-preview" id="prog-icon-preview">📦</div>
+                            <div>
+                                <div class="icon-picker-actions">
+                                    <button class="btn btn-secondary btn-sm" type="button" onclick="pickProgramIcon()" data-i18n="btn_pick_image">Wybierz obrazek</button>
+                                    <button class="btn btn-secondary btn-sm" type="button" onclick="clearProgramIcon()" data-i18n="btn_clear">Wyczyść</button>
+                                </div>
+                                <div class="icon-picker-note" id="prog-icon-note">PNG / JPG / SVG / WebP</div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="prog-icon" />
+                        <input type="file" id="prog-icon-file" accept="image/png,image/jpeg,image/svg+xml,image/webp,image/gif,image/bmp" style="display:none;" />
+                    </div>
+                </div>
+                <div class="form-row two">
+                    <div>
+                        <label class="form-label" for="prog-type" data-i18n="label_type">Typ</label>
+                        <select id="prog-type" class="form-select">
+                            <option value="folder">folder</option>
+                            <option value="link">link</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label" for="prog-install-type" data-i18n="label_install_type">Typ instalacji</label>
+                        <select id="prog-install-type" class="form-select">
+                            <option value="portable">portable</option>
+                            <option value="installer">installer</option>
+                            <option value="script">script</option>
+                            <option value="tool">tool</option>
+                            <option value="addon">addon</option>
+                            <option value="collection">collection</option>
+                            <option value="other">other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label class="form-label" for="prog-folder" data-i18n="label_source_folder">Folder źródłowy (folderPath)</label>
+                    <input type="text" id="prog-folder" class="form-input" placeholder="np. Programy\Firefox" />
+                </div>
+                <div class="form-row two">
+                    <div>
+                        <label class="form-label" for="prog-installer-file">Konkretny instalator (installerFile)</label>
+                        <input type="text" id="prog-installer-file" class="form-input" placeholder="np. setup.exe / app.msi" />
+                    </div>
+                    <div>
+                        <label class="form-label" for="prog-installer-args">Argumenty instalatora</label>
+                        <input type="text" id="prog-installer-args" class="form-input" placeholder="np. /S /quiet" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label class="form-check"><input type="checkbox" id="prog-run-from-temp" /> Kopiuj instalator do TEMP, uruchom kopię i usuń po zakończeniu</label>
+                </div>
+                <div class="form-row two">
+                    <div>
+                        <label class="form-label" for="prog-localpath" data-i18n="label_local_path">Ścieżka lokalna</label>
+                        <input type="text" id="prog-localpath" class="form-input" placeholder="../folder/plik.html" />
+                    </div>
+                    <div>
+                        <label class="form-label" for="prog-externalurl" data-i18n="label_url">URL</label>
+                        <input type="text" id="prog-externalurl" class="form-input" placeholder="https://..." />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label class="form-label" for="prog-details" data-i18n="label_details">Szczegóły (HTML)</label>
+                    <textarea id="prog-details" class="form-textarea" placeholder="Opcjonalny opis HTML..."></textarea>
+                </div>
+                <div class="form-row">
+                    <label class="form-label" for="prog-tags" data-i18n="label_tags">Tagi</label>
+                    <input type="text" id="prog-tags" class="form-input" placeholder="browser, web, internet" />
+                </div>
+                <div class="form-row">
+                    <label class="form-label" data-i18n="label_profiles">Profile</label>
+                    <div class="form-checks" id="prog-profiles">
+                        <label class="form-check"><input type="checkbox" class="prog-profile-cb" value="common" /> common</label>
+                        <label class="form-check"><input type="checkbox" class="prog-profile-cb" value="laptop" /> laptop</label>
+                        <label class="form-check"><input type="checkbox" class="prog-profile-cb" value="ai_box" /> ai_box</label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label class="form-label" data-i18n="label_versions">Wersje / warianty</label>
+                    <p class="form-hint" style="margin:0 0 8px;" data-i18n="hint_variants">Warianty instalacji (np. 64-bit / 32-bit, starsza / nowsza).</p>
+                    <div class="versions-list" id="prog-versions-list"></div>
+                    <button class="btn btn-secondary btn-sm" type="button" onclick="addVersionRow()" style="margin-top:var(--space-2);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        <span data-i18n="btn_add_version">Dodaj wersję</span>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-secondary" onclick="closeProgramEditor()" data-i18n="btn_cancel">Anuluj</button>
+                <button class="btn btn-primary" onclick="saveNewProgram()" data-i18n="btn_save">Zapisz</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Driver editor ===== -->
+    <div class="modal-back" id="driver-editor-overlay">
+        <div class="modal">
+            <div class="modal-head">
+                <h3 class="modal-title" id="driver-editor-title" data-i18n="editor_add">Dodaj</h3>
+                <p class="modal-sub" id="driver-editor-subtitle"></p>
+            </div>
+            <div class="modal-body">
+                <div id="driver-fields-series">
+                    <div class="form-row two">
+                        <div>
+                            <label class="form-label" data-i18n="label_type_star">Typ *</label>
+                            <select id="drv-series-type" class="form-select"></select>
+                        </div>
+                        <div>
+                            <label class="form-label" data-i18n="label_brand_star">Producent *</label>
+                            <select id="drv-series-brand" class="form-select"></select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label" data-i18n="label_series_name_star">Nazwa serii / modelu *</label>
+                        <input type="text" id="drv-series-name" class="form-input" placeholder="np. Seria 4000 & 5000" />
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label" data-i18n="label_folder_path_star">Ścieżka folderu (folderPath) *</label>
+                        <input type="text" id="drv-series-folder" class="form-input" placeholder="../Archiwum/.../GeForce 4000-5000" />
+                        <p class="form-hint" data-i18n="hint_folder_relative">Ścieżka może być relatywna — zostanie rozwiązana przez <code>open_folder</code>.</p>
+                    </div>
+                </div>
+
+                <div id="driver-fields-type" style="display:none;">
+                    <div class="form-row two">
+                        <div>
+                            <label class="form-label" data-i18n="label_type_id_star">ID typu (klucz) *</label>
+                            <input type="text" id="drv-type-key" class="form-input" placeholder="np. soundcard" />
+                        </div>
+                        <div>
+                            <label class="form-label" data-i18n="label_display_name_star">Nazwa wyświetlana *</label>
+                            <input type="text" id="drv-type-title" class="form-input" placeholder="np. Karta dźwiękowa" />
+                        </div>
+                    </div>
+                    <p class="form-hint" data-i18n="hint_id_internal">ID jest wewnętrznym kluczem — nie zmieniaj po dodaniu bez powodu.</p>
+                </div>
+
+                <div id="driver-fields-brand" style="display:none;">
+                    <div class="form-row">
+                        <label class="form-label" data-i18n="label_type_star">Typ *</label>
+                        <select id="drv-brand-type" class="form-select"></select>
+                    </div>
+                    <div class="form-row two">
+                        <div>
+                            <label class="form-label" data-i18n="label_brand_id_star">ID producenta (klucz) *</label>
+                            <input type="text" id="drv-brand-key" class="form-input" placeholder="np. creative" />
+                        </div>
+                        <div>
+                            <label class="form-label" data-i18n="label_display_name_star">Nazwa wyświetlana *</label>
+                            <input type="text" id="drv-brand-title" class="form-input" placeholder="np. Creative" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-secondary" onclick="closeDriverEditor()" data-i18n="btn_cancel">Anuluj</button>
+                <button class="btn btn-primary" onclick="saveDriverEditor()" data-i18n="btn_save">Zapisz</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Setting editor ===== -->
+    <div class="modal-back" id="setting-editor-overlay">
+        <div class="modal">
+            <div class="modal-head">
+                <h3 class="modal-title" id="setting-editor-title" data-i18n="editor_add_setting">Dodaj ustawienie</h3>
+                <p class="modal-sub" data-i18n="editor_sub_settings">Zmiany zapisują się do settings.json obok launchera.</p>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <label class="form-label" for="set-name" data-i18n="label_name_star">Nazwa *</label>
+                    <input type="text" id="set-name" class="form-input" placeholder="np. MSI Afterburner" />
+                </div>
+                <div class="form-row">
+                    <label class="form-label" for="set-folder" data-i18n="label_folder_path">Ścieżka folderu (folderPath)</label>
+                    <input type="text" id="set-folder" class="form-input" placeholder="../Centrum Narzędzi i Oprogramowania/Ustawienia do Programów/..." />
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-secondary" onclick="closeSettingEditor()" data-i18n="btn_cancel">Anuluj</button>
+                <button class="btn btn-primary" onclick="saveSetting()" data-i18n="btn_save">Zapisz</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Knowledge link editor ===== -->
+    <div class="modal-back" id="knowledge-editor-overlay">
+        <div class="modal">
+            <div class="modal-head">
+                <h3 class="modal-title" id="knowledge-editor-title" data-i18n="editor_add_link">Dodaj link</h3>
+                <p class="modal-sub" data-i18n="editor_sub_knowledge">Zmiany zapisują się do knowledge.json obok launchera.</p>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <label class="form-label" for="kn-name" data-i18n="label_name_star">Nazwa *</label>
+                    <input type="text" id="kn-name" class="form-input" placeholder="np. ChatGPT" />
+                </div>
+                <div class="form-row">
+                    <label class="form-label" for="kn-url" data-i18n="label_url_star">URL *</label>
+                    <input type="text" id="kn-url" class="form-input" placeholder="https://..." />
+                </div>
+                <div class="form-row two">
+                    <div>
+                        <label class="form-label" for="kn-category" data-i18n="label_category_star">Kategoria *</label>
+                        <select id="kn-category" class="form-select"></select>
+                    </div>
+                    <div>
+                        <label class="form-label" for="kn-section" data-i18n="label_section">Sekcja</label>
+                        <input type="text" id="kn-section" class="form-input" placeholder="np. Chatboty" list="kn-section-list" />
+                        <datalist id="kn-section-list"></datalist>
+                    </div>
+                </div>
+                <div class="form-row two">
+                    <div>
+                        <label class="form-label" for="kn-tag" data-i18n="label_tag">Tag</label>
+                        <input type="text" id="kn-tag" class="form-input" placeholder="np. Darmowy, Online" />
+                    </div>
+                    <div>
+                        <label class="form-label" for="kn-note" data-i18n="label_note">Notatka</label>
+                        <input type="text" id="kn-note" class="form-input" placeholder="Opcjonalny opis" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label class="form-check">
+                        <input type="checkbox" id="kn-starred">
+                        <span data-i18n="label_starred">⭐ Wyróżniony (pokazuje się na górze kategorii)</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-secondary" onclick="closeKnowledgeEditor()" data-i18n="btn_cancel">Anuluj</button>
+                <button class="btn btn-primary" onclick="saveKnowledgeLink()" data-i18n="btn_save">Zapisz</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Knowledge category editor ===== -->
+    <div class="modal-back" id="knowledge-cat-editor-overlay">
+        <div class="modal">
+            <div class="modal-head">
+                <h3 class="modal-title" data-i18n="editor_new_category">Nowa kategoria</h3>
+                <p class="modal-sub" data-i18n="editor_sub_category">Grupuj linki tematycznie (np. AI, Torrenty, Edukacja).</p>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <label class="form-label" for="kn-cat-name" data-i18n="label_category_name_star">Nazwa kategorii *</label>
+                    <input type="text" id="kn-cat-name" class="form-input" placeholder="np. Edukacja" />
+                    <div id="kn-cat-group-context" style="margin-top:7px;color:var(--text-muted);font-size:var(--fs-2xs);"></div>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-secondary" onclick="closeKnowledgeCategoryEditor()" data-i18n="btn_cancel">Anuluj</button>
+                <button class="btn btn-primary" onclick="saveKnowledgeCategory()" data-i18n="btn_save">Zapisz</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Page editor (Własne Strony) ===== -->
+    <div class="modal-back" id="page-editor-overlay">
+        <div class="modal">
+            <div class="modal-head">
+                <h3 class="modal-title" data-i18n="editor_new_page">Nowa strona HTML</h3>
+                <p class="modal-sub" data-i18n="editor_sub_page">Tworzy plik HTML + wpis w launcherze. Potem edytuj treść w dowolnym edytorze (Notatnik, VS Code) lub poproś AI o wygenerowanie zawartości.</p>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <label class="form-label" for="page-name" data-i18n="label_page_name_star">Nazwa strony *</label>
+                    <input type="text" id="page-name" class="form-input" placeholder="np. Poradnik Detailingu, Lista Sprzętu, Instrukcje" />
+                </div>
+                <div class="form-row">
+                    <label class="form-label" for="page-desc" data-i18n="label_desc">Opis</label>
+                    <input type="text" id="page-desc" class="form-input" placeholder="Krótki opis (pokazuje się na karcie w launcherze)" />
+                </div>
+                <div class="form-row">
+                    <label class="form-label" for="page-category" data-i18n="label_page_category">Kategoria w launcherze</label>
+                    <input type="text" id="page-category" class="form-input" list="page-category-suggest" placeholder="np. Auto, Własne Strony" />
+                    <datalist id="page-category-suggest"></datalist>
+                </div>
+                <div class="form-row">
+                    <label class="form-label" data-i18n="label_icon">Ikona</label>
+                    <div class="icon-picker">
+                        <div class="icon-preview" id="page-icon-preview">📄</div>
+                        <div>
+                            <div class="icon-picker-actions">
+                                <button class="btn btn-secondary btn-sm" type="button" onclick="pickPageIcon()" data-i18n="btn_pick_image">Wybierz obrazek</button>
+                            </div>
+                            <div class="icon-picker-note">PNG / JPG / SVG / WebP</div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="page-icon" />
+                    <input type="file" id="page-icon-file" accept="image/png,image/jpeg,image/svg+xml,image/webp,image/gif,image/bmp" style="display:none;" />
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-secondary" onclick="closePageEditor()" data-i18n="btn_cancel">Anuluj</button>
+                <button class="btn btn-primary" onclick="savePage()" data-i18n="btn_create_page">Utwórz stronę</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Page preview overlay ===== -->
+    <div class="page-preview-overlay" id="page-preview-overlay">
+        <div class="page-preview-hotzone" aria-hidden="true"></div>
+        <div class="page-preview-bar">
+            <button class="btn btn-secondary" onclick="closePagePreview()" data-i18n="btn_back_custom_pages">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;margin-right:5px;vertical-align:-2px;"><polyline points="15 18 9 12 15 6"/></svg>
+                Wróć do Własnych Stron
+            </button>
+            <span class="page-preview-title" id="page-preview-title"></span>
+            <div style="flex:1"></div>
+            <button class="btn btn-secondary" onclick="closePagePreview()" data-i18n-title="btn_close_preview" title="Zamknij podgląd (Esc)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <iframe id="page-preview-frame" class="page-preview-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+    </div>
+
+    <script src="/test/web/smoke-api.js"></script>
+    <script src="js/i18n/translations.js"></script>
+    <script src="js/i18n/runtime.js"></script>
+    <script src="js/pages/manage/core.js"></script>
+    <script src="js/pages/manage/import-export.js"></script>
+    <script src="js/pages/manage/programs.js"></script>
+    <script src="js/pages/manage/drivers.js"></script>
+    <script src="js/pages/manage/knowledge.js"></script>
+    <script src="js/pages/manage/settings.js"></script>
+    <script src="js/pages/manage/pages.js"></script>
+    <script src="js/pages/manage/init.js"></script>
+    
+</body>
+</html>

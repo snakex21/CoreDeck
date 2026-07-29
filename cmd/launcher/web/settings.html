@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ustawienia programów — CoreDeck</title>
+    <link rel="stylesheet" href="css/app.css">
+    <link rel="stylesheet" href="css/pages/configurator.css">
+</head>
+<body data-page-title="Ustawienia programów — CoreDeck">
+    <header class="subpage-header">
+        <div class="header-brand">
+            <h1>CoreDeck</h1>
+            <span class="header-subtitle">Ustawienia programów</span>
+        </div>
+        <div class="header-controls">
+            <a href="index.html" class="subpage-back-btn">← Wróć do launchera</a>
+            <a href="drivers.html" class="subpage-back-btn">🧩 Sterowniki</a>
+            <select id="lang-select" class="btn lang-select" aria-label="Language">
+                <option value="pl">🇵🇱 PL</option>
+                <option value="en">🇬🇧 EN</option>
+                <option value="de">🇩🇪 DE</option>
+                <option value="fr">🇫🇷 FR</option>
+                <option value="es">🇪🇸 ES</option>
+                <option value="it">🇮🇹 IT</option>
+                <option value="pt">🇵🇹 PT</option>
+                <option value="ru">🇷🇺 RU</option>
+                <option value="zh">🇨🇳 ZH</option>
+                <option value="ja">🇯🇵 JA</option>
+                <option value="ko">🇰🇷 KO</option>
+                <option value="tr">🇹🇷 TR</option>
+                <option value="nl">🇳🇱 NL</option>
+                <option value="sv">🇸🇪 SV</option>
+                <option value="cs">🇨🇿 CS</option>
+            </select>
+            <button id="theme-toggle-btn" class="btn theme-btn" title="Przełącz tryb ciemny/jasny">
+                <span class="theme-icon">🌙</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="system-page-container">
+        <div class="system-page-content system-tool-tab active">
+            <div class="tool-tab-heading">
+                <div>
+                    <h2>Ustawienia programów</h2>
+                    <p>Otwieraj przygotowane konfiguracje i kopiuj ich ścieżki bez szukania ich na dysku.</p>
+                </div>
+                <span class="tool-tab-status" id="settings-data-status">Ładowanie bazy…</span>
+            </div>
+
+            <div class="settings-workspace">
+                <section class="settings-browser">
+                    <label class="system-tool-search-label" for="config-settings-search">Wyszukaj ustawienia</label>
+                    <input
+                        type="search"
+                        id="config-settings-search"
+                        class="system-tool-input"
+                        placeholder="Np. Logitech, OBS, przeglądarka…"
+                        autocomplete="off">
+                    <ul id="config-settings-list" class="config-settings-list"></ul>
+                    <p id="config-settings-empty" class="system-tool-empty hidden">Nie znaleziono pasujących ustawień.</p>
+                </section>
+
+                <aside class="settings-inspector" id="config-settings-inspector">
+                    <div class="settings-inspector-empty" id="config-settings-placeholder">
+                        <span aria-hidden="true">⚙</span>
+                        <h3>Wybierz ustawienia z listy</h3>
+                        <p>Tutaj zobaczysz ich lokalizację oraz dostępne działania.</p>
+                    </div>
+                    <div id="config-settings-selection" class="hidden">
+                        <span class="settings-inspector-label">Wybrane ustawienia</span>
+                        <h3 id="config-settings-name"></h3>
+                        <div id="config-settings-path" class="settings-inspector-path"></div>
+                        <div class="system-tool-actions">
+                            <button id="config-settings-open" class="btn-primary">📂 Otwórz folder</button>
+                            <button id="config-settings-copy" class="btn-secondary">Skopiuj ścieżkę</button>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/i18n/translations.js"></script>
+    <script src="js/i18n/runtime.js"></script>
+    <script src="js/pages/configurator/system-tools.js"></script>
+    <script src="js/pages/system-page.js"></script>
+</body>
+</html>

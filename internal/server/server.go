@@ -1,0 +1,102 @@
+package server
+
+import (
+	"fmt"
+	"io/fs"
+	"log/slog"
+	"net"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+)
+
+func Start(staticFS fs.FS, userPagesDir string) (*http.Server, int, error) {
+	fileServer := http.FileServer(http.FS(staticFS))
+	mux := http.NewServeMux()
+	mux.Handle("/", &quietHandler{fileServer: fileServer, userPagesDir: userPagesDir})
+
+	var port int
+	var listener net.Listener
+	var err error
+	for port = 8000; port <= 8100; port++ {
+		listener, err = net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(port))
+		if err == nil {
+			break
+		}
+	}
+	if err != nil {
+		return nil, 0, fmt.Errorf("no free port: %w", err)
+	}
+
+	srv := &http.Server{
+		Handler:      mux,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  30 * time.Second,
+	}
+
+	go func() {
+		slog.Info("HTTP server", "port", port)
+		if err := srv.Serve(listener); err != nil && err != http.ErrServerClosed {
+			slog.Error("HTTP error", "error", err)
+		}
+	}()
+
+	return srv, port, nil
+}
+
+type quietHandler struct {
+	fileServer   http.Handler
+	userPagesDir string
+}
+
+func (h *quietHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	setContentType(w, r.URL.Path)
+
+	if strings.HasPrefix(r.URL.Path, "/user_pages/") && h.userPagesDir != "" {
+		w.Header().Set("Content-Security-Policy", "sandbox allow-scripts allow-forms allow-modals allow-popups")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		rel := strings.TrimPrefix(r.URL.Path, "/user_pages/")
+		rel = filepath.Clean(filepath.FromSlash(rel))
+		if rel != "." && !strings.HasPrefix(rel, "..") && !filepath.IsAbs(rel) {
+			fullPath := filepath.Join(h.userPagesDir, rel)
+			if info, err := os.Stat(fullPath); err == nil && !info.IsDir() {
+				http.ServeFile(w, r, fullPath)
+				return
+			}
+		}
+	}
+
+	// Program icons belong to the user's catalogue, not to the embedded
+	// application UI. Serve them from data/icons while keeping embedded
+	// UI fallbacks such as icons/default.png available below.
+	if strings.HasPrefix(r.URL.Path, "/icons/") && h.userPagesDir != "" {
+		rel := strings.TrimPrefix(r.URL.Path, "/icons/")
+		rel = filepath.Clean(filepath.FromSlash(rel))
+		if rel != "." && !strings.HasPrefix(rel, "..") && !filepath.IsAbs(rel) {
+			iconsDir := filepath.Join(filepath.Dir(h.userPagesDir), "icons")
+			fullPath := filepath.Join(iconsDir, rel)
+			if info, err := os.Stat(fullPath); err == nil && !info.IsDir() {
+				w.Header().Set("X-Content-Type-Options", "nosniff")
+				http.ServeFile(w, r, fullPath)
+				return
+			}
+		}
+	}
+
+	h.fileServer.ServeHTTP(w, r)
+}
+
+func setContentType(w http.ResponseWriter, path string) {
+	switch {
+	case strings.HasSuffix(path, ".wasm"):
+		w.Header().Set("Content-Type", "application/wasm")
+	case strings.HasSuffix(path, ".onnx"), strings.HasSuffix(path, ".bin"), strings.HasSuffix(path, ".gguf"):
+		w.Header().Set("Content-Type", "application/octet-stream")
+	}
+}

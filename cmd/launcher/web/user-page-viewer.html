@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Własna strona</title>
+    <link rel="stylesheet" href="/css/app.css">
+    <style>
+        body {
+            overflow: hidden;
+            margin: 0;
+        }
+        .user-page-shell {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        .user-page-back {
+            position: absolute;
+            left: 16px;
+            bottom: 16px;
+            z-index: 10;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 46px;
+            height: 46px;
+            color: #fff;
+            background: rgba(17, 21, 32, 0.82);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 14px;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            opacity: 0.72;
+            transition: opacity 0.16s ease, transform 0.16s ease, background 0.16s ease;
+        }
+        .user-page-back:hover,
+        .user-page-back:focus-visible {
+            color: #fff;
+            opacity: 1;
+            transform: translateY(-2px);
+            background: rgba(17, 21, 32, 0.96);
+        }
+        .user-page-back svg {
+            width: 18px;
+            height: 18px;
+        }
+        .user-page-frame {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            background: var(--bg-primary);
+        }
+        .user-page-error { padding: 28px; color: var(--danger-text); }
+    </style>
+</head>
+<body>
+    <main class="user-page-shell">
+        <a class="user-page-back" href="/index.html" title="Wróć do launchera" aria-label="Wróć do launchera">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+        </a>
+        <iframe
+            id="user-page-frame"
+            class="user-page-frame"
+            title="Własna strona użytkownika"
+            sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox">
+        </iframe>
+    </main>
+    <script>
+        (() => {
+            const params = new URLSearchParams(window.location.search);
+            const rawPath = params.get('path') || '';
+            let returnProgram = params.get('returnProgram') || '';
+            try {
+                returnProgram = returnProgram || sessionStorage.getItem('launcher-return-program') || '';
+                if (returnProgram) sessionStorage.setItem('launcher-return-program', returnProgram);
+            } catch (error) {
+                console.warn('Nie udało się odczytać strony powrotnej:', error);
+            }
+            if (returnProgram) {
+                const backButton = document.querySelector('.user-page-back');
+                backButton.href = `/index.html?details=${encodeURIComponent(returnProgram)}`;
+                backButton.title = `Wróć do szczegółów: ${returnProgram}`;
+                backButton.setAttribute('aria-label', backButton.title);
+            }
+            const normalized = rawPath.replace(/\\/g, '/').replace(/^\/+/, '');
+            const parts = normalized.split('/');
+            const valid = /^user_pages\//i.test(normalized) &&
+                /\.html$/i.test(normalized) &&
+                !normalized.includes('\0') &&
+                !parts.some(part => !part || part === '..' || part === '.' || part.includes(':'));
+            const frame = document.getElementById('user-page-frame');
+            if (!valid) {
+                frame.remove();
+                const error = document.createElement('p');
+                error.className = 'user-page-error';
+                error.textContent = 'Nieprawidłowa ścieżka własnej strony.';
+                document.querySelector('.user-page-shell').appendChild(error);
+                return;
+            }
+            document.title = decodeURIComponent(normalized.split('/').pop());
+            frame.src = '/' + normalized;
+        })();
+    </script>
+</body>
+</html>
