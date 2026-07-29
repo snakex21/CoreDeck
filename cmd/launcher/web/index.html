@@ -11,6 +11,18 @@
 </head>
 
 <body>
+    <div id="coredeck-loading" class="coredeck-loading" role="status" aria-live="polite" aria-hidden="true">
+        <div class="coredeck-loading-mark" aria-hidden="true">
+            <img src="favicon.ico" alt="">
+            <span class="coredeck-loading-orbit"></span>
+        </div>
+        <div class="coredeck-loading-copy">
+            <strong>CoreDeck</strong>
+            <span>Windows Toolkit &amp; Launcher</span>
+        </div>
+        <div class="coredeck-loading-progress" aria-hidden="true"><span></span></div>
+        <p id="coredeck-loading-status">Preparing workspace…</p>
+    </div>
 
     <!-- Górny, przyklejony pasek -->
     <header class="main-header">
@@ -194,7 +206,7 @@
     <!-- Template -->
     <template id="program-card-template">
         <div class="program-card">
-            <img src="" alt="Ikona programu" class="program-icon" data-i18n-alt="program_icon_alt">
+            <img src="" alt="Ikona programu" class="program-icon" loading="lazy" decoding="async" data-i18n-alt="program_icon_alt">
             <div class="program-details">
                 <h3 class="program-title"></h3>
                 <p class="program-description"></p>
@@ -239,6 +251,7 @@
 
     <script src="js/i18n/translations.js"></script>
     <script src="js/i18n/runtime.js"></script>
+    <script src="js/shared/loading-gate.js"></script>
     <script src="js/pages/launcher.js"></script>
     <script src="js/shared/ai-helper.js"></script>
 </body>

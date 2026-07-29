@@ -53,6 +53,31 @@
     const categoryList = document.getElementById('category-list');
     const searchBox = document.getElementById('search-box');
 
+    async function settleInitialProgramIcons() {
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        const viewportLimit = window.innerHeight + 160;
+        const visibleIcons = Array.from(appContainer.querySelectorAll('.program-icon'))
+            .filter(icon => {
+                const rect = icon.getBoundingClientRect();
+                return rect.bottom >= 0 && rect.top <= viewportLimit;
+            });
+
+        const iconTasks = visibleIcons.map(icon => {
+            if (icon.complete) {
+                return typeof icon.decode === 'function' ? icon.decode().catch(() => {}) : Promise.resolve();
+            }
+            return new Promise(resolve => {
+                icon.addEventListener('load', resolve, { once: true });
+                icon.addEventListener('error', resolve, { once: true });
+            });
+        });
+
+        await Promise.race([
+            Promise.all(iconTasks),
+            new Promise(resolve => setTimeout(resolve, 900))
+        ]);
+    }
+
     const mainView = document.getElementById('main-view');
     const detailView = document.getElementById('detail-view');
     const workflowView = document.getElementById('workflow-view');
@@ -985,6 +1010,10 @@
     if (requestedDetails) {
         showDetailView(requestedDetails);
     }
+    coreDeckLoadingGate.setStatus('Loading icons…');
+    settleInitialProgramIcons()
+        .catch(() => {})
+        .finally(() => coreDeckLoadingGate.finish());
 
     // === LANGUAGE SELECTOR ===
     const langSelect = document.getElementById('lang-select');

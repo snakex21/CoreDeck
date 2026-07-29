@@ -65,6 +65,9 @@ func TestProgramIconsAreServedFromDataDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
+	if cache := resp.Header.Get("Cache-Control"); !strings.Contains(cache, "max-age=86400") {
+		t.Fatalf("expected icon cache policy, got %q", cache)
+	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)

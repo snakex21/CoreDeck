@@ -76,6 +76,9 @@ func (h *quietHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// application UI. Serve them from data/icons while keeping embedded
 	// UI fallbacks such as icons/default.png available below.
 	if strings.HasPrefix(r.URL.Path, "/icons/") && h.userPagesDir != "" {
+		// Icons change rarely and are requested in large batches. Allow WebView
+		// to reuse decoded files instead of reading every icon on every render.
+		w.Header().Set("Cache-Control", "private, max-age=86400")
 		rel := strings.TrimPrefix(r.URL.Path, "/icons/")
 		rel = filepath.Clean(filepath.FromSlash(rel))
 		if rel != "." && !strings.HasPrefix(rel, "..") && !filepath.IsAbs(rel) {
