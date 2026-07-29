@@ -7,13 +7,14 @@
     <meta name="description" content="CoreDeck — Portable Windows toolkit and launcher">
     <title data-i18n="title">CoreDeck</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="preload" as="image" href="favicon.ico" type="image/x-icon" fetchpriority="high">
     <link rel="stylesheet" href="css/app.css">
 </head>
 
 <body>
     <div id="coredeck-loading" class="coredeck-loading" role="status" aria-live="polite" aria-hidden="true">
         <div class="coredeck-loading-mark" aria-hidden="true">
-            <img src="favicon.ico" alt="">
+            <img src="favicon.ico" alt="" loading="eager" decoding="sync" fetchpriority="high">
             <span class="coredeck-loading-orbit"></span>
         </div>
         <div class="coredeck-loading-copy">

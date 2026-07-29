@@ -58,6 +58,11 @@ func (h *quietHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	setContentType(w, r.URL.Path)
 
+	if r.URL.Path == "/favicon.ico" {
+		// The CoreDeck brand mark is needed before the loading gate can appear.
+		w.Header().Set("Cache-Control", "private, max-age=86400")
+	}
+
 	if strings.HasPrefix(r.URL.Path, "/user_pages/") && h.userPagesDir != "" {
 		w.Header().Set("Content-Security-Policy", "sandbox allow-scripts allow-forms allow-modals allow-popups")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
