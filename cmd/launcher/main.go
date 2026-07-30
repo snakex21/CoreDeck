@@ -58,7 +58,8 @@ func main() {
 	llmClient := llm.NewLLMClient(exeDir)
 	defer llmClient.Stop()
 
-	dataDir := filepath.Join(exeDir, ".webview_data")
+	dataDir := filepath.Join(exeDir, "data", "webview")
+	migrateLegacyWebviewData(exeDir, dataDir)
 	os.MkdirAll(dataDir, 0755)
 
 	profilesStore, err := programs.NewProfilesStore(dataDir)
@@ -156,6 +157,24 @@ func getExeDir() string {
 		return "."
 	}
 	return filepath.Dir(exe)
+}
+
+func migrateLegacyWebviewData(exeDir, dataDir string) {
+	legacyDir := filepath.Join(exeDir, ".webview_data")
+	if _, err := os.Stat(dataDir); err == nil {
+		return
+	}
+	info, err := os.Stat(legacyDir)
+	if err != nil || !info.IsDir() {
+		return
+	}
+	if err := os.MkdirAll(filepath.Dir(dataDir), 0755); err != nil {
+		slog.Warn("legacy WebView data migration failed", "error", err)
+		return
+	}
+	if err := os.Rename(legacyDir, dataDir); err != nil {
+		slog.Warn("legacy WebView data migration failed", "error", err)
+	}
 }
 
 func setupLogging(exeDir string) {

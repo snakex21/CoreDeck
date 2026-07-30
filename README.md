@@ -56,8 +56,9 @@ Wymagania:
 build.bat
 ```
 
-Polecenie sprawdza składnię JavaScript, uruchamia testy Go i tworzy
-`CoreDeck.exe`. Wariant z konsolą diagnostyczną:
+Polecenie sprawdza składnię JavaScript, uruchamia testy Go oraz tworzy lokalne
+`CoreDeck.exe` i `data`. Projekt nie wymaga stałej ścieżki i można go przenieść
+na inny dysk lub komputer. Wariant z konsolą diagnostyczną:
 
 ```bat
 build.bat debug

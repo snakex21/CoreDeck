@@ -46,6 +46,11 @@ echo ==^> Generowanie data\generated\disk_map.json
 python "%ROOT%scripts\generate_disk_map.py" --launcher-dir "%ROOT%." --output "%ROOT%data\generated\disk_map.json"
 if errorlevel 1 goto :fail
 
+echo ==^> Przygotowanie lokalnych danych startowych
+for %%F in (programs tweaks drivers knowledge settings) do (
+    if not exist "%ROOT%data\%%F.json" copy /y "%WEB%\data\%%F.json" "%ROOT%data\%%F.json" >nul
+)
+
 where go-winres >nul 2>nul
 if not errorlevel 1 (
     echo ==^> Odswiezanie ikony Windows
@@ -87,7 +92,7 @@ if errorlevel 1 goto :fail
 move /y "%LAUNCHER_NEW%" "%LAUNCHER_EXE%" >nul
 if errorlevel 1 (
     echo [build.bat] BLAD: nie mozna podmienic CoreDeck.exe.
-    echo             Zamknij uruchomiony Launcher i sproboj ponownie.
+    echo             Zamknij uruchomiony CoreDeck i sproboj ponownie.
     goto :fail
 )
 

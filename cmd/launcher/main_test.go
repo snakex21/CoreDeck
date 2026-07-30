@@ -36,6 +36,27 @@ func TestEnvEnabled(t *testing.T) {
 	}
 }
 
+func TestMigrateLegacyWebviewData(t *testing.T) {
+	root := t.TempDir()
+	legacyDir := filepath.Join(root, ".webview_data")
+	newDir := filepath.Join(root, "data", "webview")
+	if err := os.MkdirAll(legacyDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(legacyDir, "custom_profiles.json"), []byte(`[]`), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	migrateLegacyWebviewData(root, newDir)
+
+	if _, err := os.Stat(filepath.Join(newDir, "custom_profiles.json")); err != nil {
+		t.Fatalf("migrated profile missing: %v", err)
+	}
+	if _, err := os.Stat(legacyDir); !os.IsNotExist(err) {
+		t.Fatalf("legacy directory still exists or returned unexpected error: %v", err)
+	}
+}
+
 func TestRotateLogKeepsTwoPreviousGenerations(t *testing.T) {
 	root := t.TempDir()
 	logPath := filepath.Join(root, "launcher.log")
@@ -122,7 +143,7 @@ func TestBuildWindowConfigUsesPersistedStateAndDebugFlag(t *testing.T) {
 
 	got := buildWindowConfig(
 		"http://127.0.0.1:8000/index.html",
-		`C:\CoreDeck\.webview_data`,
+		`C:\CoreDeck\data\webview`,
 		`C:\CoreDeck\data\state\favicon.ico`,
 		`C:\CoreDeck\data\state\window.json`,
 		state,
