@@ -90,26 +90,37 @@ func main() {
 		Maximized: true,
 	})
 
-	cfg := webview.WindowConfig{
-		Title:     "CoreDeck",
-		URL:       url,
-		Width:     windowState.Width,
-		Height:    windowState.Height,
-		MinWidth:  800,
-		MinHeight: 600,
-		Debug:     envEnabled("COREDECK_WEBVIEW_DEBUG") || envEnabled("LAUNCHER_DEBUG"),
-		Maximized: windowState.Maximized,
-		DataDir:   dataDir,
-		API:       appAPI,
-		IconPath:  iconPath,
-		StatePath: windowStatePath,
-	}
+	cfg := buildWindowConfig(url, dataDir, iconPath, windowStatePath, windowState, appAPI)
 
 	if err := webview.NewWindow(cfg); err != nil {
 		fatalExit("Nie można otworzyć okna programu. Sprawdź instalację Microsoft Edge WebView2.", err)
 	}
 
 	slog.Info("launcher finished")
+}
+
+func buildWindowConfig(
+	url string,
+	dataDir string,
+	iconPath string,
+	statePath string,
+	state windowstate.State,
+	appAPI *api.API,
+) webview.WindowConfig {
+	return webview.WindowConfig{
+		Title:     "CoreDeck",
+		URL:       url,
+		Width:     state.Width,
+		Height:    state.Height,
+		MinWidth:  800,
+		MinHeight: 600,
+		Debug:     envEnabled("COREDECK_WEBVIEW_DEBUG") || envEnabled("LAUNCHER_DEBUG"),
+		Maximized: state.Maximized,
+		DataDir:   dataDir,
+		API:       appAPI,
+		IconPath:  iconPath,
+		StatePath: statePath,
+	}
 }
 
 func envEnabled(name string) bool {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -11,6 +12,40 @@ import (
 	"testing"
 	"testing/fstest"
 )
+
+func TestBindLoopbackNeverListensOnAllInterfaces(t *testing.T) {
+	reservation, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	port := reservation.Addr().(*net.TCPAddr).Port
+	if err := reservation.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	listener, boundPort, err := bindLoopback(port, port)
+	if err != nil {
+		t.Fatalf("bindLoopback() error = %v", err)
+	}
+	defer listener.Close()
+
+	address, ok := listener.Addr().(*net.TCPAddr)
+	if !ok {
+		t.Fatalf("listener address has type %T, want *net.TCPAddr", listener.Addr())
+	}
+	if boundPort != port || address.Port != port {
+		t.Fatalf("bound port = %d / %d, want %d", boundPort, address.Port, port)
+	}
+	if address.IP.IsUnspecified() || !address.IP.IsLoopback() || !address.IP.Equal(net.IPv4(127, 0, 0, 1)) {
+		t.Fatalf("listener bound to %q, want exactly 127.0.0.1", address.IP)
+	}
+}
+
+func TestBindLoopbackRejectsInvalidRange(t *testing.T) {
+	if listener, port, err := bindLoopback(2, 1); err == nil || listener != nil || port != 0 {
+		t.Fatalf("bindLoopback(2, 1) = (%v, %d, %v), want an error", listener, port, err)
+	}
+}
 
 func TestUserPagesAreServedWithSandboxPolicy(t *testing.T) {
 	userDir := t.TempDir()

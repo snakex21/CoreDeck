@@ -13,20 +13,29 @@ import (
 	"time"
 )
 
+// bindLoopback explicitly binds to 127.0.0.1 (never 0.0.0.0), so the local
+// HTTP server is unreachable from LAN.
+func bindLoopback(from, to int) (net.Listener, int, error) {
+	var lastErr error
+	for port := from; port <= to; port++ {
+		listener, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(port))
+		if err == nil {
+			return listener, port, nil
+		}
+		lastErr = err
+	}
+	if lastErr == nil {
+		return nil, 0, fmt.Errorf("invalid port range %d-%d", from, to)
+	}
+	return nil, 0, fmt.Errorf("all loopback ports in range %d-%d are busy: %w", from, to, lastErr)
+}
+
 func Start(staticFS fs.FS, userPagesDir string) (*http.Server, int, error) {
 	fileServer := http.FileServer(http.FS(staticFS))
 	mux := http.NewServeMux()
 	mux.Handle("/", &quietHandler{fileServer: fileServer, userPagesDir: userPagesDir})
 
-	var port int
-	var listener net.Listener
-	var err error
-	for port = 8000; port <= 8100; port++ {
-		listener, err = net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(port))
-		if err == nil {
-			break
-		}
-	}
+	listener, port, err := bindLoopback(8000, 8100)
 	if err != nil {
 		return nil, 0, fmt.Errorf("no free port: %w", err)
 	}
