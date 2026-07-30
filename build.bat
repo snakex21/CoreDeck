@@ -14,6 +14,7 @@ set "WEB=%ROOT%cmd\launcher\web"
 set "LAUNCHER_NEW=%ROOT%launcher.new.exe"
 set "HELPER_NEW=%ROOT%data\tools\disk-helper.new.exe"
 set "LAUNCHER_EXE=%ROOT%CoreDeck.exe"
+set "LEGACY_LAUNCHER_EXE=%ROOT%launcher.exe"
 set "HELPER_EXE=%ROOT%data\tools\disk-helper.exe"
 
 where go >nul 2>nul
@@ -92,6 +93,10 @@ if errorlevel 1 (
 
 move /y "%HELPER_NEW%" "%HELPER_EXE%" >nul
 if errorlevel 1 goto :fail
+
+REM Stara nazwa programu potrafila zostawic debugowy build z konsola.
+REM Po udanym buildzie w katalogu glownym ma zostac tylko CoreDeck.exe.
+if exist "%LEGACY_LAUNCHER_EXE%" del /q "%LEGACY_LAUNCHER_EXE%"
 
 echo.
 echo BUILD OK
