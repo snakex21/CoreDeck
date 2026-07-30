@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -266,6 +267,14 @@ func (a *API) ApplyTweaks(tweaksJSON string) string {
 	sessionID := fmt.Sprintf("tweak-%d", atomic.AddInt64(&tweakSessionCounter, 1))
 	session := &tweakSession{}
 	tweakSessions.Store(sessionID, session)
+	tweakIDs := make([]string, 0, len(selected))
+	for _, tweak := range selected {
+		tweakIDs = append(tweakIDs, tweak.ID)
+	}
+	a.recordAudit("tweak.apply", strings.Join(tweakIDs, ","), "started", sessionID, map[string]any{
+		"tweaks": tweakIDs,
+		"count":  len(tweakIDs),
+	})
 
 	go func() {
 		defer func() {
@@ -274,6 +283,9 @@ func (a *API) ApplyTweaks(tweaksJSON string) string {
 				session.err = fmt.Sprintf("tweak panic: %v", r)
 				session.done = true
 				session.mu.Unlock()
+				a.recordAudit("tweak.apply", strings.Join(tweakIDs, ","), "failed", sessionID, map[string]any{
+					"error": fmt.Sprintf("panic: %v", r),
+				})
 			}
 		}()
 
@@ -292,9 +304,26 @@ func (a *API) ApplyTweaks(tweaksJSON string) string {
 		session.mu.Lock()
 		session.final = results
 		session.done = true
+		cancelled := session.cancelled
 		session.mu.Unlock()
 		invalidateTweakStateCache()
 		slog.Info("tweak session completed", "id", sessionID, "results", len(results))
+		succeeded := 0
+		for _, result := range results {
+			if result.Success {
+				succeeded++
+			}
+		}
+		status := "completed"
+		if cancelled {
+			status = "cancelled"
+		}
+		a.recordAudit("tweak.apply", strings.Join(tweakIDs, ","), status, sessionID, map[string]any{
+			"requested": len(selected),
+			"completed": len(results),
+			"succeeded": succeeded,
+			"failed":    len(results) - succeeded,
+		})
 
 		// Self-cleanup: remove session after 30s (in case user closed overlay)
 		time.AfterFunc(30*time.Second, func() { tweakSessions.Delete(sessionID) })
@@ -351,6 +380,7 @@ func (a *API) CancelOperation(sessionID string) string {
 		s.cancelled = true
 		s.mu.Unlock()
 		slog.Info("install session cancelled", "id", sessionID)
+		a.recordAudit("install.programs", "", "cancel-requested", sessionID, nil)
 		return `{"cancelled":true}`
 	}
 	if val, ok := tweakSessions.Load(sessionID); ok {
@@ -359,6 +389,7 @@ func (a *API) CancelOperation(sessionID string) string {
 		s.cancelled = true
 		s.mu.Unlock()
 		slog.Info("tweak session cancelled", "id", sessionID)
+		a.recordAudit("tweak.apply", "", "cancel-requested", sessionID, nil)
 		return `{"cancelled":true}`
 	}
 	return `{"error":"Session not found"}`
@@ -368,6 +399,13 @@ func (a *API) RevertTweak(id string) string {
 	a.configureTweakStateDir()
 	result := tweaks.RevertTweak(id)
 	invalidateTweakStateCache()
+	status := "completed"
+	if !result.Success {
+		status = "failed"
+	}
+	a.recordAudit("tweak.revert", id, status, "", map[string]any{
+		"message": result.Message,
+	})
 	data, _ := json.Marshal(result)
 	return string(data)
 }

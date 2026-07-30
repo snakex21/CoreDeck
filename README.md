@@ -37,6 +37,9 @@ data/
 - Baza Wiedzy i kontrola linków,
 - eksport oraz import danych,
 - konfigurator Windows, tweaki i debloat,
+- ręczne sprawdzanie oficjalnych wydań GitHub,
+- dziennik operacji administracyjnych w `data/logs/audit.jsonl`,
+- zapamiętywanie rozmiaru i trybu okna,
 - ciemny i jasny motyw,
 - wielojęzyczny interfejs.
 
@@ -45,7 +48,7 @@ data/
 Wymagania:
 
 - Windows,
-- Go,
+- Go 1.26 lub nowszy,
 - Node.js,
 - Python.
 
@@ -58,6 +61,13 @@ Polecenie sprawdza składnię JavaScript, uruchamia testy Go i tworzy
 
 ```bat
 build.bat debug
+```
+
+Narzędzia WebView2 można włączyć bez osobnego buildu:
+
+```bat
+set COREDECK_WEBVIEW_DEBUG=1
+CoreDeck.exe
 ```
 
 ## Struktura
@@ -78,3 +88,5 @@ lokalne i ignorowane przez Git.
 
 Program działa lokalnie. Repozytorium nie zawiera katalogu użytkownika,
 historii, prywatnych stron, modeli AI ani biblioteki instalatorów.
+Sprawdzenie aktualizacji jest uruchamiane ręcznie i odpytuje wyłącznie
+oficjalne GitHub Releases projektu.

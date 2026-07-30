@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 
+	"launcher/internal/audit"
 	"launcher/internal/drivers"
 	"launcher/internal/knowledge"
 	"launcher/internal/llm"
@@ -34,6 +35,7 @@ type API struct {
 	KnowledgeData *knowledge.KnowledgeData
 	ProfilesStore *programs.ProfilesStore
 	LLMClient     *llm.LLMClient
+	AuditLog      *audit.Logger
 	knowledgeMu   sync.Mutex
 }
 

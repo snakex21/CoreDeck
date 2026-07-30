@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"launcher/internal/jsonutil"
+	"launcher/internal/safeio"
 )
 
 // CustomProfile represents a user-created or edited profile.
@@ -51,7 +52,7 @@ func (s *ProfilesStore) save() error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(s.filePath, data, 0644)
+	return safeio.WriteFileAtomic(s.filePath, data, 0o644)
 }
 
 // GetAll returns all custom profiles.
@@ -61,7 +62,13 @@ func (s *ProfilesStore) GetAll() []CustomProfile {
 	if s.Profiles == nil {
 		return []CustomProfile{}
 	}
-	return s.Profiles
+	result := make([]CustomProfile, len(s.Profiles))
+	for i, profile := range s.Profiles {
+		result[i] = profile
+		result[i].Programs = append([]string(nil), profile.Programs...)
+		result[i].Tweaks = append([]string(nil), profile.Tweaks...)
+	}
+	return result
 }
 
 // Save creates or updates a profile.

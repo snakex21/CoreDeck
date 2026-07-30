@@ -6,15 +6,18 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"launcher/internal/api"
+	"launcher/internal/audit"
 	"launcher/internal/llm"
 	"launcher/internal/programs"
 	"launcher/internal/server"
 	"launcher/internal/system"
 	"launcher/internal/version"
 	"launcher/internal/webview"
+	"launcher/internal/windowstate"
 )
 
 func main() {
@@ -69,6 +72,7 @@ func main() {
 		WebFS:         staticFiles,
 		ProfilesStore: profilesStore,
 		LLMClient:     llmClient,
+		AuditLog:      audit.New(filepath.Join(exeDir, "data", "logs", "audit.jsonl")),
 	}
 	// Load the small catalogue synchronously, then warm the expensive state scan
 	// shortly after startup. Manual refresh and post-apply scans still bypass it.
@@ -79,19 +83,26 @@ func main() {
 	}()
 
 	url := webview.BuildURL(port, exeDir)
+	windowStatePath := filepath.Join(exeDir, "data", "state", "window.json")
+	windowState := windowstate.Load(windowStatePath, windowstate.State{
+		Width:     1400,
+		Height:    900,
+		Maximized: true,
+	})
 
 	cfg := webview.WindowConfig{
 		Title:     "CoreDeck",
 		URL:       url,
-		Width:     1400,
-		Height:    900,
+		Width:     windowState.Width,
+		Height:    windowState.Height,
 		MinWidth:  800,
 		MinHeight: 600,
-		Debug:     false,
-		Maximized: true,
+		Debug:     envEnabled("COREDECK_WEBVIEW_DEBUG") || envEnabled("LAUNCHER_DEBUG"),
+		Maximized: windowState.Maximized,
 		DataDir:   dataDir,
 		API:       appAPI,
 		IconPath:  iconPath,
+		StatePath: windowStatePath,
 	}
 
 	if err := webview.NewWindow(cfg); err != nil {
@@ -99,6 +110,15 @@ func main() {
 	}
 
 	slog.Info("launcher finished")
+}
+
+func envEnabled(name string) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(name))) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
 }
 
 // seedDataFiles writes the embedded data files to <exeDir>/data/<name>.json

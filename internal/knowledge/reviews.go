@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"launcher/internal/safeio"
 )
 
 // ReviewDecision preserves a user's review choice independently from any
@@ -46,10 +48,16 @@ func LoadReviewData(webDir string) (*ReviewData, error) {
 }
 
 func SaveReviewData(webDir string, reviews *ReviewData) error {
+	if reviews == nil {
+		return fmt.Errorf("review data is nil")
+	}
+	if reviews.Decisions == nil {
+		reviews.Decisions = map[string]ReviewDecision{}
+	}
 	path := filepath.Join(webDir, "data", "knowledge_reviews.json")
 	data, err := json.MarshalIndent(reviews, "", "  ")
 	if err != nil {
 		return fmt.Errorf("cannot marshal knowledge_reviews.json: %w", err)
 	}
-	return os.WriteFile(path, data, 0644)
+	return safeio.WriteFileAtomic(path, data, 0o644)
 }

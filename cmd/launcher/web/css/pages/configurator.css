@@ -780,6 +780,61 @@
     border-bottom: 1px solid var(--border-color);
 }
 
+.app-update-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+    margin-top: 36px;
+    padding: 28px 4px;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.app-update-copy {
+    max-width: 680px;
+}
+
+.app-update-copy h2 {
+    margin: 5px 0 8px;
+    font-size: 1.35rem;
+}
+
+.app-update-copy > p {
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.app-update-version {
+    margin-top: 12px !important;
+    font-size: 0.88rem;
+}
+
+.app-update-actions {
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: center;
+    justify-content: end;
+    gap: 10px;
+    min-width: 360px;
+}
+
+.app-update-status {
+    grid-column: 1 / -1;
+    margin: 2px 0 0;
+    color: var(--text-muted);
+    font-size: 0.86rem;
+    text-align: right;
+}
+
+.app-update-status[data-state="available"] {
+    color: var(--accent-text);
+}
+
+.app-update-status[data-state="error"] {
+    color: var(--danger-text);
+}
+
 .system-tool-empty {
     margin: 16px 0;
     color: var(--text-muted);
@@ -846,6 +901,19 @@ body.light-theme .editor-modal {
     .config-driver-results-list,
     .config-settings-list {
         max-height: 420px;
+    }
+    .app-update-panel {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 20px;
+    }
+    .app-update-actions {
+        justify-content: start;
+        min-width: 0;
+        width: 100%;
+    }
+    .app-update-status {
+        text-align: left;
     }
 }
 

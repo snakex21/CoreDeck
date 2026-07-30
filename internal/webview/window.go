@@ -10,6 +10,7 @@ import (
 
 	"launcher/internal/api"
 	"launcher/internal/system"
+	"launcher/internal/windowstate"
 )
 
 type WindowConfig struct {
@@ -24,6 +25,7 @@ type WindowConfig struct {
 	DataDir   string
 	API       *api.API
 	IconPath  string // absolute path to .ico file on disk
+	StatePath string
 }
 
 func NewWindow(cfg WindowConfig) error {
@@ -34,12 +36,29 @@ func NewWindow(cfg WindowConfig) error {
 	defer w.Destroy()
 	w.SetTitle(cfg.Title)
 	w.SetSize(cfg.Width, cfg.Height, webview.HintNone)
+	w.SetSize(cfg.MinWidth, cfg.MinHeight, webview.HintMin)
 
+	lastWindowState := windowstate.State{
+		Width:     cfg.Width,
+		Height:    cfg.Height,
+		Maximized: cfg.Maximized,
+	}
+	w.Bind("__api_save_window_state", func() {
+		if cfg.StatePath == "" {
+			return
+		}
+		lastWindowState = captureWindowState(w, lastWindowState)
+		if err := windowstate.Save(cfg.StatePath, lastWindowState); err != nil {
+			slog.Warn("failed to save window state", "error", err)
+		}
+	})
 	w.Bind("__api_open_folder", cfg.API.OpenFolder)
 	w.Bind("__api_open_url", cfg.API.OpenURL)
 	w.Bind("__api_get_available_models", cfg.API.GetAvailableModels)
 	w.Bind("__api_ensure_llm_started", cfg.API.EnsureLLMStarted)
 	w.Bind("__api_get_system_info", cfg.API.GetSystemInfo)
+	w.Bind("__api_get_app_version", cfg.API.GetAppVersion)
+	w.Bind("__api_check_for_updates", cfg.API.CheckForUpdates)
 	w.Bind("__api_get_programs_data", cfg.API.GetProgramsData)
 	w.Bind("__api_get_programs_for_profile", cfg.API.GetProgramsForProfile)
 	w.Bind("__api_install_selected_programs", cfg.API.InstallSelectedPrograms)
@@ -90,11 +109,14 @@ func NewWindow(cfg WindowConfig) error {
 
 	w.Init(`
 window.api = {
+  save_window_state: function() { return __api_save_window_state().catch(function(){}) },
   open_folder: function(p) { return __api_open_folder(p).catch(function(e){console.error(e)}) },
   open_url: function(u) { return __api_open_url(u).catch(function(e){console.error(e)}) },
   get_available_models: function() { return __api_get_available_models().then(function(r){return JSON.parse(r)}).catch(function(e){return[]}) },
   ensure_llm_started: function() { return __api_ensure_llm_started().then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
   get_system_info: function() { return __api_get_system_info().then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
+  get_app_version: function() { return __api_get_app_version().catch(function(){return ''}) },
+  check_for_updates: function() { return __api_check_for_updates().then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
   get_programs_data: function() { return __api_get_programs_data().then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
   get_programs_for_profile: function(p) { return __api_get_programs_for_profile(p).then(function(r){return JSON.parse(r)}).catch(function(e){return[]}) },
   install_selected_programs: function(p,t) { return __api_install_selected_programs(p,t).then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
@@ -148,6 +170,14 @@ if (window.location.pathname.toLowerCase().startsWith('/user_pages/')) {
     try { window[k] = undefined; delete window[k]; } catch (_) {}
   });
   window.api = Object.freeze({});
+} else {
+  var __coreDeckWindowStateTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(__coreDeckWindowStateTimer);
+    __coreDeckWindowStateTimer = setTimeout(function() {
+      window.api.save_window_state();
+    }, 450);
+  });
 }
 `)
 	maximizeWindow(w, cfg.Maximized)
@@ -157,6 +187,11 @@ if (window.location.pathname.toLowerCase().startsWith('/user_pages/')) {
 
 	slog.Info("webview starting", "title", cfg.Title)
 	w.Run()
+	if cfg.StatePath != "" {
+		if err := windowstate.Save(cfg.StatePath, lastWindowState); err != nil {
+			slog.Warn("failed to save window state", "error", err)
+		}
+	}
 	return nil
 }
 

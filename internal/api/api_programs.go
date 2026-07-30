@@ -82,6 +82,14 @@ func (a *API) InstallSelectedPrograms(programsJSON string, targetDir string) str
 	installSessions.Store(sessionID, session)
 
 	exeDir := a.ExeDir
+	programNames := make([]string, 0, len(selected))
+	for _, program := range selected {
+		programNames = append(programNames, program.Name)
+	}
+	a.recordAudit("install.programs", targetDir, "started", sessionID, map[string]any{
+		"programs": programNames,
+		"count":    len(programNames),
+	})
 
 	go func() {
 		defer func() {
@@ -90,6 +98,9 @@ func (a *API) InstallSelectedPrograms(programsJSON string, targetDir string) str
 				session.err = fmt.Sprintf("install panic: %v", r)
 				session.done = true
 				session.mu.Unlock()
+				a.recordAudit("install.programs", targetDir, "failed", sessionID, map[string]any{
+					"error": fmt.Sprintf("panic: %v", r),
+				})
 			}
 		}()
 
@@ -108,8 +119,25 @@ func (a *API) InstallSelectedPrograms(programsJSON string, targetDir string) str
 		session.mu.Lock()
 		session.final = results
 		session.done = true
+		cancelled := session.cancelled
 		session.mu.Unlock()
 		slog.Info("install session completed", "id", sessionID, "results", len(results))
+		succeeded := 0
+		for _, result := range results {
+			if result.Success {
+				succeeded++
+			}
+		}
+		status := "completed"
+		if cancelled {
+			status = "cancelled"
+		}
+		a.recordAudit("install.programs", targetDir, status, sessionID, map[string]any{
+			"requested": len(selected),
+			"completed": len(results),
+			"succeeded": succeeded,
+			"failed":    len(results) - succeeded,
+		})
 
 		// Self-cleanup: remove session after 30s (in case user closed overlay)
 		time.AfterFunc(30*time.Second, func() { installSessions.Delete(sessionID) })
