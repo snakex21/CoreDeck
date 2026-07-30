@@ -11,7 +11,7 @@ cd /d "%~dp0"
 
 set "ROOT=%~dp0"
 set "WEB=%ROOT%cmd\launcher\web"
-set "LAUNCHER_NEW=%ROOT%launcher.new.exe"
+set "LAUNCHER_NEW=%ROOT%CoreDeck.new.exe"
 set "HELPER_NEW=%ROOT%data\tools\disk-helper.new.exe"
 set "LAUNCHER_EXE=%ROOT%CoreDeck.exe"
 set "LEGACY_LAUNCHER_EXE=%ROOT%launcher.exe"
