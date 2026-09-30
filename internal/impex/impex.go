@@ -366,18 +366,19 @@ func ImportPack(exeDir string, programsData *programs.ProgramsData, driversData 
 	}
 
 	packDir := req.PackPath
-	cleanup := func() {}
 	if strings.HasSuffix(strings.ToLower(req.PackPath), ".zip") {
-		tmpDir := filepath.Join(os.TempDir(), "launcher_import_tmp")
-		os.RemoveAll(tmpDir)
+		tmpDir, err := os.MkdirTemp("", "coredeck-import-*")
+		if err != nil {
+			result.Message = "Nie można utworzyć katalogu tymczasowego: " + err.Error()
+			return result
+		}
+		defer os.RemoveAll(tmpDir)
 		if err := unzip(req.PackPath, tmpDir); err != nil {
 			result.Message = "Nie można rozpakować ZIP: " + err.Error()
 			return result
 		}
 		packDir = tmpDir
-		cleanup = func() { os.RemoveAll(tmpDir) }
 	}
-	defer cleanup()
 
 	if req.ImportPrograms {
 		count, err := importPrograms(packDir, programsData, req)
@@ -414,18 +415,19 @@ func PreviewPack(packPath string) PackPreview {
 	}
 
 	packDir := packPath
-	cleanup := func() {}
 	if strings.HasSuffix(strings.ToLower(packPath), ".zip") {
-		tmpDir := filepath.Join(os.TempDir(), "launcher_preview_tmp")
-		os.RemoveAll(tmpDir)
+		tmpDir, err := os.MkdirTemp("", "coredeck-preview-*")
+		if err != nil {
+			preview.Message = "Nie można utworzyć katalogu tymczasowego: " + err.Error()
+			return preview
+		}
+		defer os.RemoveAll(tmpDir)
 		if err := unzip(packPath, tmpDir); err != nil {
 			preview.Message = "Nie można rozpakować ZIP: " + err.Error()
 			return preview
 		}
 		packDir = tmpDir
-		cleanup = func() { os.RemoveAll(tmpDir) }
 	}
-	defer cleanup()
 
 	programsPath := filepath.Join(packDir, "programs.json")
 	if data, err := os.ReadFile(programsPath); err == nil {
@@ -487,14 +489,32 @@ func importPrograms(packDir string, pd *programs.ProgramsData, req ImportPackReq
 	}
 	selected := stringSet(req.SelectedPrograms)
 	importAll := len(selected) == 0
-	if req.ProgramsTargetDir != "" {
-		os.MkdirAll(req.ProgramsTargetDir, 0755)
-	}
 
 	count := 0
 	for _, p := range imported.Programs {
 		if !importAll && !selected[p.Name] {
 			continue
+		}
+		// Resolve catalogue conflicts before any file operation: skip must not
+		// replace existing files, and duplicate needs its own destination.
+		conflict := req.ProgramsTargetDir != "" && exists(filepath.Join(req.ProgramsTargetDir, safeName(p.Name)))
+		for _, existing := range pd.Programs {
+			if existing.Name == p.Name {
+				conflict = true
+				break
+			}
+		}
+		if conflict {
+			switch req.Strategy {
+			case "skip":
+				continue
+			case "duplicate":
+				base := p.Name + "_imported"
+				p.Name = uniqueProgramName(pd, base)
+				for i := 2; req.ProgramsTargetDir != "" && exists(filepath.Join(req.ProgramsTargetDir, safeName(p.Name))); i++ {
+					p.Name = uniqueProgramName(pd, fmt.Sprintf("%s_%d", base, i))
+				}
+			}
 		}
 		p.Selected = false
 		if req.ProgramsTargetDir != "" {
@@ -524,26 +544,29 @@ func importDrivers(packDir string, dd *drivers.DriversData, req ImportPackReques
 	if dd.Types == nil {
 		dd.Types = map[string]drivers.DriverType{}
 	}
-	if req.DriversTargetDir != "" {
-		os.MkdirAll(req.DriversTargetDir, 0755)
-	}
 
 	count := 0
 	for typeKey, dt := range imported.Types {
 		if !importAll && !selected[typeKey] {
 			continue
 		}
-		if req.DriversTargetDir != "" {
-			rewriteAndCopyDriverPaths(packDir, req.DriversTargetDir, typeKey, &dt)
-		}
 		destKey := typeKey
-		if _, exists := dd.Types[destKey]; exists {
+		_, conflict := dd.Types[destKey]
+		conflict = conflict || (req.DriversTargetDir != "" && exists(filepath.Join(req.DriversTargetDir, safeName(destKey))))
+		if conflict {
 			switch req.Strategy {
 			case "skip":
 				continue
 			case "duplicate":
-				destKey = uniqueDriverTypeKey(dd, typeKey+"_imported")
+				base := typeKey + "_imported"
+				destKey = uniqueDriverTypeKey(dd, base)
+				for i := 2; req.DriversTargetDir != "" && exists(filepath.Join(req.DriversTargetDir, safeName(destKey))); i++ {
+					destKey = uniqueDriverTypeKey(dd, fmt.Sprintf("%s_%d", base, i))
+				}
 			}
+		}
+		if req.DriversTargetDir != "" {
+			rewriteAndCopyDriverPaths(packDir, req.DriversTargetDir, destKey, &dt)
 		}
 		dd.Types[destKey] = dt
 		count++
