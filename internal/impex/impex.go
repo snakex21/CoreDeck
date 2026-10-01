@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -686,6 +687,9 @@ func exportPrograms(exeDir string, pd *programs.ProgramsData, names []string, ta
 	filtered := []programs.Program{}
 	for _, p := range pd.Programs {
 		if nameSet[p.Name] {
+			// Export rewrites variant paths; keep the live catalogue's slice
+			// independent from the portable snapshot being prepared below.
+			p.Variants = slices.Clone(p.Variants)
 			filtered = append(filtered, p)
 		}
 	}
@@ -770,6 +774,16 @@ func exportDrivers(exeDir string, dd *drivers.DriversData, typeKeys []string, se
 	filteredTypes := make(map[string]drivers.DriverType)
 	for tk, dt := range dd.Types {
 		if typeSet[tk] {
+			// Both path rewriting and selection filtering mutate this tree.
+			// Copy its map and nested slices before preparing the export.
+			if dt.Brands != nil {
+				brands := make(map[string]drivers.DriverBrand, len(dt.Brands))
+				for key, brand := range dt.Brands {
+					brand.Series = slices.Clone(brand.Series)
+					brands[key] = brand
+				}
+				dt.Brands = brands
+			}
 			filteredTypes[tk] = dt
 		}
 	}
