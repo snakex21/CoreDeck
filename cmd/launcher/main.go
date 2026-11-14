@@ -61,6 +61,9 @@ func main() {
 	dataDir := filepath.Join(exeDir, "data", "webview")
 	migrateLegacyWebviewData(exeDir, dataDir)
 	os.MkdirAll(dataDir, 0755)
+	// WebView2 profile (theme, language, local storage) next to the exe
+	// instead of %APPDATA%; must be set before the window is created.
+	setupWebviewProfile(dataDir, legacyWebviewRoot())
 
 	profilesStore, err := programs.NewProfilesStore(dataDir)
 	if err != nil {
