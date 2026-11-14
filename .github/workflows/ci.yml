@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, "fix/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      CGO_ENABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod   # honours the "toolchain go1.26.x" line
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: gcc (MinGW, needed by webview_go and -race)
+        shell: bash
+        run: gcc --version
+
+      - name: JavaScript syntax
+        shell: bash
+        run: find cmd/launcher/web/js test/web -name '*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: Python tests
+        run: python -m unittest discover -s scripts -v
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go test -race
+        run: go test -race -count=1 ./...
+
+      - name: govulncheck
+        shell: bash
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          "$(go env GOPATH)/bin/govulncheck" ./...
+
+      - name: Build
+        shell: bash
+        run: |
+          mkdir -p dist/data/tools
+          go build -trimpath -ldflags="-s -w -H windowsgui" -o dist/CoreDeck.exe ./cmd/launcher
+          CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o dist/data/tools/disk-helper.exe ./cmd/disk-helper
+          ls -l dist dist/data/tools
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CoreDeck-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
