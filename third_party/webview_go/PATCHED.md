@@ -3,8 +3,7 @@
 Upstream: github.com/webview/webview_go v0.0.0-20240831120633-6173450d4dd6 (MIT,
 see LICENSE; `libs/mswebview2` is the Microsoft WebView2 SDK header, BSD-3).
 Used through `replace github.com/webview/webview_go => ./third_party/webview_go`
-in CoreDeck's `go.mod`. The same patched copy is used by the author's other
-Go + WebView2 apps (WebDownloader, BenchForge, Game Launcher).
+in CoreDeck's `go.mod`.
 
 Changes against upstream:
 

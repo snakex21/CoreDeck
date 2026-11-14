@@ -212,7 +212,7 @@ func (w *webview) Dispatch(f func()) {
 	m.Lock()
 	for ; dispatch[index] != nil; index++ {
 	}
-	// BenchForge patch: capture the slot while holding the lock. Upstream read
+	// Local patch: capture the slot while holding the lock. Upstream read
 	// the global `index` after Unlock, so concurrent Dispatch calls from
 	// several goroutines could dispatch the wrong (or an empty) slot and the
 	// UI thread then called a nil func and crashed.

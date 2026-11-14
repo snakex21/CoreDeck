@@ -3326,8 +3326,8 @@ private:
     }
     wchar_t userDataFolder[MAX_PATH];
     PathCombineW(userDataFolder, dataPath, currentExeName);
-    // WebDownloader patch: WEBVIEW_GO_USER_DATA_FOLDER overrides the
-    // profile location (used by --portable to keep it next to the exe).
+    // Local patch: WEBVIEW_GO_USER_DATA_FOLDER overrides the
+    // hard-coded profile location (CoreDeck: data/webview next to the exe).
     wchar_t overrideFolder[MAX_PATH];
     DWORD overrideLen = GetEnvironmentVariableW(
         L"WEBVIEW_GO_USER_DATA_FOLDER", overrideFolder, MAX_PATH);
