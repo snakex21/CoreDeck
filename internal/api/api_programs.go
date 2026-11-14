@@ -15,6 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"launcher/internal/paths"
 	"launcher/internal/programs"
 )
 
@@ -197,7 +198,7 @@ func (a *API) OpenTargetFolder(path string) error {
 // ScanInstallerCandidates scans a folder for installer/script files
 // and returns them as a JSON array of relative paths.
 func (a *API) ScanInstallerCandidates(folderPath string) string {
-	resolved := programs.ResolvePath(a.ExeDir, folderPath)
+	resolved := paths.ResolvePath(a.ExeDir, folderPath)
 
 	type candidate struct {
 		Path  string `json:"path"`

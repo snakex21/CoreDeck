@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"launcher/internal/drivers"
+	"launcher/internal/paths"
 	"launcher/internal/programs"
-	"launcher/internal/system"
 )
 
 type ExportPackRequest struct {
@@ -136,7 +136,7 @@ func ValidateExport(exeDir string, programsData *programs.ProgramsData, driversD
 			if len(p.Variants) > 0 {
 				for _, v := range p.Variants {
 					raw := firstNonEmpty(v.FolderPath, p.FolderPath)
-					resolved := resolveAnyPath(exeDir, raw)
+					resolved := paths.ResolvePath(exeDir, raw)
 					if resolved == "" || !exists(resolved) {
 						result.Warnings = append(result.Warnings, ValidateWarning{
 							Item:  p.Name + " → " + firstNonEmpty(v.Name, "?"),
@@ -149,7 +149,7 @@ func ValidateExport(exeDir string, programsData *programs.ProgramsData, driversD
 					}
 				}
 			} else {
-				resolved := resolveAnyPath(exeDir, p.FolderPath)
+				resolved := paths.ResolvePath(exeDir, p.FolderPath)
 				if resolved == "" || !exists(resolved) {
 					result.Warnings = append(result.Warnings, ValidateWarning{
 						Item:  p.Name,
@@ -186,7 +186,7 @@ func ValidateExport(exeDir string, programsData *programs.ProgramsData, driversD
 					if !allSeries && !brandSeriesSet[s.Name] {
 						continue
 					}
-					resolved := resolveAnyPath(exeDir, s.FolderPath)
+					resolved := paths.ResolvePath(exeDir, s.FolderPath)
 					if resolved == "" || !exists(resolved) {
 						result.Warnings = append(result.Warnings, ValidateWarning{
 							Item:  (dt.Title) + " → " + firstNonEmpty(brand.Title, brandKey) + " → " + s.Name,
@@ -709,7 +709,7 @@ func exportPrograms(exeDir string, pd *programs.ProgramsData, names []string, ta
 			if len(p.Variants) > 0 {
 				for vi := range p.Variants {
 					v := &p.Variants[vi]
-					srcPath := resolveAnyPath(exeDir, firstNonEmpty(v.FolderPath, p.FolderPath))
+					srcPath := paths.ResolvePath(exeDir, firstNonEmpty(v.FolderPath, p.FolderPath))
 					if srcPath == "" || !exists(srcPath) {
 						slog.Warn("program variant folder not found", "name", p.Name, "variant", v.Name, "path", v.FolderPath)
 						continue
@@ -732,7 +732,7 @@ func exportPrograms(exeDir string, pd *programs.ProgramsData, names []string, ta
 				continue
 			}
 
-			srcPath := resolveAnyPath(exeDir, p.FolderPath)
+			srcPath := paths.ResolvePath(exeDir, p.FolderPath)
 			if srcPath == "" || !exists(srcPath) {
 				slog.Warn("program folder not found", "name", p.Name, "path", p.FolderPath)
 				continue
@@ -810,7 +810,7 @@ func exportDrivers(exeDir string, dd *drivers.DriversData, typeKeys []string, se
 						// Ta seria nie została zaznaczona — usuń z filteredTypes
 						continue
 					}
-					srcPath := resolveAnyPath(exeDir, series.FolderPath)
+					srcPath := paths.ResolvePath(exeDir, series.FolderPath)
 					if srcPath == "" || !exists(srcPath) {
 						slog.Warn("driver folder not found", "type", typeKey, "brand", brandKey, "series", series.Name, "path", series.FolderPath)
 						continue
@@ -854,29 +854,6 @@ func exportDrivers(exeDir string, dd *drivers.DriversData, typeKeys []string, se
 	}
 
 	return nil
-}
-
-func resolveAnyPath(exeDir, path string) string {
-	path = strings.TrimSpace(path)
-	path = strings.ReplaceAll(path, "/", "\\")
-	for strings.HasPrefix(path, "..\\") {
-		path = path[3:]
-	}
-	if filepath.IsAbs(path) {
-		return path
-	}
-	drive := system.DriveOf(exeDir)
-	candidates := []string{
-		filepath.Join(exeDir, path),
-		filepath.Join(exeDir, "..", path),
-		filepath.Join(drive+"\\", path),
-	}
-	for _, c := range candidates {
-		if exists(c) {
-			return c
-		}
-	}
-	return ""
 }
 
 func firstNonEmpty(values ...string) string {

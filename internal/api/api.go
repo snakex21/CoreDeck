@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	"launcher/internal/audit"
@@ -18,6 +17,7 @@ import (
 	"launcher/internal/knowledge"
 	"launcher/internal/llm"
 	"launcher/internal/models"
+	"launcher/internal/paths"
 	"launcher/internal/programs"
 	"launcher/internal/settings"
 	"launcher/internal/system"
@@ -39,32 +39,10 @@ type API struct {
 	knowledgeMu   sync.Mutex
 }
 
-// ResolvePath maps a path stored in the catalogue (often relative like
-// "../Centrum...") to the absolute Windows path that the launcher would
-// actually use. The first candidate that exists on disk is returned; if
-// none exist, the most likely candidate (<drive>\<pathPart>) is returned
-// anyway so the caller can see what would be tried.
+// ResolvePath maps a catalogue path to the absolute path the launcher would
+// use (see paths.ResolvePath). Bound to the UI as resolve_path.
 func (a *API) ResolvePath(rawPath string) string {
-	pathPart := strings.ReplaceAll(rawPath, "/", "\\")
-	pathPart = strings.TrimSpace(pathPart)
-	for strings.HasPrefix(pathPart, "..\\") {
-		pathPart = pathPart[3:]
-	}
-	drive := system.DriveOf(a.ExeDir)
-	candidates := []string{
-		filepath.Join(drive+"\\", pathPart),
-		absJoin(a.ExeDir, "data", rawPath),
-		absJoin(a.ExeDir, "..", pathPart),
-		absJoin(a.ExeDir, pathPart),
-		absJoin(a.WebDir, rawPath),
-	}
-	for _, cand := range candidates {
-		normalized := filepath.Clean(cand)
-		if _, err := os.Stat(normalized); err == nil {
-			return normalized
-		}
-	}
-	return filepath.Clean(candidates[0])
+	return paths.ResolvePath(a.ExeDir, rawPath)
 }
 
 func (a *API) OpenFolder(rawPath string) error {
@@ -87,10 +65,6 @@ func (a *API) GetAvailableModels() []models.ModelInfo {
 	return []models.ModelInfo{
 		{ID: "llm", Name: "LLM (LFM2.5-350M)", Size: "219MB", Available: available},
 	}
-}
-
-func absJoin(base string, parts ...string) string {
-	return filepath.Clean(filepath.Join(append([]string{base}, parts...)...))
 }
 
 // --- System Detection ---

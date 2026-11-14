@@ -15,8 +15,8 @@ import (
 	"sync"
 
 	"launcher/internal/jsonutil"
+	"launcher/internal/paths"
 	"launcher/internal/safeio"
-	"launcher/internal/system"
 )
 
 type Variant struct {
@@ -158,7 +158,7 @@ func InstallPrograms(exeDir string, programs []Program, targetDir string, progre
 
 	for i, p := range programs {
 		cfg := resolveVariant(p, exeDir)
-		path := ResolvePath(exeDir, cfg.FolderPath)
+		path := paths.ResolvePath(exeDir, cfg.FolderPath)
 		j := job{index: i, p: p, cfg: cfg, path: path}
 
 		switch cfg.InstallType {
@@ -849,28 +849,6 @@ func findScript(scriptDir string) string {
 		return candidates[i].score > candidates[j].score
 	})
 	return candidates[0].path
-}
-
-func ResolvePath(exeDir, folderPath string) string {
-	if filepath.IsAbs(folderPath) {
-		return folderPath
-	}
-
-	drive := system.DriveOf(exeDir)
-
-	candidates := []string{
-		filepath.Join(exeDir, folderPath),
-		filepath.Join(exeDir, "..", folderPath),
-		filepath.Join(drive+"\\", folderPath),
-	}
-
-	for _, c := range candidates {
-		if _, err := os.Stat(c); err == nil {
-			return c
-		}
-	}
-
-	return filepath.Join(exeDir, folderPath)
 }
 
 // copyDirFast uses robocopy (native Windows) for dramatically faster directory
