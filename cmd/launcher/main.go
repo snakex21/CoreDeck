@@ -137,7 +137,10 @@ func envEnabled(name string) bool {
 // only when they don't already exist, so user edits are never overwritten.
 func seedDataFiles(exeDir string) {
 	dataDir := filepath.Join(exeDir, "data")
-	os.MkdirAll(dataDir, 0755)
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		slog.Warn("seed: cannot create data dir", "dir", dataDir, "error", err)
+		return
+	}
 	for _, name := range []string{"programs.json", "tweaks.json", "drivers.json", "knowledge.json", "settings.json"} {
 		dst := filepath.Join(dataDir, name)
 		if _, err := os.Stat(dst); err == nil {
@@ -145,9 +148,12 @@ func seedDataFiles(exeDir string) {
 		}
 		data, err := staticFiles.ReadFile("web/data/" + name)
 		if err != nil {
+			slog.Warn("seed: embedded default missing", "file", name, "error", err)
 			continue
 		}
-		os.WriteFile(dst, data, 0644)
+		if err := os.WriteFile(dst, data, 0644); err != nil {
+			slog.Warn("seed: cannot write default", "file", dst, "error", err)
+		}
 	}
 }
 

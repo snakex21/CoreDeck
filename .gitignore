@@ -4,7 +4,11 @@ launcher.exe
 launcher.new.exe
 
 # === DATA (user-specific, never commit) ===
-data/
+# Only the runtime data directory next to CoreDeck.exe is user data.
+# The default/seed catalogues in cmd/launcher/web/data/*.json are embedded
+# into the exe (go:embed) and MUST be tracked, otherwise a fresh clone fails
+# TestSeedDataFiles... and build.bat aborts.
+/data/
 .webview_data/
 .playwright-mcp/
 .launcher_tweaks_backup.json
