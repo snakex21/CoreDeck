@@ -93,10 +93,20 @@ function initThemeToggle() {
 // --- Tabs ---
 function initTabs() {
     document.querySelectorAll('.config-tab').forEach(tab => {
+        tab.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                tab.click();
+            }
+        });
         tab.addEventListener('click', () => {
-            document.querySelectorAll('.config-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.config-tab').forEach(t => {
+                t.classList.remove('active');
+                t.setAttribute('aria-selected', 'false');
+            });
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             tab.classList.add('active');
+            tab.setAttribute('aria-selected', 'true');
             document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
             if (tab.dataset.tab === 'tweaki') {
                 scanTweakStates(false);

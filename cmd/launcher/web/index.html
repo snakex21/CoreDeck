@@ -31,7 +31,41 @@
             <h1 data-i18n="brand">CoreDeck</h1>
             <span class="header-subtitle" data-i18n="subtitle">Windows Toolkit &amp; Launcher</span>
         </div>
-        <div class="header-controls">
+        <!-- Search: central, wide -->
+        <div class="search-mode-container header-search" role="search">
+            <div class="search-mode-toggle">
+                <button class="mode-btn active" data-mode="normal" title="Szukaj po nazwie" data-i18n-title="mode_name_title" aria-pressed="true">
+                    <span class="mode-icon">🔍</span>
+                    <span class="mode-label" data-i18n="search_name">Nazwa</span>
+                </button>
+                <button class="mode-btn" data-mode="llm" title="LLM — opisz czego szukasz" data-i18n-title="mode_ai_title" aria-pressed="false">
+                    <span class="mode-icon">✨</span>
+                    <span class="mode-label" data-i18n="search_ai">Szukaj</span>
+                </button>
+            </div>
+            <div class="search-input-wrapper">
+                <input type="search" id="search-box" placeholder="Szukaj aplikacji..." autocomplete="off" data-i18n-placeholder="search_placeholder">
+                <div class="ai-status" id="ai-status">
+                    <span class="status-loading hidden">
+                        <span class="spinner"></span> AI...
+                    </span>
+                    <span class="status-ready hidden">✨</span>
+                    <span class="status-error hidden">⚠️</span>
+                </div>
+            </div>
+        </div>
+        <nav class="header-controls" aria-label="CoreDeck">
+            <button id="manage-btn" class="btn btn-secondary nav-btn" onclick="window.location.href='manage.html'">🛠️ <span data-i18n="manage">Zarządzanie</span></button>
+            <button id="config-btn" class="btn btn-secondary nav-btn" onclick="window.location.href='configurator.html'">⚙️ <span data-i18n="config">1 Konfiguracja</span></button>
+            <button id="knowledge-btn" class="btn btn-secondary nav-btn" onclick="window.location.href='knowledge.html'">📚 <span data-i18n="knowledge">Baza Wiedzy</span></button>
+            <details class="header-nav-menu">
+                <summary class="btn btn-secondary nav-btn">🧰 System</summary>
+                <div class="header-nav-menu-popover">
+                    <a href="drivers.html" class="header-nav-menu-link">🧩 <span data-i18n="tab_drivers">Sterowniki</span></a>
+                    <a href="settings.html" class="header-nav-menu-link">⚙ <span data-i18n="tab_settings">Ustawienia</span></a>
+                    <button id="help-btn" class="header-nav-menu-link help-btn">? <span data-i18n="help">Pomoc</span></button>
+                </div>
+            </details>
             <!-- Theme Toggle -->
             <button id="theme-toggle-btn" class="btn theme-btn" title="Przełącz tryb ciemny/jasny" data-i18n-title="theme_toggle">
                 <span class="theme-icon">🌙</span>
@@ -54,41 +88,7 @@
                 <option value="sv">🇸🇪 SV</option>
                 <option value="cs">🇨🇿 CS</option>
             </select>
-            <!-- Search Mode Toggle -->
-            <div class="search-mode-container">
-                <div class="search-mode-toggle">
-                    <button class="mode-btn active" data-mode="normal" title="Szukaj po nazwie" data-i18n-title="mode_name_title" aria-pressed="true">
-                        <span class="mode-icon">🔍</span>
-                        <span class="mode-label" data-i18n="search_name">Nazwa</span>
-                    </button>
-                    <button class="mode-btn" data-mode="llm" title="LLM — opisz czego szukasz" data-i18n-title="mode_ai_title" aria-pressed="false">
-                        <span class="mode-icon">✨</span>
-                        <span class="mode-label" data-i18n="search_ai">Szukaj</span>
-                    </button>
-                </div>
-                <div class="search-input-wrapper">
-                    <input type="search" id="search-box" placeholder="Szukaj aplikacji..." autocomplete="off" data-i18n-placeholder="search_placeholder">
-                    <div class="ai-status" id="ai-status">
-                        <span class="status-loading hidden">
-                            <span class="spinner"></span> AI...
-                        </span>
-                        <span class="status-ready hidden">✨</span>
-                        <span class="status-error hidden">⚠️</span>
-                    </div>
-                </div>
-            </div>
-            <button id="manage-btn" class="btn btn-secondary" onclick="window.location.href='manage.html'">🛠️ <span data-i18n="manage">Zarządzanie</span></button>
-            <button id="config-btn" class="btn btn-secondary" onclick="window.location.href='configurator.html'">⚙️ <span data-i18n="config">1 Konfiguracja</span></button>
-            <button id="knowledge-btn" class="btn btn-secondary" onclick="window.location.href='knowledge.html'">📚 <span data-i18n="knowledge">Baza Wiedzy</span></button>
-            <details class="header-nav-menu">
-                <summary class="btn btn-secondary">🧰 System</summary>
-                <div class="header-nav-menu-popover">
-                    <a href="drivers.html" class="header-nav-menu-link">🧩 <span data-i18n="tab_drivers">Sterowniki</span></a>
-                    <a href="settings.html" class="header-nav-menu-link">⚙ <span data-i18n="tab_settings">Ustawienia</span></a>
-                    <button id="help-btn" class="header-nav-menu-link help-btn">? <span data-i18n="help">Pomoc</span></button>
-                </div>
-            </details>
-        </div>
+        </nav>
     </header>
 
     <!-- Główny kontener -->
@@ -207,12 +207,16 @@
     <!-- Template -->
     <template id="program-card-template">
         <div class="program-card">
-            <img src="" alt="Ikona programu" class="program-icon" data-i18n-alt="program_icon_alt">
-            <div class="program-details">
-                <h3 class="program-title"></h3>
-                <p class="program-description"></p>
-                <div class="buttons"></div>
+            <div class="program-card-head">
+                <span class="program-icon-wrap">
+                    <img src="" alt="" class="program-icon" decoding="async">
+                </span>
+                <div class="program-details">
+                    <h3 class="program-title"></h3>
+                    <p class="program-description"></p>
+                </div>
             </div>
+            <div class="buttons"></div>
         </div>
     </template>
 

@@ -92,6 +92,113 @@
     let aiModeActive = false;
     let aiResultItems = null;
 
+    const tr = (key, fallback) => (typeof t === 'function' && t(key) !== key ? t(key) : fallback);
+
+    const CARD_ICONS = {
+        folder: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.1l2 2h8.9A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
+        copy: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>',
+        info: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 11v5.5M12 7.6v.4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
+        check: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    };
+
+    function programInitials(name) {
+        const words = String(name || '')
+            .replace(/\([^)]*\)/g, ' ')
+            .split(/[\s\-_.\/]+/)
+            .map(w => w.replace(/[^0-9A-Za-zÀ-ž]/g, ''))
+            .filter(Boolean);
+        if (words.length === 0) return '?';
+        const letters = words.length > 1 ? words[0][0] + words[1][0] : words[0].slice(0, 2);
+        return letters.toUpperCase();
+    }
+
+    function programHue(name) {
+        let h = 0;
+        for (const ch of String(name || '')) h = (h * 31 + ch.codePointAt(0)) >>> 0;
+        return h % 360;
+    }
+
+    function makeInitialsAvatar(name) {
+        const el = document.createElement('span');
+        el.className = 'program-avatar';
+        el.textContent = programInitials(name);
+        el.style.setProperty('--avatar-h', String(programHue(name)));
+        el.setAttribute('aria-hidden', 'true');
+        return el;
+    }
+
+    // Icons that are missing, broken or unreadable are replaced by an
+    // initials avatar. Results are cached per image URL.
+    const iconVerdicts = new Map();
+
+    // Heuristic tuned on a real 200-icon catalogue: an icon is replaced when
+    // almost nothing in it stands out from the card background (dark artwork
+    // on a dark card, transparent wordmarks), or when it is a wide, flat,
+    // single-tone wordmark that is unreadable at 48 px.
+    function iconIsUnreadable(img) {
+        const w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return true;
+        try {
+            const size = 24;
+            const scale = size / Math.max(w, h);
+            const dw = Math.max(1, Math.round(w * scale)), dh = Math.max(1, Math.round(h * scale));
+            const canvas = document.createElement('canvas');
+            canvas.width = size; canvas.height = size;
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            ctx.drawImage(img, Math.floor((size - dw) / 2), Math.floor((size - dh) / 2), dw, dh);
+            const data = ctx.getImageData(0, 0, size, size).data;
+            const bg = document.body.classList.contains('light-theme') ? [255, 255, 255] : [22, 27, 36];
+            let visible = 0, opaque = 0, sum = 0, sumSq = 0;
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i + 3] <= 40) continue;
+                opaque++;
+                const l = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+                sum += l; sumSq += l * l;
+                const dr = data[i] - bg[0], dg = data[i + 1] - bg[1], db = data[i + 2] - bg[2];
+                if (Math.sqrt(dr * dr + dg * dg + db * db) > 70) visible++;
+            }
+            if (visible / (size * size) < 0.03) return true;
+            const mean = sum / Math.max(opaque, 1);
+            const sd = Math.sqrt(Math.max(0, sumSq / Math.max(opaque, 1) - mean * mean));
+            const aspect = Math.max(w / h, h / w);
+            return aspect >= 1.5 && sd < 20;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function useInitialsFallback(img, name) {
+        if (!img || !img.isConnected) return;
+        const wrap = img.closest('.program-icon-wrap') || img.parentElement;
+        img.replaceWith(makeInitialsAvatar(name));
+        if (wrap) wrap.classList.add('has-avatar');
+    }
+
+    function attachIconFallback(img, name, src) {
+        if (!src) {
+            useInitialsFallback(img, name);
+            return;
+        }
+        const known = iconVerdicts.get(src);
+        if (known === 'bad') {
+            useInitialsFallback(img, name);
+            return;
+        }
+        img.addEventListener('error', () => {
+            iconVerdicts.set(src, 'bad');
+            useInitialsFallback(img, name);
+        }, { once: true });
+        if (known !== 'ok') {
+            img.addEventListener('load', () => {
+                const verdict = iconIsUnreadable(img) ? 'bad' : 'ok';
+                iconVerdicts.set(src, verdict);
+                if (verdict === 'bad') useInitialsFallback(img, name);
+            }, { once: true });
+        }
+        img.src = src;
+    }
+    window.coreDeckIconFallback = { attach: attachIconFallback, avatar: makeInitialsAvatar };
+
     function debounce(fn, delay = 160) {
         let timer = null;
         return (...args) => {
@@ -247,6 +354,7 @@
 
         card.querySelectorAll('.open-folder-btn, .copy-folder-btn').forEach(btn => {
             btn.dataset.path = path;
+            btn.disabled = !path;
         });
         const detailsButton = card.querySelector('.details-btn');
         if (detailsButton) detailsButton.dataset.variantIndex = String(variantIndex);
@@ -255,8 +363,9 @@
         if (runButton) {
             const runnable = canRunProgram(item, variantIndex);
             const installType = getProgramInstallType(item, variantIndex);
-            const label = installType === 'script' ? 'Uruchom skrypt' : 'Uruchom instalator';
+            const label = installType === 'script' ? tr('run_script', 'Uruchom skrypt') : tr('run_installer', 'Uruchom instalator');
             runButton.hidden = !runnable;
+            card.classList.toggle('is-runnable', runnable);
             runButton.dataset.variantIndex = String(variantIndex);
             runButton.dataset.defaultLabel = label;
             if (!runButton.disabled) runButton.textContent = `▶ ${label}`;
@@ -342,10 +451,11 @@
             const card = cardContent.querySelector('.program-card'); // Pobieramy element <a> z szablonu
             card.dataset.itemName = item.name;
 
-            card.querySelector('.program-icon').src = item.icon || 'icons/default.png';
-            card.querySelector('.program-icon').alt = typeof t === 'function' ? t('program_icon_alt') : 'Ikona programu';
+            attachIconFallback(card.querySelector('.program-icon'), item.name, item.icon || '');
             card.querySelector('.program-title').textContent = item.name;
-            card.querySelector('.program-description').textContent = item.description;
+            card.querySelector('.program-title').title = item.name;
+            card.querySelector('.program-description').textContent = item.description || '';
+            if (item.description) card.querySelector('.program-description').title = item.description;
 
             const buttonsContainer = card.querySelector('.buttons');
             const variants = getVariantList(item);
@@ -353,11 +463,11 @@
             if (item.type === 'link') {
                 card.dataset.url = item.localPath || item.externalUrl;
                 card.dataset.external = item.externalUrl ? 'true' : 'false';
-                const openLabel = item.externalUrl ? 'Otwórz stronę' : 'Otwórz';
-                const detailsLabel = typeof t === 'function' ? t('details') : 'Szczegóły';
+                const openLabel = item.externalUrl ? tr('open_page', 'Otwórz stronę') : tr('open_link', 'Otwórz');
+                const detailsLabel = tr('details', 'Szczegóły');
                 buttonsContainer.innerHTML = `
-                    <button class="btn open-link-btn">↗ ${openLabel}</button>
-                    <button class="btn details-btn">${detailsLabel}</button>
+                    <button class="btn card-primary-btn open-link-btn">↗ ${escapeHtmlValue(openLabel)}</button>
+                    <button class="card-icon-btn details-btn" title="${escapeHtmlValue(detailsLabel)}" aria-label="${escapeHtmlValue(detailsLabel)}">${CARD_ICONS.info}</button>
                 `;
                 card.querySelector('.details-btn').dataset.itemName = item.name;
             } else {
@@ -384,14 +494,18 @@
                 }
 
                 // Jeśli to zwykły program, generujemy przyciski
-                const openLabel = typeof t === 'function' ? t('open_folder') : 'Otwórz folder';
-                const copyLabel = typeof t === 'function' ? t('copy_path') : 'Skopiuj ścieżkę';
-                const detailsLabel = typeof t === 'function' ? t('details') : 'Szczegóły';
+                // One primary action (run, otherwise details); folder and path
+                // are icon buttons revealed on hover or keyboard focus.
+                const openLabel = escapeHtmlValue(tr('open_folder', 'Otwórz folder'));
+                const copyLabel = escapeHtmlValue(tr('copy_path', 'Skopiuj ścieżkę'));
+                const detailsLabel = escapeHtmlValue(tr('details', 'Szczegóły'));
                 buttonsContainer.innerHTML = `
-                    <button class="btn run-program-btn" hidden></button>
-                    <button class="btn open-folder-btn">📂 ${openLabel}</button>
-                    <button class="btn copy-folder-btn">${copyLabel}</button>
-                    <button class="btn details-btn">${detailsLabel}</button>
+                    <button class="btn card-primary-btn run-program-btn" hidden></button>
+                    <button class="btn card-secondary-btn details-btn" aria-label="${detailsLabel}" title="${detailsLabel}"><span class="details-icon">${CARD_ICONS.info}</span><span class="details-label">${detailsLabel}</span></button>
+                    <span class="card-quick-actions">
+                        <button class="card-icon-btn open-folder-btn" title="${openLabel}" aria-label="${openLabel}">${CARD_ICONS.folder}</button>
+                        <button class="card-icon-btn copy-folder-btn" title="${copyLabel}" aria-label="${copyLabel}">${CARD_ICONS.copy}</button>
+                    </span>
                 `;
                 card.querySelector('.details-btn').dataset.itemName = item.name;
                 updateCardVariantPath(card);
@@ -473,7 +587,6 @@
 
         const tagMarkup = tags.map(tag => `<span class="detail-tag">${escapeHtmlValue(tag)}</span>`).join('');
         const description = escapeHtmlValue(item.description || 'Brak opisu.');
-        const icon = escapeHtmlValue(item.icon || 'icons/default.png');
         const name = escapeHtmlValue(item.name);
         const category = escapeHtmlValue(item.category || 'Program');
 
@@ -481,7 +594,7 @@
         detailContent.dataset.variantIndex = String(variantIndex);
         detailContent.innerHTML = `
             <div class="detail-hero">
-                <img class="detail-program-icon" src="${icon}" alt="" onerror="this.src='icons/default.png'">
+                <span class="program-icon-wrap detail-icon-wrap"><img class="detail-program-icon" alt=""></span>
                 <div class="detail-heading">
                     <div class="detail-eyebrow">${category}</div>
                     <h1>${name}</h1>
@@ -517,6 +630,7 @@
                 </aside>
             </div>
         `;
+        attachIconFallback(detailContent.querySelector('.detail-program-icon'), item.name, item.icon || '');
         mainView.classList.add('hidden');
         detailView.classList.remove('hidden');
         const detailUrl = new URL(window.location.href);
@@ -593,9 +707,25 @@
         const windowsPath = await resolvePathForClipboard(path);
 
         navigator.clipboard.writeText(windowsPath).then(() => {
-            const originalText = button.textContent;
-            button.textContent = typeof t === 'function' ? t('copied') : 'Skopiowano!';
-            setTimeout(() => { if (button) button.textContent = originalText; }, 1500);
+            const copied = tr('copied', 'Skopiowano!');
+            if (button.dataset.copying) return;
+            button.dataset.copying = '1';
+            const original = button.innerHTML;
+            const originalTitle = button.getAttribute('title');
+            if (button.classList.contains('card-icon-btn')) {
+                button.innerHTML = CARD_ICONS.check;
+                button.classList.add('is-done');
+                button.setAttribute('title', copied);
+            } else {
+                button.textContent = copied;
+            }
+            setTimeout(() => {
+                if (!button) return;
+                button.innerHTML = original;
+                button.classList.remove('is-done');
+                if (originalTitle !== null) button.setAttribute('title', originalTitle);
+                delete button.dataset.copying;
+            }, 1500);
         });
     }
 

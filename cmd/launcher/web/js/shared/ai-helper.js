@@ -142,20 +142,33 @@
         }
 
         results.forEach(({ program, similarity, reason }) => {
+            const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
             const div = document.createElement('div');
             div.className = 'program-card';
-            const iconSrc = program.icon || 'icons/default.png';
+            const path = esc(program.folderPath || program.localPath || '');
+            const openLabel = esc(typeof t === 'function' ? t('open_folder') : 'Otwórz folder');
+            const copyLabel = esc(typeof t === 'function' ? t('copy_path') : 'Skopiuj ścieżkę');
             div.innerHTML = `
-                <img src="${iconSrc}" alt="" class="program-icon" onerror="this.src='icons/default.png'">
-                <div class="program-details">
-                    <h3 class="program-title">${program.name}</h3>
-                    <p class="program-description">${program.description || ''}</p>
-                    <div class="buttons">
-                        <button class="btn open-folder-btn" data-path="${program.folderPath || program.localPath || ''}">📂 ${typeof t === 'function' ? t('open_folder') : 'Otwórz folder'}</button>
-                        <button class="btn copy-path-btn" data-path="${program.folderPath || program.localPath || ''}">${typeof t === 'function' ? t('copy_path') : 'Skopiuj ścieżkę'}</button>
+                <div class="program-card-head">
+                    <span class="program-icon-wrap"><img alt="" class="program-icon" decoding="async"></span>
+                    <div class="program-details">
+                        <h3 class="program-title">${esc(program.name)}</h3>
+                        <p class="program-description">${esc(program.description || '')}</p>
                     </div>
                 </div>
+                <div class="buttons">
+                    <button class="btn card-primary-btn open-folder-btn" data-path="${path}">📂 ${openLabel}</button>
+                    <span class="card-quick-actions">
+                        <button class="card-icon-btn copy-path-btn" data-path="${path}" title="${copyLabel}" aria-label="${copyLabel}">⧉</button>
+                    </span>
+                </div>
             `;
+            const img = div.querySelector('.program-icon');
+            if (window.coreDeckIconFallback) {
+                window.coreDeckIconFallback.attach(img, program.name, program.icon || '');
+            } else {
+                img.src = program.icon || 'icons/default.png';
+            }
             elements.aiResultsContainer.appendChild(div);
         });
 

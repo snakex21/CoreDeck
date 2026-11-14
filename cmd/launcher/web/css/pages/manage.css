@@ -1398,3 +1398,33 @@ body.light-theme .page-preview-bar .btn:focus-visible {
     /* Nagłówek zostaje przyklejony (fixed glass bar) — spójnie z
        knowledge.html i configurator.html. Nie od-fiksujemy go tutaj. */
 }
+
+/* ===== Import/Export on wide screens =====
+   Keep the column readable and lay program rows out in a dense grid instead
+   of 1700px-wide single rows with the type badge at the far edge. */
+.impex-container {
+    max-width: 1480px;
+    width: 100%;
+    margin-inline: auto;
+}
+#export-programs-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr));
+    gap: 2px 12px;
+}
+.impex-program-row {
+    padding: 5px 8px;
+    gap: 8px;
+    min-width: 0;
+}
+.impex-program-row .impex-program-icon,
+.impex-program-row .impex-program-icon img {
+    width: 20px;
+    height: 20px;
+}
+.impex-checkbox-group {
+    gap: 2px;
+}
+.impex-checkbox-label {
+    padding: 6px 8px;
+}
