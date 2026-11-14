@@ -22,9 +22,7 @@ func (a *API) GetKnowledgeData() string {
 	defer a.knowledgeMu.Unlock()
 
 	if a.KnowledgeData == nil {
-		if kd, err := knowledge.Load(a.WebDir); err == nil {
-			a.KnowledgeData = kd
-		} else if kd, err := knowledge.LoadFromFS(a.WebFS); err == nil {
+		if kd, err := loadCatalogue(a.WebDir, "knowledge.json", knowledge.Load, knowledge.LoadFromFS, a.WebFS); err == nil {
 			a.KnowledgeData = kd
 		} else {
 			slog.Error("load knowledge", "error", err)
@@ -98,9 +96,7 @@ func (a *API) StartKnowledgeLinkCheck(category string, limit int) string {
 
 	a.knowledgeMu.Lock()
 	if a.KnowledgeData == nil {
-		if kd, err := knowledge.Load(a.WebDir); err == nil {
-			a.KnowledgeData = kd
-		} else if kd, err := knowledge.LoadFromFS(a.WebFS); err == nil {
+		if kd, err := loadCatalogue(a.WebDir, "knowledge.json", knowledge.Load, knowledge.LoadFromFS, a.WebFS); err == nil {
 			a.KnowledgeData = kd
 		} else {
 			a.knowledgeMu.Unlock()
@@ -218,9 +214,7 @@ func (a *API) ReviewKnowledgeLink(requestJSON string) string {
 	a.knowledgeMu.Lock()
 	defer a.knowledgeMu.Unlock()
 	if a.KnowledgeData == nil {
-		if kd, err := knowledge.Load(a.WebDir); err == nil {
-			a.KnowledgeData = kd
-		} else if kd, err := knowledge.LoadFromFS(a.WebFS); err == nil {
+		if kd, err := loadCatalogue(a.WebDir, "knowledge.json", knowledge.Load, knowledge.LoadFromFS, a.WebFS); err == nil {
 			a.KnowledgeData = kd
 		} else {
 			return jsonError(err.Error())
@@ -319,9 +313,7 @@ func (a *API) BulkKeepKnowledgeLinks(requestJSON string) string {
 	a.knowledgeMu.Lock()
 	defer a.knowledgeMu.Unlock()
 	if a.KnowledgeData == nil {
-		if kd, err := knowledge.Load(a.WebDir); err == nil {
-			a.KnowledgeData = kd
-		} else if kd, err := knowledge.LoadFromFS(a.WebFS); err == nil {
+		if kd, err := loadCatalogue(a.WebDir, "knowledge.json", knowledge.Load, knowledge.LoadFromFS, a.WebFS); err == nil {
 			a.KnowledgeData = kd
 		} else {
 			return jsonError(err.Error())
@@ -379,9 +371,7 @@ func (a *API) OpenKnowledgeLinkReview(category, rawURL string) string {
 
 	a.knowledgeMu.Lock()
 	if a.KnowledgeData == nil {
-		if kd, err := knowledge.Load(a.WebDir); err == nil {
-			a.KnowledgeData = kd
-		} else if kd, err := knowledge.LoadFromFS(a.WebFS); err == nil {
+		if kd, err := loadCatalogue(a.WebDir, "knowledge.json", knowledge.Load, knowledge.LoadFromFS, a.WebFS); err == nil {
 			a.KnowledgeData = kd
 		} else {
 			a.knowledgeMu.Unlock()

@@ -21,9 +21,7 @@ import (
 
 func (a *API) GetProgramsData() string {
 	if a.ProgramsData == nil {
-		if pd, err := programs.LoadPrograms(a.WebDir); err == nil { // external <exeDir>/data/programs.json
-			a.ProgramsData = pd
-		} else if pd, err := programs.LoadFromFS(a.WebFS); err == nil { // embedded fallback
+		if pd, err := loadCatalogue(a.WebDir, "programs.json", programs.LoadPrograms, programs.LoadFromFS, a.WebFS); err == nil {
 			a.ProgramsData = pd
 		} else {
 			slog.Error("load programs", "error", err)

@@ -12,9 +12,7 @@ import (
 // GetSettingsData returns the settings catalogue JSON.
 func (a *API) GetSettingsData() string {
 	if a.SettingsData == nil {
-		if sd, err := settings.LoadSettings(a.WebDir); err == nil {
-			a.SettingsData = sd
-		} else if sd, err := settings.LoadFromFS(a.WebFS); err == nil {
+		if sd, err := loadCatalogue(a.WebDir, "settings.json", settings.LoadSettings, settings.LoadFromFS, a.WebFS); err == nil {
 			a.SettingsData = sd
 		} else {
 			slog.Error("load settings", "error", err)

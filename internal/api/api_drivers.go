@@ -13,9 +13,7 @@ import (
 // structure as script.js used inline: types → brands → series).
 func (a *API) GetDriversData() string {
 	if a.DriversData == nil {
-		if dd, err := drivers.LoadDrivers(a.WebDir); err == nil { // external <exeDir>/data/drivers.json
-			a.DriversData = dd
-		} else if dd, err := drivers.LoadFromFS(a.WebFS); err == nil { // embedded fallback
+		if dd, err := loadCatalogue(a.WebDir, "drivers.json", drivers.LoadDrivers, drivers.LoadFromFS, a.WebFS); err == nil {
 			a.DriversData = dd
 		} else {
 			slog.Error("load drivers", "error", err)

@@ -39,9 +39,7 @@ func (a *API) configureTweakStateDir() {
 
 func (a *API) GetTweaksData() string {
 	if a.TweaksData == nil {
-		if td, err := tweaks.LoadTweaks(a.WebDir); err == nil { // external <exeDir>/data/tweaks.json
-			a.TweaksData = td
-		} else if td, err := tweaks.LoadFromFS(a.WebFS); err == nil { // embedded fallback
+		if td, err := loadCatalogue(a.WebDir, "tweaks.json", tweaks.LoadTweaks, tweaks.LoadFromFS, a.WebFS); err == nil {
 			a.TweaksData = td
 		} else {
 			slog.Error("load tweaks", "error", err)
