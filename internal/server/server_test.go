@@ -153,3 +153,52 @@ func TestNoCORSAndOnlyLoopbackHosts(t *testing.T) {
 		}
 	}
 }
+
+func TestKnowledgeBaseIsServedFromDataDirectory(t *testing.T) {
+	dataDir := t.TempDir()
+	userDir := filepath.Join(dataDir, "user_pages")
+	kbDir := filepath.Join(dataDir, "KnowledgeBase", "dane")
+	for _, d := range []string{userDir, kbDir} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	os.WriteFile(filepath.Join(dataDir, "KnowledgeBase", "index.html"), []byte("<h1>private-kb</h1>"), 0o644)
+	os.WriteFile(filepath.Join(kbDir, "ai-dane.js"), []byte("var x=1"), 0o644)
+	os.WriteFile(filepath.Join(dataDir, "secret.json"), []byte("secret"), 0o644)
+
+	srv, port, err := Start(fstest.MapFS{"index.html": {Data: []byte("index")}}, userDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer srv.Shutdown(context.Background())
+	base := "http://127.0.0.1:" + fmt.Sprint(port)
+	client := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+
+	for path, want := range map[string]string{
+		"/KnowledgeBase/index.html?returnProgram=x": "private-kb",
+		"/KnowledgeBase/":                           "private-kb",
+		"/KnowledgeBase/dane/ai-dane.js":            "var x=1",
+	} {
+		resp, err := client.Get(base + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK || !strings.Contains(string(body), want) {
+			t.Errorf("%s: status %d body %q", path, resp.StatusCode, body)
+		}
+	}
+	for _, path := range []string{"/KnowledgeBase/../secret.json", "/KnowledgeBase/%2e%2e/secret.json", "/KnowledgeBase/missing.html", "/KnowledgeBase/dane"} {
+		resp, err := http.Get(base + path) // follows the mux's path-cleaning redirect
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if string(body) == "secret" || resp.StatusCode == http.StatusOK {
+			t.Errorf("%s: status %d body %q", path, resp.StatusCode, body)
+		}
+	}
+}

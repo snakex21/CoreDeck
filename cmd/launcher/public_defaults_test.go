@@ -56,3 +56,21 @@ func TestEmbeddedDefaultsAreEmptyTemplates(t *testing.T) {
 		t.Fatalf("expected 5 embedded catalogue templates, found %d", seen)
 	}
 }
+
+// The KnowledgeBase site is served from data\KnowledgeBase; a copy inside
+// web/ would be compiled into the public exe.
+func TestNoKnowledgeBaseSiteEmbedded(t *testing.T) {
+	err := fs.WalkDir(staticFiles, "web", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() && strings.EqualFold(d.Name(), "KnowledgeBase") {
+			t.Errorf("%s must not be embedded; it belongs in data/KnowledgeBase", path)
+			return fs.SkipDir
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}

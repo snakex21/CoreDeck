@@ -45,3 +45,6 @@ __pycache__/
 *.bak_*
 test_err.txt
 test_out.txt
+
+# Private KnowledgeBase site: user data in data/KnowledgeBase, never embedded.
+cmd/launcher/web/KnowledgeBase/

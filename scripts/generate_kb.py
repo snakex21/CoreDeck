@@ -5,7 +5,10 @@ Uzycie:
     python generate_kb.py                 # wszystkie pliki dane/*-dane.js
     python generate_kb.py komiksy gry     # tylko wybrane klucze
     python generate_kb.py --check         # tylko test parsowania, nic nie zapisuje
-    python generate_kb.py --out=DIR       # zapis do DIR zamiast do KnowledgeBase/
+    python generate_kb.py --out=DIR       # zapis do DIR zamiast do data/KnowledgeBase/
+
+Zrodlo i wynik: data/KnowledgeBase/ (dane uzytkownika obok CoreDeck.exe,
+ignorowane przez Git, nieosadzane w EXE).
 """
 
 import json5 as json, os, re, html, sys
@@ -238,8 +241,10 @@ def main(argv):
             out_dir = a[len('--out='):]
 
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    web_dir = os.path.join(root_dir, 'cmd', 'launcher', 'web')
-    kb_dir = os.path.join(web_dir, 'KnowledgeBase')
+    # The KnowledgeBase is user data: it lives in data/KnowledgeBase next to
+    # CoreDeck.exe (served at /KnowledgeBase/), never inside the embedded UI,
+    # so it is not compiled into the public exe or committed.
+    kb_dir = os.path.join(root_dir, 'data', 'KnowledgeBase')
     dane_dir = os.path.join(kb_dir, 'dane')
     write_dir = out_dir or kb_dir
     if out_dir and not check_only:

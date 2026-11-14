@@ -169,7 +169,7 @@ window.api = {
   scan_installer_candidates: function(fp) { return __api_scan_installer_candidates(fp).then(function(r){return JSON.parse(r)}).catch(function(e){return []}) },
   cancel_operation: function(s) { return __api_cancel_operation(s).then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) }
 };
-if (window.location.pathname.toLowerCase().startsWith('/user_pages/')) {
+if (/^\/(user_pages|knowledgebase)\//.test(window.location.pathname.toLowerCase())) {
   Object.keys(window).filter(function(k){return k.indexOf('__api_') === 0}).forEach(function(k){
     try { window[k] = undefined; delete window[k]; } catch (_) {}
   });
