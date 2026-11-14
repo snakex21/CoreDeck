@@ -81,16 +81,18 @@ if errorlevel 1 goto :fail
 
 echo ==^> Budowanie CoreDeck.exe
 set "CGO_ENABLED=1"
+REM Toolchain jest przypiety w go.mod (toolchain go1.26.11, poprawki bezpieczenstwa stdlib).
+REM -trimpath -s -w: bez sciezek budowania i tablic symboli (exe ok. 45%% mniejszy).
 if /I "%~1"=="debug" (
-    go build -o "%LAUNCHER_NEW%" .\cmd\launcher
+    go build -trimpath -o "%LAUNCHER_NEW%" .\cmd\launcher
 ) else (
-    go build -ldflags="-H windowsgui" -o "%LAUNCHER_NEW%" .\cmd\launcher
+    go build -trimpath -ldflags="-s -w -H windowsgui" -o "%LAUNCHER_NEW%" .\cmd\launcher
 )
 if errorlevel 1 goto :fail
 
 echo ==^> Budowanie data\tools\disk-helper.exe
 set "CGO_ENABLED=0"
-go build -o "%HELPER_NEW%" .\cmd\disk-helper
+go build -trimpath -ldflags="-s -w" -o "%HELPER_NEW%" .\cmd\disk-helper
 if errorlevel 1 goto :fail
 
 move /y "%LAUNCHER_NEW%" "%LAUNCHER_EXE%" >nul
