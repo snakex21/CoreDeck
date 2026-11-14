@@ -1,6 +1,6 @@
 # CoreDeck
 
-Wersja: **2.3.0** · Licencja: [MIT](LICENSE) · Zmiany: [CHANGELOG.md](CHANGELOG.md)
+Wersja: **2.3.1** · Licencja: [MIT](LICENSE) · Zmiany: [CHANGELOG.md](CHANGELOG.md)
 
 Portable Windows toolkit for organizing apps, drivers, installers, system tweaks,
 setup profiles and local documentation.
@@ -24,10 +24,25 @@ data/
 ├── settings.json
 ├── knowledge.json
 ├── tweaks.json
+├── KnowledgeBase/     (opcjonalnie: własna strona Bazy Wiedzy, /KnowledgeBase/)
+├── icons/
 ├── user_pages/
+├── webview/           (profil WebView2: motyw, język, localStorage)
 ├── logs/
 └── state/
 ```
+
+### Dane prywatne i ten sam EXE
+
+Wszystkie dane użytkownika są czytane z `data\` obok `CoreDeck.exe`.
+Pliki osadzone w EXE (`cmd/launcher/web/data/*.json`) to tylko puste
+szablony, używane wyłącznie wtedy, gdy plik w `data\` nie istnieje. Dzięki
+temu publiczny `CoreDeck.exe` z Releases i prywatna instalacja to ten sam
+plik: prywatny katalog, Baza Wiedzy (`knowledge.json`) i strona
+`data\KnowledgeBase\` leżą tylko w `data\`. Uszkodzony plik w `data\` jest
+zgłaszany jako błąd i nie jest zastępowany pustym szablonem (kolejny zapis
+nie nadpisze danych). Testy pilnują, żeby do osadzonych szablonów ani do
+`cmd/launcher/web/` nie trafiły prywatne dane.
 
 ## Funkcje
 
@@ -105,17 +120,25 @@ historii, prywatnych stron, modeli AI ani biblioteki instalatorów.
 Sprawdzenie aktualizacji jest uruchamiane ręcznie i odpytuje wyłącznie
 oficjalne GitHub Releases projektu.
 
-## Znane ograniczenia
+## Bezpieczeństwo
 
-- **Profil WebView2 nie jest przenośny.** Dane aplikacji (`data/`, w tym
-  `data/webview/custom_profiles.json`) leżą obok EXE, ale sam profil
-  przeglądarki WebView2 (cache, `localStorage`: motyw, język, historia
-  uruchomień) biblioteka `webview_go` zawsze tworzy w
-  `%APPDATA%\CoreDeck.exe`. Zmienna `WEBVIEW2_USER_DATA_FOLDER` nie działa,
-  bo `webview_go` używa wbudowanego loadera WebView2, który jej nie czyta.
-  Na innym komputerze motyw i język trzeba więc ustawić ponownie. Poprawka
-  wymaga łatki w `webview_go` (parametr `userDataFolder`) albo dołączenia
-  `WebView2Loader.dll`; jest planowana na kolejną wersję.
+- Lokalny serwer interfejsu nasłuchuje tylko na `127.0.0.1`, odpowiada tylko
+  na nagłówek `Host` `localhost:<port>` / `127.0.0.1:<port>` i nie wysyła
+  nagłówków CORS (wszystko jest same-origin).
+- Tweaki pochodzą z `data\tweaks.json` (import, edycja) i działają
+  z uprawnieniami administratora. Przed pierwszym uruchomieniem tweaka
+  i po każdej zmianie jego polecenia konfigurator pokazuje dokładny skrypt
+  i wymaga potwierdzenia. Zatwierdzenia (SHA-256 typu i polecenia) są
+  w `data\state\tweak_approvals.json`; program uruchamia polecenia
+  z katalogu, nie z tego, co przyśle strona.
+
+## Profil WebView2
+
+Od wersji 2.3.1 profil WebView2 (motyw, język, `localStorage`) jest
+w `data\webview\` obok EXE. Używana jest lokalna, załatana kopia
+`webview_go` (`third_party/webview_go`, opis w `PATCHED.md`). Przy pierwszym
+uruchomieniu istniejący profil z `%APPDATA%\CoreDeck.exe` jest kopiowany
+(bez cache); oryginał zostaje na miejscu i można go później usunąć ręcznie.
 
 ## Licencja
 
