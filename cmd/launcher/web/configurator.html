@@ -290,6 +290,23 @@
         </div>
     </div>
 
+    <!-- Tweak script review (imported/changed tweaks need explicit approval) -->
+    <div class="progress-overlay" id="tweak-review-overlay" role="dialog" aria-modal="true" aria-labelledby="tweak-review-title">
+        <div class="progress-box tweak-review-box">
+            <h3 id="tweak-review-title" data-i18n="tweak_review_title">Sprawdź polecenia przed uruchomieniem</h3>
+            <p class="tweak-review-hint" data-i18n="tweak_review_hint">Te tweaki są nowe albo zmieniły się od ostatniego zatwierdzenia (np. po imporcie). Zostaną uruchomione z uprawnieniami administratora dokładnie tak, jak poniżej.</p>
+            <div id="tweak-review-list" class="tweak-review-list" tabindex="0"></div>
+            <label class="tweak-review-confirm">
+                <input type="checkbox" id="tweak-review-check">
+                <span data-i18n="tweak_review_check">Przeczytałem te polecenia i chcę je uruchomić</span>
+            </label>
+            <div class="tweak-review-actions">
+                <button class="btn-secondary" id="tweak-review-cancel" data-i18n="btn_cancel">Anuluj</button>
+                <button class="btn-primary" id="tweak-review-run" disabled data-i18n="tweak_review_run">Zatwierdź i uruchom</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Profile Editor Modal -->
     <div class="progress-overlay" id="profile-editor-overlay">
         <div class="progress-box" style="width:600px;max-height:80vh;overflow-y:auto;">

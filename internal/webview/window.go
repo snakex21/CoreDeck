@@ -70,6 +70,7 @@ func NewWindow(cfg WindowConfig) error {
 	w.Bind("__api_get_tweak_states", cfg.API.GetTweakStates)
 	w.Bind("__api_start_tweak_state_scan", cfg.API.StartTweakStateScan)
 	w.Bind("__api_check_tweak_state_scan", cfg.API.CheckTweakStateScan)
+	w.Bind("__api_preview_tweaks", cfg.API.PreviewTweaks)
 	w.Bind("__api_apply_tweaks", cfg.API.ApplyTweaks)
 	w.Bind("__api_check_tweak_progress", cfg.API.CheckTweakProgress)
 	w.Bind("__api_revert_tweak", cfg.API.RevertTweak)
@@ -129,6 +130,7 @@ window.api = {
   get_tweak_states: function() { return __api_get_tweak_states().then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
   start_tweak_state_scan: function(f) { return __api_start_tweak_state_scan(!!f).then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
   check_tweak_state_scan: function(s) { return __api_check_tweak_state_scan(s).then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e),done:true}}) },
+  preview_tweaks: function(ids) { return __api_preview_tweaks(ids).then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
   apply_tweaks: function(t) { return __api_apply_tweaks(t).then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
   check_tweak_progress: function(s) { return __api_check_tweak_progress(s).then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e),done:true}}) },
   revert_tweak: function(id) { return __api_revert_tweak(id).catch(function(e){return JSON.stringify({success:false,error:String(e)})}) },

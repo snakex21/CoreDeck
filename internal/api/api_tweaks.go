@@ -259,9 +259,20 @@ func (a *API) ApplyTweaks(tweaksJSON string) string {
 		return `{"error": "No tweaks data"}`
 	}
 
-	var selected []tweaks.Tweak
-	if err := json.Unmarshal([]byte(tweaksJSON), &selected); err != nil {
+	req, err := parseApplyRequest(tweaksJSON)
+	if err != nil {
 		return `{"error": "Invalid tweaks JSON"}`
+	}
+	selected, pending, err := a.approvedTweaks(req)
+	if err != nil {
+		return jsonError(err.Error())
+	}
+	if len(pending) > 0 {
+		data, _ := json.Marshal(map[string]any{
+			"error":         "Tweak commands must be reviewed and approved before they run.",
+			"needsApproval": pending,
+		})
+		return string(data)
 	}
 
 	sessionID := fmt.Sprintf("tweak-%d", atomic.AddInt64(&tweakSessionCounter, 1))

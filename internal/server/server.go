@@ -32,13 +32,14 @@ func bindLoopback(from, to int) (net.Listener, int, error) {
 
 func Start(staticFS fs.FS, userPagesDir string) (*http.Server, int, error) {
 	fileServer := http.FileServer(http.FS(staticFS))
-	mux := http.NewServeMux()
-	mux.Handle("/", &quietHandler{fileServer: fileServer, userPagesDir: userPagesDir})
 
 	listener, port, err := bindLoopback(8000, 8100)
 	if err != nil {
 		return nil, 0, fmt.Errorf("no free port: %w", err)
 	}
+
+	mux := http.NewServeMux()
+	mux.Handle("/", &quietHandler{fileServer: fileServer, userPagesDir: userPagesDir, port: port})
 
 	srv := &http.Server{
 		Handler:      mux,
@@ -60,10 +61,30 @@ func Start(staticFS fs.FS, userPagesDir string) (*http.Server, int, error) {
 type quietHandler struct {
 	fileServer   http.Handler
 	userPagesDir string
+	port         int
+}
+
+// allowedHost accepts only the loopback names the WebView uses. Together with
+// the absence of CORS headers (same-origin only) this keeps web pages opened
+// in a regular browser, including DNS-rebinding attempts, from reading the
+// UI, user pages or icons served here.
+func allowedHost(host string, port int) bool {
+	p := strconv.Itoa(port)
+	switch strings.ToLower(host) {
+	case "localhost:" + p, "127.0.0.1:" + p:
+		return true
+	}
+	return false
 }
 
 func (h *quietHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	if !allowedHost(r.Host, h.port) {
+		http.Error(w, "forbidden host", http.StatusForbidden)
+		return
+	}
+	// No Access-Control-Allow-Origin: everything the UI loads (pages, scripts,
+	// workers, icons, user pages in a sandboxed iframe as plain documents)
+	// comes from this same origin.
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	setContentType(w, r.URL.Path)
 

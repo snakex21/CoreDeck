@@ -6,6 +6,15 @@
 
 const I18N = {
   pl: {
+    'tweak_review_title': 'Sprawdź polecenia przed uruchomieniem',
+    'tweak_review_hint': 'Te tweaki są nowe albo zmieniły się od ostatniego zatwierdzenia (np. po imporcie). Zostaną uruchomione z uprawnieniami administratora dokładnie tak, jak poniżej.',
+    'tweak_review_check': 'Przeczytałem te polecenia i chcę je uruchomić',
+    'tweak_review_run': 'Zatwierdź i uruchom',
+    'card_more_actions': 'Więcej akcji',
+    'run_installer': 'Uruchom instalator',
+    'run_script': 'Uruchom skrypt',
+    'open_page': 'Otwórz stronę',
+    'open_link': 'Otwórz',
     'title': 'CoreDeck',
     'brand': 'CoreDeck',
     'subtitle': 'Windows Toolkit & Launcher',
@@ -572,6 +581,15 @@ const I18N = {
     'kb_links_count': 'linków',
   },
   en: {
+    'tweak_review_title': 'Review the commands before they run',
+    'tweak_review_hint': 'These tweaks are new or changed since they were last approved (for example after an import). They will run with administrator rights exactly as shown below.',
+    'tweak_review_check': 'I have read these commands and want to run them',
+    'tweak_review_run': 'Approve and run',
+    'card_more_actions': 'More actions',
+    'run_installer': 'Run installer',
+    'run_script': 'Run script',
+    'open_page': 'Open page',
+    'open_link': 'Open',
     'title': 'Tools & Software Center',
     'brand': 'Tools Center',
     'subtitle': 'Windows Toolkit & Launcher',

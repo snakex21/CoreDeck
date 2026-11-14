@@ -111,3 +111,45 @@ func TestProgramIconsAreServedFromDataDirectory(t *testing.T) {
 		t.Fatalf("expected external program icon, got %q", body)
 	}
 }
+
+func TestNoCORSAndOnlyLoopbackHosts(t *testing.T) {
+	static := fstest.MapFS{"index.html": {Data: []byte("index")}}
+	srv, port, err := Start(static, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer srv.Shutdown(context.Background())
+	base := "http://127.0.0.1:" + fmt.Sprint(port) + "/index.html"
+
+	for _, host := range []string{"", "localhost:" + fmt.Sprint(port), "127.0.0.1:" + fmt.Sprint(port)} {
+		req, _ := http.NewRequest(http.MethodGet, base, nil)
+		req.Header.Set("Origin", "https://example.com")
+		if host != "" {
+			req.Host = host
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("host %q: status %d, want 200", host, resp.StatusCode)
+		}
+		if v := resp.Header.Get("Access-Control-Allow-Origin"); v != "" {
+			t.Fatalf("host %q: unexpected Access-Control-Allow-Origin %q", host, v)
+		}
+	}
+
+	for _, host := range []string{"evil.example:" + fmt.Sprint(port), "localhost", "127.0.0.1:1", "[::1]:" + fmt.Sprint(port)} {
+		req, _ := http.NewRequest(http.MethodGet, base, nil)
+		req.Host = host
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusForbidden {
+			t.Fatalf("host %q: status %d, want 403", host, resp.StatusCode)
+		}
+	}
+}

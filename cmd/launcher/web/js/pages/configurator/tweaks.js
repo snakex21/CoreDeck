@@ -209,6 +209,64 @@ function updateDebloatCounts() {
     if (applyEl) applyEl.textContent = toApply;
 }
 
+// --- Script review --------------------------------------------------------
+// Tweaks come from data\tweaks.json, which the user imports or edits, and run
+// elevated. The backend refuses to run a tweak whose command was not approved
+// in its current form, so new or changed tweaks are shown here first.
+// Resolves to { ids, approve: [hashes] } or null when cancelled.
+async function reviewTweakScripts(list, plainConfirmMessage) {
+    const ids = list.map(tw => tw.id);
+    const preview = await window.api.preview_tweaks(JSON.stringify(ids));
+    if (!preview || preview.error) {
+        alert(`❌ ${(preview && preview.error) || 'preview_tweaks'}`);
+        return null;
+    }
+    const pending = (preview.tweaks || []).filter(p => !p.approved);
+    if (pending.length === 0) {
+        return confirm(plainConfirmMessage) ? { ids, approve: [] } : null;
+    }
+
+    const overlay = document.getElementById('tweak-review-overlay');
+    const listEl = document.getElementById('tweak-review-list');
+    const check = document.getElementById('tweak-review-check');
+    const runBtn = document.getElementById('tweak-review-run');
+    const cancelBtn = document.getElementById('tweak-review-cancel');
+
+    listEl.innerHTML = pending.map(p => {
+        const risk = String(p.risk || '').toLowerCase();
+        return `<section class="tweak-review-item">
+            <header><span>${escapeHtml(p.name || p.id)}</span>
+                <span class="tag">${escapeHtml(p.type || '')}</span>
+                ${risk ? `<span class="tag risk-${escapeHtml(risk)}">${escapeHtml(risk)}</span>` : ''}
+            </header>
+            <pre>${escapeHtml(p.command || '')}</pre>
+        </section>`;
+    }).join('');
+    check.checked = false;
+    runBtn.disabled = true;
+    overlay.classList.add('active');
+    check.focus();
+
+    return new Promise(resolve => {
+        const finish = (result) => {
+            overlay.classList.remove('active');
+            check.removeEventListener('change', onCheck);
+            runBtn.removeEventListener('click', onRun);
+            cancelBtn.removeEventListener('click', onCancel);
+            document.removeEventListener('keydown', onKey, true);
+            resolve(result);
+        };
+        const onCheck = () => { runBtn.disabled = !check.checked; };
+        const onRun = () => { if (check.checked) finish({ ids, approve: pending.map(p => p.hash) }); };
+        const onCancel = () => finish(null);
+        const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); finish(null); } };
+        check.addEventListener('change', onCheck);
+        runBtn.addEventListener('click', onRun);
+        cancelBtn.addEventListener('click', onCancel);
+        document.addEventListener('keydown', onKey, true);
+    });
+}
+
 async function applyDebloat() {
     const toApply = allTweaks.filter(t => t.category === 'debloat' && t.selected && !(t.stateKnown && t.active));
     if (toApply.length === 0) {
@@ -216,9 +274,8 @@ async function applyDebloat() {
         return;
     }
 
-    if (!confirm(`${t('confirm_debloat_start')} ${toApply.length} ${t('confirm_debloat_mid')}?\n\n${t('confirm_debloat_warn')}`)) {
-        return;
-    }
+    const request = await reviewTweakScripts(toApply, `${t('confirm_debloat_start')} ${toApply.length} ${t('confirm_debloat_mid')}?\n\n${t('confirm_debloat_warn')}`);
+    if (!request) return;
 
     const overlay = document.getElementById('progress-overlay');
     const bar = document.getElementById('progress-bar');
@@ -233,7 +290,7 @@ async function applyDebloat() {
     status.textContent = t('progress_remove_apps');
 
     try {
-        const startResult = await window.api.apply_tweaks(JSON.stringify(toApply));
+        const startResult = await window.api.apply_tweaks(JSON.stringify(request));
 
         if (startResult.error) {
             log.innerHTML = `<div class="err">❌ ${startResult.error}</div>`;
@@ -385,7 +442,8 @@ async function applyTweaks() {
         ? `${t('confirm_apply_start')} ${toApply.length} ${t('confirm_apply_mid')}?\n(${alreadyActive.length} ${t('already_active_skip')})\n\n${t('confirm_apply_restart')}`
         : `${t('confirm_apply_start')} ${toApply.length} ${t('confirm_apply_mid')}?\n\n${t('confirm_apply_restart')}`;
 
-    if (!confirm(msg)) return;
+    const request = await reviewTweakScripts(toApply, msg);
+    if (!request) return;
 
     const overlay = document.getElementById('progress-overlay');
     const bar = document.getElementById('progress-bar');
@@ -400,7 +458,7 @@ async function applyTweaks() {
     status.textContent = t('progress_apply_tweaks');
 
     try {
-        const startResult = await window.api.apply_tweaks(JSON.stringify(toApply));
+        const startResult = await window.api.apply_tweaks(JSON.stringify(request));
 
         if (startResult.error) {
             log.innerHTML = `<div class="err">❌ ${startResult.error}</div>`;

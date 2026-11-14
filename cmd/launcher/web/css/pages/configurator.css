@@ -1009,3 +1009,88 @@ body.light-theme .editor-modal {
         padding: 12px;
     }
 }
+
+/* Tweak script review (approval before running imported/changed tweaks) */
+.tweak-review-box {
+    width: 820px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.tweak-review-box h3 {
+    color: var(--text-primary);
+    margin: 0;
+}
+.tweak-review-hint {
+    color: var(--text-secondary);
+    font-size: var(--fs-sm);
+    line-height: 1.5;
+    margin: 0;
+}
+.tweak-review-list {
+    max-height: 50vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 2px;
+}
+.tweak-review-list:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+    border-radius: var(--border-radius-md);
+}
+.tweak-review-item {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    background: var(--bg-primary);
+    overflow: hidden;
+}
+.tweak-review-item header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: var(--fs-sm);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+.tweak-review-item header .tag {
+    font-size: var(--fs-3xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+.tweak-review-item header .tag.risk-high { color: var(--danger-text); border-color: var(--danger); }
+.tweak-review-item header .tag.risk-medium { color: var(--warn-text); border-color: var(--warn-border); }
+.tweak-review-item pre {
+    margin: 0;
+    padding: 10px 12px;
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 220px;
+    overflow: auto;
+}
+.tweak-review-confirm {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-primary);
+    font-size: var(--fs-sm);
+    cursor: pointer;
+}
+.tweak-review-confirm input { accent-color: var(--accent-primary); width: 16px; height: 16px; }
+.tweak-review-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
