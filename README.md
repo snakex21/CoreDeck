@@ -1,5 +1,7 @@
 # CoreDeck
 
+Wersja: **2.3.0** · Licencja: [MIT](LICENSE) · Zmiany: [CHANGELOG.md](CHANGELOG.md)
+
 Portable Windows toolkit for organizing apps, drivers, installers, system tweaks,
 setup profiles and local documentation.
 
@@ -48,7 +50,10 @@ data/
 Wymagania:
 
 - Windows,
-- Go 1.26 lub nowszy,
+- Go 1.26 lub nowszy (go.mod przypina toolchain `go1.26.11`, pobierany
+  automatycznie przez `go`),
+- kompilator C (MinGW gcc, wymagany przez WebView),
+- opcjonalnie `go-winres` (ikona i informacje o wersji w EXE),
 - Node.js,
 - Python.
 
@@ -71,6 +76,14 @@ set COREDECK_WEBVIEW_DEBUG=1
 CoreDeck.exe
 ```
 
+Build wydania jest pomniejszony (`-trimpath -ldflags "-s -w"`). Testy:
+
+```bat
+go vet ./...
+go test ./...
+python -m unittest discover -s scripts
+```
+
 ## Struktura
 
 ```text
@@ -91,3 +104,20 @@ Program działa lokalnie. Repozytorium nie zawiera katalogu użytkownika,
 historii, prywatnych stron, modeli AI ani biblioteki instalatorów.
 Sprawdzenie aktualizacji jest uruchamiane ręcznie i odpytuje wyłącznie
 oficjalne GitHub Releases projektu.
+
+## Znane ograniczenia
+
+- **Profil WebView2 nie jest przenośny.** Dane aplikacji (`data/`, w tym
+  `data/webview/custom_profiles.json`) leżą obok EXE, ale sam profil
+  przeglądarki WebView2 (cache, `localStorage`: motyw, język, historia
+  uruchomień) biblioteka `webview_go` zawsze tworzy w
+  `%APPDATA%\CoreDeck.exe`. Zmienna `WEBVIEW2_USER_DATA_FOLDER` nie działa,
+  bo `webview_go` używa wbudowanego loadera WebView2, który jej nie czyta.
+  Na innym komputerze motyw i język trzeba więc ustawić ponownie. Poprawka
+  wymaga łatki w `webview_go` (parametr `userDataFolder`) albo dołączenia
+  `WebView2Loader.dll`; jest planowana na kolejną wersję.
+
+## Licencja
+
+CoreDeck jest udostępniany na licencji MIT, zob. [LICENSE](LICENSE).
+Copyright (c) 2026 snakex21.

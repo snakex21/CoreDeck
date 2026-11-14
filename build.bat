@@ -1,6 +1,6 @@
 @echo off
 REM ============================================================
-REM Launcher builder - jeden plik do testowania i budowania
+REM CoreDeck builder - jeden plik do testowania i budowania
 REM Uzycie:
 REM   build.bat          - aplikacja bez okna konsoli
 REM   build.bat debug    - build z konsola diagnostyczna
@@ -55,11 +55,22 @@ for %%F in (programs tweaks drivers knowledge settings) do (
     if not exist "%ROOT%data\%%F.json" copy /y "%WEB%\data\%%F.json" "%ROOT%data\%%F.json" >nul
 )
 
+REM Wersja programu (internal\version\version.go) trafia do zasobow EXE.
+set "APP_VERSION="
+for /f tokens^=2^ delims^=^" %%V in ('findstr /c:"Current =" "%ROOT%internal\version\version.go"') do set "APP_VERSION=%%V"
+if not defined APP_VERSION (
+    echo [build.bat] BLAD: nie mozna odczytac wersji z internal\version\version.go.
+    goto :fail
+)
+
 where go-winres >nul 2>nul
 if not errorlevel 1 (
     echo ==^> Odswiezanie ikony Windows
     pushd "%ROOT%cmd\launcher"
-    go-winres simply --icon "%ROOT%cmd\launcher\assets\CoreDeck.png"
+    go-winres simply --arch amd64,386 --icon "%ROOT%cmd\launcher\assets\CoreDeck.png" ^
+        --product-name CoreDeck --file-description CoreDeck --original-filename CoreDeck.exe ^
+        --copyright "Copyright (c) 2026 snakex21. MIT License." ^
+        --product-version %APP_VERSION% --file-version %APP_VERSION%.0
     if errorlevel 1 (
         popd
         goto :fail
