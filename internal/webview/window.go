@@ -57,6 +57,7 @@ func NewWindow(cfg WindowConfig) error {
 	w.Bind("__api_get_available_models", cfg.API.GetAvailableModels)
 	w.Bind("__api_ensure_llm_started", cfg.API.EnsureLLMStarted)
 	w.Bind("__api_get_system_info", cfg.API.GetSystemInfo)
+	w.Bind("__api_get_portable_paths", cfg.API.GetPortablePaths)
 	w.Bind("__api_get_app_version", cfg.API.GetAppVersion)
 	w.Bind("__api_check_for_updates", cfg.API.CheckForUpdates)
 	w.Bind("__api_get_programs_data", cfg.API.GetProgramsData)
@@ -115,6 +116,7 @@ window.api = {
   get_available_models: function() { return __api_get_available_models().then(function(r){return JSON.parse(r)}).catch(function(e){return[]}) },
   ensure_llm_started: function() { return __api_ensure_llm_started().then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
   get_system_info: function() { return __api_get_system_info().then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
+  get_portable_paths: function() { return __api_get_portable_paths().then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
   get_app_version: function() { return __api_get_app_version().catch(function(){return ''}) },
   check_for_updates: function() { return __api_check_for_updates().then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
   get_programs_data: function() { return __api_get_programs_data().then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },

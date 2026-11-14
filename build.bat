@@ -42,6 +42,10 @@ if not exist "%ROOT%data\tools" mkdir "%ROOT%data\tools"
 if exist "%LAUNCHER_NEW%" del /q "%LAUNCHER_NEW%"
 if exist "%HELPER_NEW%" del /q "%HELPER_NEW%"
 
+echo ==^> Testy skryptow Python
+python -m unittest discover -s "%ROOT%scripts" -q
+if errorlevel 1 goto :fail
+
 echo ==^> Generowanie data\generated\disk_map.json
 python "%ROOT%scripts\generate_disk_map.py" --launcher-dir "%ROOT%." --output "%ROOT%data\generated\disk_map.json"
 if errorlevel 1 goto :fail

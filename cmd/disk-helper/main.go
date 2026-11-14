@@ -120,8 +120,8 @@ func parseArgs(args []string) (options, string, []string, []string, error) {
 	var opts options
 	fs := flag.NewFlagSet(toolName, flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
-	fs.StringVar(&opts.Root, "root", "", "drive/root to scan, e.g. L:\\")
-	fs.StringVar(&opts.LauncherDir, "launcher", "", "launcher runtime dir, e.g. L:\\_Launcher\\bin")
+	fs.StringVar(&opts.Root, "root", "", "drive/root to scan (default: drive of --launcher)")
+	fs.StringVar(&opts.LauncherDir, "launcher", "", "launcher dir holding CoreDeck.exe (default: detected from this exe)")
 	fs.StringVar(&opts.ProgramsJSON, "programs", "", "programs.json path")
 	fs.StringVar(&opts.DriversJSON, "drivers", "", "drivers.json path")
 	if err := fs.Parse(args); err != nil {
@@ -962,7 +962,7 @@ func limitIssues(in []validationIssue, limit int) []validationIssue {
 
 func usageData() map[string]any {
 	return map[string]any{
-		"usage": "disk-helper.exe [--root L:\\] [--launcher L:\\_Launcher\\bin] <command> [args]",
+		"usage": "disk-helper.exe [--root <drive>:\\] [--launcher <drive>:\\_Launcher] <command> [args]",
 		"commands": map[string]string{
 			"context <path>": "Read facts about a file/folder and return entries, stats, evidence, candidates.",
 			"find <query>":   "Search file/folder names and catalogue entries.",

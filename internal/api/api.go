@@ -116,3 +116,10 @@ func jsonError(msg string) string {
 	b, _ := json.Marshal(errResp{Error: msg})
 	return string(b)
 }
+
+// GetPortablePaths returns the default import/export folders derived from the
+// executable's current drive (see system.PortablePathsFor).
+func (a *API) GetPortablePaths() string {
+	data, _ := json.Marshal(system.PortablePathsFor(a.ExeDir))
+	return string(data)
+}

@@ -11,12 +11,22 @@ import argparse
 import json
 import os
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PurePath
 
 
-DEFAULT_ROOT = Path("L:/")
-DEFAULT_LAUNCHER_DIR = Path("L:/_Launcher")
-DEFAULT_PROGRAMS_ROOT = Path("L:/Centrum Narzędzi i Oprogramowania")
+PROGRAMS_DIR_NAME = "Centrum Narzędzi i Oprogramowania"
+
+# The launcher dir defaults to the project/portable folder that holds this
+# script's parent (where build.bat puts CoreDeck.exe). Root and programs root
+# are derived from its drive at runtime, so a pendrive re-mounted under another
+# letter (e.g. L: -> J:) never produces a stale disk_map.json.
+DEFAULT_LAUNCHER_DIR = Path(__file__).resolve().parent.parent
+
+
+def derive_defaults(launcher_dir: PurePath) -> tuple[PurePath, PurePath]:
+    """Return (root, programs_root) for the drive that holds launcher_dir."""
+    root = type(launcher_dir)(launcher_dir.anchor) if launcher_dir.anchor else launcher_dir.parent
+    return root, root / PROGRAMS_DIR_NAME
 
 
 def scan_exe_files(folder: Path, programs_root: Path, max_depth: int = 2, max_results: int = 5) -> list[dict[str, str]]:
@@ -96,14 +106,21 @@ def build_map(root: Path, launcher_dir: Path, programs_root: Path) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate disk_map.json for Launcher AI context.")
-    parser.add_argument("--root", type=Path, default=DEFAULT_ROOT)
+    parser.add_argument("--root", type=Path, default=None,
+                        help="disk root (default: drive of --launcher-dir)")
     parser.add_argument("--launcher-dir", type=Path, default=DEFAULT_LAUNCHER_DIR)
-    parser.add_argument("--programs-root", type=Path, default=DEFAULT_PROGRAMS_ROOT)
+    parser.add_argument("--programs-root", type=Path, default=None,
+                        help=f"programs root (default: <root>/{PROGRAMS_DIR_NAME})")
     parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args()
 
-    output = args.output or (args.launcher_dir / "data" / "generated" / "disk_map.json")
-    disk_map = build_map(args.root, args.launcher_dir, args.programs_root)
+    launcher_dir = args.launcher_dir.resolve()
+    default_root, default_programs = derive_defaults(launcher_dir)
+    root = args.root or default_root
+    programs_root = args.programs_root or (root / PROGRAMS_DIR_NAME if args.root else default_programs)
+
+    output = args.output or (launcher_dir / "data" / "generated" / "disk_map.json")
+    disk_map = build_map(Path(root), launcher_dir, Path(programs_root))
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(disk_map, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"Created {output} ({output.stat().st_size:,} bytes)")

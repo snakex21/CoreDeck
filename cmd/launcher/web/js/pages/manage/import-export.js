@@ -2,9 +2,45 @@
 // IMPORT/EXPORT
 // ============================================
 
+// Default import/export folders come from the backend, derived from the drive
+// CoreDeck.exe runs from right now (the pendrive may be L:, J:, ...). Never
+// hardcode a drive letter here.
+let impexPaths = null;
+
+async function loadImpexPaths() {
+    if (impexPaths) return impexPaths;
+    try {
+        if (window.api && typeof window.api.get_portable_paths === 'function') {
+            const p = await window.api.get_portable_paths();
+            if (p && !p.error && p.root) impexPaths = p;
+        }
+    } catch (e) {
+        console.warn('get_portable_paths failed:', e);
+    }
+    return impexPaths;
+}
+
+function impexDefault(key) {
+    return (impexPaths && impexPaths[key]) || '';
+}
+
+function impexJoin(dir, name) {
+    return dir ? dir.replace(/[\\/]+$/, '') + '\\' + name : '';
+}
+
+// Fill still-empty inputs once the drive-derived defaults are known.
+async function fillImpexDefaults(fields) {
+    await loadImpexPaths();
+    for (const [id, attr, valueFn] of fields) {
+        const el = document.getElementById(id);
+        if (el && !el[attr]) el[attr] = valueFn();
+    }
+}
+
 function renderImportExportPane() {
     if (activeManageTab !== 'import-export') return;
-    
+    loadImpexPaths();
+
     // Initialize tabs
     document.querySelectorAll('.impex-tab').forEach(tab => {
         tab.addEventListener('click', () => {
@@ -19,7 +55,7 @@ function renderImportExportPane() {
             else if (target === 'backups') renderBackupsPane();
         });
     });
-    
+
     // Render initial export pane
     renderExportPane();
 }
@@ -27,7 +63,7 @@ function renderImportExportPane() {
 function renderExportPane() {
     const pane = document.getElementById('impex-export-pane');
     if (!pane) return;
-    
+
     pane.innerHTML = `
         <div class="impex-section">
             <div class="impex-section-title">Wybierz dane do eksportu</div>
@@ -44,7 +80,7 @@ function renderExportPane() {
                 </div>
             </div>
         </div>
-        
+
         <div class="impex-section" id="export-programs-section">
             <div class="impex-section-title">Programy (${allPrograms.length} dostępnych)</div>
             <div class="impex-section-body">
@@ -61,7 +97,7 @@ function renderExportPane() {
                 <div class="impex-checkbox-group" id="export-programs-list"></div>
             </div>
         </div>
-        
+
         <div class="impex-section" id="export-drivers-section">
             <div class="impex-section-title">Sterowniki</div>
             <div class="impex-section-body">
@@ -74,7 +110,7 @@ function renderExportPane() {
                 <div class="impex-checkbox-group" id="export-drivers-list"></div>
             </div>
         </div>
-        
+
         <div class="impex-section">
             <div class="impex-section-title">Opcje eksportu</div>
             <div class="impex-section-body">
@@ -100,13 +136,13 @@ function renderExportPane() {
                 <div class="impex-field">
                     <label class="impex-label">Folder/plik docelowy</label>
                     <div style="display:flex;gap:8px;">
-                        <input type="text" class="impex-input" id="export-target" value="L:\\Export\\Pack_${new Date().toISOString().split('T')[0]}" style="flex:1;">
+                        <input type="text" class="impex-input" id="export-target" value="" style="flex:1;">
                         <button class="btn btn-secondary" onclick="selectExportTarget()">📂 Wybierz</button>
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <div class="impex-section">
             <div class="impex-section-title">Podsumowanie</div>
             <div class="impex-summary" id="export-summary">
@@ -116,16 +152,19 @@ function renderExportPane() {
                 <div id="export-summary-warnings"></div>
             </div>
         </div>
-        
+
         <div class="impex-actions">
             <button class="btn btn-primary" onclick="startExport()">Eksportuj</button>
         </div>
     `;
-    
+
     renderExportProgramsList();
     renderExportDriversList();
     updateExportSummary();
-    
+    fillImpexDefaults([
+        ['export-target', 'value', () => impexJoin(impexDefault('export'), 'Pack_' + new Date().toISOString().split('T')[0])],
+    ]);
+
     // Wire up events
     document.getElementById('export-programs-check')?.addEventListener('change', toggleExportProgramsSection);
     document.getElementById('export-drivers-check')?.addEventListener('change', toggleExportDriversSection);
@@ -137,14 +176,14 @@ function renderExportPane() {
 function renderExportProgramsList() {
     const list = document.getElementById('export-programs-list');
     if (!list) return;
-    
+
     const search = (document.getElementById('export-programs-search')?.value || '').toLowerCase();
     const filtered = allPrograms.filter(p => {
         if (!search) return true;
         const hay = [p.name, p.description, ...(p.tags || [])].join(' ').toLowerCase();
         return hay.includes(search);
     });
-    
+
     list.innerHTML = filtered.map(p => {
         const isPage = p.type === 'link';
         const typeLabel = isPage ? '📄 Strona' : escapeHtml(p.installType || 'other');
@@ -160,7 +199,7 @@ function renderExportProgramsList() {
             <span class="${tagClass}">${typeLabel}</span>
         </label>`;
     }).join('');
-    
+
     list.querySelectorAll('.export-program-cb').forEach(cb => {
         cb.addEventListener('change', updateExportSummary);
     });
@@ -169,7 +208,7 @@ function renderExportProgramsList() {
 function renderExportDriversList() {
     const list = document.getElementById('export-drivers-list');
     if (!list) return;
-    
+
     const types = Object.entries(driversData.types || {});
     list.innerHTML = types.map(([typeKey, type]) => {
         const brands = Object.entries(type.brands || {});
@@ -197,7 +236,7 @@ function renderExportDriversList() {
             ${brandHtml}
         `;
     }).join('');
-    
+
     // Wire up checkbox logic: type → brands → series cascading
     list.querySelectorAll('.export-driver-type-cb').forEach(cb => {
         cb.addEventListener('change', (e) => {
@@ -210,7 +249,7 @@ function renderExportDriversList() {
             updateExportSummary();
         });
     });
-    
+
     list.querySelectorAll('.export-driver-brand-cb').forEach(cb => {
         cb.addEventListener('change', (e) => {
             const typeKey = cb.dataset.type;
@@ -227,7 +266,7 @@ function renderExportDriversList() {
             updateExportSummary();
         });
     });
-    
+
     list.querySelectorAll('.export-driver-series-cb').forEach(cb => {
         cb.addEventListener('change', (e) => {
             const typeKey = cb.dataset.type;
@@ -282,7 +321,7 @@ function updateExportSummary() {
     const drvCount = seriesChecked > 0 ? seriesChecked : (brandChecked > 0 ? brandChecked : typeChecked);
     setText('export-summary-programs', progCount + ' zaznaczonych');
     setText('export-summary-drivers', drvCount + ' zaznaczonych');
-    
+
     // Debounced walidacja — sprawdź foldery i szacuj rozmiar
     clearTimeout(updateExportSummary._timer);
     updateExportSummary._timer = setTimeout(() => runExportValidation(), 400);
@@ -308,7 +347,7 @@ async function runExportValidation() {
 
     const includePrograms = document.getElementById('export-programs-check')?.checked !== false;
     const includeDrivers = document.getElementById('export-drivers-check')?.checked !== false;
-    
+
     const driverSelections = {};
     if (includeDrivers) {
         document.querySelectorAll('.export-driver-type-cb:checked').forEach(typeCb => {
@@ -325,7 +364,7 @@ async function runExportValidation() {
             driverSelections[typeKey] = { brands };
         });
     }
-    
+
     const request = {
         programNames: includePrograms ? Array.from(document.querySelectorAll('.export-program-cb:checked')).map(cb => cb.dataset.name) : [],
         driverTypes: includeDrivers ? Array.from(document.querySelectorAll('.export-driver-type-cb:checked')).map(cb => cb.dataset.type) : [],
@@ -360,7 +399,7 @@ function selectExportTarget() {
     (async () => {
         const format = document.querySelector('input[name="export-format"]:checked')?.value || 'folder';
         const input = document.getElementById('export-target');
-        const current = input?.value || 'L:\\Export';
+        const current = input?.value || impexDefault('export');
         let picked = '';
         if (format === 'zip') {
             picked = await window.api.pick_save_file(
@@ -385,16 +424,16 @@ async function startExport() {
     const selectedDrivers = includeDrivers
         ? Array.from(document.querySelectorAll('.export-driver-type-cb:checked')).map(cb => cb.dataset.type)
         : [];
-    
+
     if (selectedPrograms.length === 0 && selectedDrivers.length === 0) {
         showToast(t('export_err_no_selection'), true);
         return;
     }
-    
+
     const includeFiles = document.getElementById('export-include-files')?.checked || false;
     const format = document.querySelector('input[name="export-format"]:checked')?.value || 'folder';
     const targetPath = document.getElementById('export-target')?.value || '';
-    
+
     if (!targetPath) {
         showToast(t('export_err_no_target'), true);
         return;
@@ -419,7 +458,7 @@ async function startExport() {
             driverSelections[typeKey] = { brands };
         });
     }
-    
+
     const request = {
         programNames: selectedPrograms,
         driverTypes: selectedDrivers,
@@ -428,19 +467,19 @@ async function startExport() {
         format,
         targetPath
     };
-    
+
     // Pokaż progress overlay
     showProgress(t('progress_exporting'), [
         t('progress_preparing'),
         includeFiles ? t('progress_copying') : t('progress_saving_meta'),
         format === 'zip' ? t('progress_packing_zip') : '',
     ].filter(Boolean));
-    
+
     try {
         const result = await window.api.export_pack(JSON.stringify(request));
-        
+
         hideProgress();
-        
+
         if (result.success) {
             showToast(`${t('export_success')} ${result.programCount} ${t('unit_programs')}, ${result.driverCount} ${t('unit_drivers')} → ${result.exportedPath}`, false);
             // Pokaż log eksportu
@@ -455,7 +494,7 @@ async function startExport() {
         } else {
             showToast(`${t('export_error')} ${result.message}`, true);
         }
-        
+
         if (result.errors && result.errors.length > 0) {
             console.error('Export errors:', result.errors);
             result.errors.forEach(e => showToast(e, true));
@@ -485,7 +524,7 @@ function showExportLog(result) {
 function renderImportPane() {
     const pane = document.getElementById('impex-import-pane');
     if (!pane) return;
-    
+
     pane.innerHTML = `
         <div class="impex-section">
             <div class="impex-section-title">Wybierz paczkę do importu</div>
@@ -493,7 +532,7 @@ function renderImportPane() {
                 <div class="impex-field">
                     <label class="impex-label">Paczka (folder lub ZIP)</label>
                     <div style="display:flex;gap:8px;">
-                        <input type="text" class="impex-input" id="import-pack-path" placeholder="L:\\Import\\Gaming_Pack.zip" style="flex:1;">
+                        <input type="text" class="impex-input" id="import-pack-path" placeholder="" style="flex:1;">
                         <button class="btn btn-secondary" onclick="selectImportZip()">ZIP</button>
                         <button class="btn btn-secondary" onclick="selectImportFolder()">Folder</button>
                         <button class="btn btn-secondary" onclick="previewImportPack()">🔍 Sprawdź</button>
@@ -501,12 +540,12 @@ function renderImportPane() {
                 </div>
             </div>
         </div>
-        
+
         <div class="impex-section" id="import-content-section" style="display:none;">
             <div class="impex-section-title">Zawartość paczki</div>
             <div class="impex-section-body" id="import-content"></div>
         </div>
-        
+
         <div class="impex-section">
             <div class="impex-section-title">Strategia kolizji</div>
             <div class="impex-section-body">
@@ -526,38 +565,43 @@ function renderImportPane() {
                 </div>
             </div>
         </div>
-        
+
         <div class="impex-section">
             <div class="impex-section-title">Foldery docelowe</div>
             <div class="impex-section-body">
                 <div class="impex-field">
                     <label class="impex-label">Programy</label>
                     <div style="display:flex;gap:8px;">
-                        <input type="text" class="impex-input" id="import-programs-target" value="L:\\Centrum Narzędzi i Oprogramowania" style="flex:1;">
+                        <input type="text" class="impex-input" id="import-programs-target" value="" style="flex:1;">
                         <button class="btn btn-secondary" onclick="selectImportProgramsTarget()">📂 Wybierz</button>
                     </div>
                 </div>
                 <div class="impex-field">
                     <label class="impex-label">Sterowniki</label>
                     <div style="display:flex;gap:8px;">
-                        <input type="text" class="impex-input" id="import-drivers-target" value="L:\\Centrum Narzędzi i Oprogramowania\\Drivers" style="flex:1;">
+                        <input type="text" class="impex-input" id="import-drivers-target" value="" style="flex:1;">
                         <button class="btn btn-secondary" onclick="selectImportDriversTarget()">📂 Wybierz</button>
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <div class="impex-section">
             <div class="impex-section-title">Podsumowanie</div>
             <div class="impex-summary" id="import-summary">
                 <div class="impex-summary-line"><span>Status:</span><span>Wybierz paczkę</span></div>
             </div>
         </div>
-        
+
         <div class="impex-actions">
             <button class="btn btn-primary" onclick="startImport()">Importuj</button>
         </div>
     `;
+    fillImpexDefaults([
+        ['import-pack-path', 'placeholder', () => impexJoin(impexDefault('import'), 'Gaming_Pack.zip')],
+        ['import-programs-target', 'value', () => impexDefault('programs')],
+        ['import-drivers-target', 'value', () => impexDefault('drivers')],
+    ]);
 }
 
 // ============================================
@@ -735,7 +779,7 @@ async function selectImportZip() {
     const input = document.getElementById('import-pack-path');
     const picked = await window.api.pick_open_file(
         t('pick_zip'),
-        getParentDir(input?.value || 'L:\\Export'),
+        getParentDir(input?.value || impexDefault('export')),
         'Paczka ZIP (*.zip)|*.zip|Wszystkie pliki (*.*)|*.*'
     );
     if (picked && input) {
@@ -746,7 +790,7 @@ async function selectImportZip() {
 
 async function selectImportFolder() {
     const input = document.getElementById('import-pack-path');
-    const picked = await window.api.pick_folder(t('pick_pack_folder'), input?.value || 'L:\\Export');
+    const picked = await window.api.pick_folder(t('pick_pack_folder'), input?.value || impexDefault('export'));
     if (picked && input) {
         input.value = picked;
         await previewImportPack();
@@ -804,13 +848,13 @@ async function previewImportPack() {
 
 async function selectImportProgramsTarget() {
     const input = document.getElementById('import-programs-target');
-    const picked = await window.api.pick_folder(t('pick_programs_target'), input?.value || 'L:\\Centrum Narzędzi i Oprogramowania');
+    const picked = await window.api.pick_folder(t('pick_programs_target'), input?.value || impexDefault('programs'));
     if (picked && input) input.value = picked;
 }
 
 async function selectImportDriversTarget() {
     const input = document.getElementById('import-drivers-target');
-    const picked = await window.api.pick_folder(t('pick_drivers_target'), input?.value || 'L:\\Centrum Narzędzi i Oprogramowania\\Drivers');
+    const picked = await window.api.pick_folder(t('pick_drivers_target'), input?.value || impexDefault('drivers'));
     if (picked && input) input.value = picked;
 }
 
@@ -847,9 +891,9 @@ async function startImport() {
 
     try {
         const result = await window.api.import_pack(JSON.stringify(request));
-        
+
         hideProgress();
-        
+
         if (result.success) {
             showToast(`${t('import_success')} ${result.programCount} ${t('unit_programs')}, ${result.driverCount} typów sterowników`, false);
             // Pokaż log importu

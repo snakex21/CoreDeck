@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	historyFileName  = ".launcher_export_history.json"
+	historyFileName   = ".launcher_export_history.json"
 	historyMaxEntries = 50
 )
 

@@ -25,6 +25,7 @@
             return window.__smokeHistory || [];
         },
         validate_export: async (j) => { rec('validate_export', j); return { estimatedSize: 12345678, warnings: [] }; },
+        get_portable_paths: async () => { rec('get_portable_paths'); return { exeDir: 'J:\\_Launcher', drive: 'J:', root: 'J:\\', export: 'J:\\Export', import: 'J:\\Import', programs: 'J:\\Centrum Narzędzi i Oprogramowania', drivers: 'J:\\Centrum Narzędzi i Oprogramowania\\Drivers' }; },
         resolve_path: async (p) => { rec('resolve_path', p); return { path: 'J:\\' + p }; },
         open_url: async (u) => { rec('open_url', u); return { ok: true }; },
         open_folder: async (p) => { rec('open_folder', p); return { ok: true }; },
