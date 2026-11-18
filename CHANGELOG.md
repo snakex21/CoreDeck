@@ -1,5 +1,71 @@
 # Changelog
 
+## 2.4.0 (2026-11-18)
+
+### PL
+
+- **Aktualizacje w aplikacji**: CoreDeck sam pobiera i instaluje nowe wersje.
+  Kanały: stabilny (domyślny) i testowy (wersje przedpremierowe), wybór
+  w Ustawieniach → Aktualizacje, razem z opcją sprawdzania przy
+  uruchomieniu (najwyżej raz dziennie). Okno nowej wersji pokazuje listę
+  zmian i przyciski „Aktualizuj teraz”, „Później” i „Pomiń tę wersję”.
+- **Bezpieczna podmiana**: paczka `CoreDeck-Portable.zip` z wydania na GitHubie
+  jest sprawdzana rozmiarem i sumą SHA-256 z `SHA256SUMS.txt` (niezgodność
+  przerywa aktualizację bez żadnych zmian). Podmieniane są tylko
+  `CoreDeck.exe` i `data\tools\disk-helper.exe`; poprzednie wersje zostają
+  jako `.old` i kopia w `.coredeck-update\backup\`. Jeśli nowa wersja nie
+  uruchomi się poprawnie w ciągu 60 sekund, poprzednia wraca automatycznie.
+  Przycisk „Przywróć poprzednią wersję” w Ustawieniach. Działa na pendrivie,
+  bez uprawnień administratora; reszta folderu `data\` nie jest zmieniana.
+- **30 języków interfejsu**: doszły bułgarski, duński, grecki, estoński,
+  fiński, chorwacki, węgierski, litewski, łotewski, norweski, rumuński,
+  słowacki, słoweński, serbski (łacinka) i ukraiński. Wszystkie języki mają
+  komplet tekstów (także okna, powiadomienia, kody instalatorów, uruchamianie
+  programów portable i aktualizacje) oraz poprawne formy liczby mnogiej.
+  Wybór języka „Automatycznie” bierze język systemu; brakujący tekst pokazuje
+  się po angielsku. Opisy tweaków po czesku działają (wcześniej pokazywały
+  się po angielsku).
+- **README w 27 językach** (`readme\README.<język>.md`) z sekcjami
+  o aktualizacjach i językach.
+- **Poprawka**: `release-manifest.json` w paczce ma poprawne polskie znaki
+  (skrypt `scripts\package.ps1` czyta i zapisuje UTF-8 jawnie).
+- **Testy**: zła suma SHA-256 i zły rozmiar przerywają aktualizację, podmiana
+  i wycofanie na makiecie, kontrola zdrowia po restarcie, kanały stabilny
+  i testowy, komplet kluczy i form liczby mnogiej we wszystkich językach.
+
+Aktualizacja z 2.3.x: zamknij CoreDeck i podmień `CoreDeck.exe` (oraz
+`data\tools\disk-helper.exe`). Kolejne wersje zainstalujesz już z aplikacji.
+
+### EN
+
+- **In-app updates**: CoreDeck downloads and installs new versions itself.
+  Channels: stable (default) and test (pre-releases), chosen in Settings →
+  Updates together with an optional check on start (at most once a day). The
+  new-version window shows the changelog with "Update now", "Later" and
+  "Skip this version".
+- **Safe swap**: the `CoreDeck-Portable.zip` package from the GitHub release is
+  checked against its size and the SHA-256 in `SHA256SUMS.txt` (a mismatch
+  stops the update with nothing changed). Only `CoreDeck.exe` and
+  `data\tools\disk-helper.exe` are replaced; the previous versions stay as
+  `.old` plus a copy in `.coredeck-update\backup\`. If the new version does
+  not start correctly within 60 seconds, the previous one comes back
+  automatically. "Restore the previous version" in Settings. Works on a USB
+  drive without administrator rights; the rest of `data\` is not touched.
+- **30 interface languages**: added Bulgarian, Danish, Greek, Estonian,
+  Finnish, Croatian, Hungarian, Lithuanian, Latvian, Norwegian, Romanian,
+  Slovak, Slovenian, Serbian (Latin) and Ukrainian. Every language has every
+  text (including dialogs, notifications, installer codes, portable launch and
+  updates) and correct plural forms. "Automatic" follows the system language;
+  missing text falls back to English. Czech tweak descriptions now work (they
+  used to show in English).
+- **README in 27 languages** (`readme\README.<lang>.md`) with sections on
+  updates and languages.
+- **Fix**: `release-manifest.json` in the package has correct Polish
+  characters (`scripts\package.ps1` reads and writes UTF-8 explicitly).
+- **Tests**: a wrong SHA-256 or size stops the update, swap and rollback on a
+  mock, the health check after restart, stable and test channels, every key and
+  plural form in every language.
+
 ## 2.3.2 (2026-11-18)
 
 ### PL
