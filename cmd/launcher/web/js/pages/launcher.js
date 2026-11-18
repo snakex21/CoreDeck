@@ -397,14 +397,39 @@
         }, 2200);
     }
 
+    // Translated text for a launch_program result (backend codes -> keys).
+    function launchMessage(result) {
+        if (result && result.code) {
+            const key = `launch_${result.code}`;
+            const text = tr(key, '');
+            if (text) return fillText(text, result.params || {});
+        }
+        return (result && (result.error || result.message)) || tr('launch_failed', 'Nie udało się uruchomić programu.').replace('{error}', '');
+    }
+
+    // Translated text for an installer result (exit codes -> keys).
+    function installerMessage(result) {
+        const code = result && Number(result.exitCode);
+        if (code) {
+            const text = tr(`inst_code_${code}`, '');
+            if (text) return text;
+            if (result.outcome === 'error') return fillText(tr('inst_code_other', 'Instalator zakończył się błędem (kod {code}).'), { code });
+        }
+        return (result && result.message) || '';
+    }
+
+    function fillText(text, vars) {
+        return String(text).replace(/\{([a-z_]+)\}/g, (m, name) => (name in vars ? String(vars[name]) : m));
+    }
+
     // Portable programs and tools start in place, straight from the pendrive.
     async function launchPortable(button, item, variantIndex, defaultLabel) {
         if (!window.api || typeof window.api.launch_program !== 'function') {
-            uiToast('Uruchamianie programów portable wymaga nowszej wersji CoreDeck.', { kind: 'error' });
+            uiToast(tr('launch_unsupported', 'Uruchamianie programów portable wymaga nowszej wersji CoreDeck.'), { kind: 'error' });
             return;
         }
         button.disabled = true;
-        button.textContent = '⏳ Uruchamianie...';
+        button.textContent = `⏳ ${tr('run_starting', 'Uruchamianie…')}`;
         try {
             let result = await window.api.launch_program(item.name, variantIndex, '');
             if (result && Array.isArray(result.candidates) && result.candidates.length) {
@@ -433,15 +458,15 @@
                 result = await window.api.launch_program(item.name, variantIndex, choice);
             }
             if (!result || result.error || !result.success) {
-                throw new Error((result && (result.error || result.message)) || 'Nie udało się uruchomić programu.');
+                throw new Error(launchMessage(result));
             }
             if (result.openedFolder) {
-                uiToast(result.message || 'Otwarto folder programu.', { kind: 'info', title: item.name });
+                uiToast(launchMessage(result), { kind: 'info', title: item.name });
                 resetRunButton(button, defaultLabel);
                 return;
             }
             uiToast(`${tr('launch_started', 'Uruchomiono')}: ${item.name}`, { kind: 'success', timeout: 2500 });
-            resetRunButton(button, defaultLabel, '✓ Uruchomiono');
+            resetRunButton(button, defaultLabel, `✓ ${tr('run_started_short', 'Uruchomiono')}`);
         } catch (error) {
             resetRunButton(button, defaultLabel);
             uiToast(error.message || String(error), { kind: 'error', title: item.name });
@@ -461,12 +486,12 @@
         }
 
         if (!window.api || typeof window.api.install_selected_programs !== 'function') {
-            uiToast('Funkcja uruchamiania nie jest dostępna w tej wersji programu.', { kind: 'error' });
+            uiToast(tr('launch_unsupported', 'Funkcja uruchamiania nie jest dostępna w tej wersji programu.'), { kind: 'error' });
             return;
         }
 
         button.disabled = true;
-        button.textContent = '⏳ Uruchamianie...';
+        button.textContent = `⏳ ${tr('run_starting', 'Uruchamianie…')}`;
 
         try {
             const selected = Object.assign({}, item, { selectedVariant });
@@ -489,13 +514,13 @@
                 return;
             }
             if (!result || !result.success) {
-                throw new Error((result && result.message) || progress.error || 'Uruchamianie zakończyło się błędem.');
+                throw new Error(installerMessage(result) || progress.error || 'Uruchamianie zakończyło się błędem.');
             }
 
             if (result.outcome === 'ok_note') {
-                uiToast(result.message, { kind: 'warn', title: item.name, timeout: 9000 });
+                uiToast(installerMessage(result), { kind: 'warn', title: item.name, timeout: 9000 });
             }
-            resetRunButton(button, defaultLabel, '✓ Zakończono');
+            resetRunButton(button, defaultLabel, `✓ ${tr('run_finished', 'Zakończono')}`);
         } catch (error) {
             resetRunButton(button, defaultLabel);
             uiToast(error.message || String(error), { kind: 'error', title: item.name });
@@ -1224,13 +1249,17 @@
     coreDeckLoadingGate.setStatus('Loading icons…');
     settleInitialProgramIcons()
         .catch(() => {})
-        .finally(() => coreDeckLoadingGate.finish());
+        .finally(() => {
+            coreDeckLoadingGate.finish();
+            // Report a finished update/rollback, then the daily update check.
+            window.CoreUpdater?.startupCheck?.().catch(e => console.warn('update check failed', e));
+        });
 
     // === LANGUAGE SELECTOR ===
     const langSelect = document.getElementById('lang-select');
     if (langSelect && typeof getCurrentLang === 'function') {
         // Set current value
-        langSelect.value = getCurrentLang();
+        langSelect.value = (typeof getLanguageChoice === "function" ? getLanguageChoice() : getCurrentLang());
 
         langSelect.addEventListener('change', (e) => {
             const lang = e.target.value;

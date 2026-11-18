@@ -63,6 +63,13 @@
                 dialog.appendChild(message);
             }
 
+            if (spec.body instanceof Node) {
+                const body = el('div', 'cd-dialog-body');
+                body.appendChild(spec.body);
+                dialog.appendChild(body);
+            }
+            if (spec.wide) dialog.classList.add('cd-dialog--wide');
+
             let input = null;
             if (spec.input) {
                 input = el('input', 'cd-dialog-input');
@@ -221,6 +228,25 @@
         });
     }
 
+    // Generic dialog: uiDialog({ title, message, body: Node, kind, wide,
+    //   buttons: [{ label, value, variant: 'primary'|'secondary'|'danger', confirm: true }],
+    //   cancelValue }) -> value of the clicked button (cancelValue on Esc).
+    function uiDialog(options) {
+        const opts = options || {};
+        return open({
+            kind: opts.kind || 'info',
+            role: opts.role || 'dialog',
+            title: opts.title,
+            message: opts.message,
+            body: opts.body,
+            wide: !!opts.wide,
+            buttons: (opts.buttons || []).map(b => ({
+                label: b.label, value: b.value, variant: b.variant || 'secondary', role: b.confirm ? 'confirm' : (b.role || 'button')
+            })),
+            cancelValue: opts.cancelValue
+        });
+    }
+
     function uiChoose(message, choices, options) {
         const opts = options || {};
         const buttons = [{ label: opts.cancelLabel || tr('dlg_cancel', 'Anuluj'), role: 'cancel', variant: 'secondary', value: null }];
@@ -278,10 +304,18 @@
         toast.addEventListener('mouseleave', arm);
         toastRegion().appendChild(toast);
         arm();
-        return { dismiss, element: toast };
+        const update = (text, kind) => {
+            toast.querySelector('.cd-toast-text').textContent = String(text);
+            if (kind && TOAST_ICONS[kind]) {
+                toast.className = `cd-toast cd-toast--${kind}`;
+                toast.querySelector('.cd-toast-icon').textContent = TOAST_ICONS[kind];
+            }
+        };
+        return { dismiss, update, element: toast };
     }
 
-    window.CoreDialog = { alert: uiAlert, confirm: uiConfirm, prompt: uiPrompt, choose: uiChoose, toast: uiToast };
+    window.CoreDialog = { alert: uiAlert, confirm: uiConfirm, prompt: uiPrompt, choose: uiChoose, dialog: uiDialog, toast: uiToast };
+    window.uiDialog = uiDialog;
     window.uiAlert = uiAlert;
     window.uiConfirm = uiConfirm;
     window.uiPrompt = uiPrompt;

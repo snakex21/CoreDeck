@@ -83,14 +83,27 @@
             <section class="app-update-panel" aria-labelledby="app-update-title">
                 <div class="app-update-copy">
                     <span class="settings-inspector-label">CoreDeck</span>
-                    <h2 id="app-update-title">Aktualizacje</h2>
-                    <p>Sprawdź oficjalne wydania bez pobierania i instalowania czegokolwiek w tle.</p>
-                    <p class="app-update-version">Zainstalowana wersja: <strong id="app-current-version">—</strong></p>
+                    <h2 id="app-update-title" data-i18n="upd_section">Aktualizacje</h2>
+                    <p data-i18n="upd_safety_note">Pobrana paczka jest sprawdzana sumą SHA-256. Poprzednia wersja zostaje jako kopia zapasowa, a folder data\ nie jest zmieniany.</p>
+                    <p class="app-update-version" id="app-current-version-line">—</p>
+                    <div class="app-update-options">
+                        <label class="app-update-field">
+                            <span data-i18n="upd_channel">Kanał aktualizacji</span>
+                            <select id="app-update-channel">
+                                <option value="stable" data-i18n="upd_channel_stable">Stabilny</option>
+                                <option value="test" data-i18n="upd_channel_test">Testowy (wersje przedpremierowe)</option>
+                            </select>
+                        </label>
+                        <label class="app-update-check-field">
+                            <input type="checkbox" id="app-update-auto">
+                            <span data-i18n="upd_auto_check">Sprawdzaj aktualizacje przy uruchomieniu</span>
+                        </label>
+                    </div>
                 </div>
                 <div class="app-update-actions">
-                    <button id="app-update-check" class="btn-secondary" type="button">Sprawdź aktualizacje</button>
-                    <button id="app-update-open" class="btn-primary hidden" type="button">Otwórz wydanie</button>
-                    <p id="app-update-status" class="app-update-status" role="status" aria-live="polite">Sprawdzanie uruchamiasz ręcznie.</p>
+                    <button id="app-update-check" class="btn-primary" type="button" data-i18n="upd_check">Sprawdź aktualizacje</button>
+                    <button id="app-update-rollback" class="btn-secondary hidden" type="button" data-i18n="upd_rollback">Przywróć poprzednią wersję</button>
+                    <p id="app-update-status" class="app-update-status" role="status" aria-live="polite"></p>
                 </div>
             </section>
         </div>
@@ -99,6 +112,7 @@
     <script src="js/i18n/translations.js"></script>
     <script src="js/i18n/runtime.js"></script>
     <script src="js/shared/dialogs.js"></script>
+    <script src="js/shared/updater.js"></script>
     <script src="js/pages/configurator/system-tools.js"></script>
     <script src="js/pages/system-page.js"></script>
 </body>

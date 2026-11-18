@@ -1095,3 +1095,18 @@ body.light-theme .editor-modal {
     gap: 8px;
     justify-content: flex-end;
 }
+
+.app-update-options { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 12px; }
+.app-update-field { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-xs, 0.75rem); color: var(--text-secondary); }
+.app-update-field select {
+    min-width: 220px;
+    padding: 7px 10px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    font: inherit;
+    font-size: var(--fs-sm, 0.8125rem);
+}
+.app-update-check-field { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-sm, 0.8125rem); color: var(--text-secondary); cursor: pointer; }
+.app-update-check-field input { accent-color: var(--accent-primary); width: 16px; height: 16px; }

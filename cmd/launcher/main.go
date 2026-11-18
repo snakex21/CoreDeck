@@ -16,13 +16,22 @@ import (
 	"launcher/internal/programs"
 	"launcher/internal/server"
 	"launcher/internal/system"
+	"launcher/internal/update"
 	"launcher/internal/version"
 	"launcher/internal/webview"
 	"launcher/internal/windowstate"
 )
 
 func main() {
-	if ensureElevated() {
+	// The update guard runs from the OLD binary (CoreDeck.exe.old) and must not
+	// elevate, open a window or start the server.
+	if statePath, ok := updateGuardArg(os.Args[1:]); ok {
+		os.Exit(runUpdateGuard(getExeDir(), statePath))
+	}
+	// A run started by the guard keeps the guard's token: relaunching through
+	// UAC would make the guard see an early exit and roll the update back.
+	launchedAfterUpdate := hasArg(os.Args[1:], update.FlagUpdated)
+	if !launchedAfterUpdate && ensureElevated() {
 		return
 	}
 
@@ -37,6 +46,7 @@ func main() {
 	// background while the main page starts, so the configurator opens instantly.
 	go system.Detect()
 
+	update.CleanupStale(exeDir, time.Now())
 	seedDataFiles(exeDir)
 	migrateDriveLetters(exeDir)
 
@@ -80,6 +90,7 @@ func main() {
 		LLMClient:     llmClient,
 		AuditLog:      audit.New(filepath.Join(exeDir, "data", "logs", "audit.jsonl")),
 	}
+	appAPI.ConfigureUpdates(launchedAfterUpdate)
 	// Load the small catalogue synchronously, then warm the expensive state scan
 	// shortly after startup. Manual refresh and post-apply scans still bypass it.
 	_ = appAPI.GetTweaksData()
@@ -127,6 +138,46 @@ func buildWindowConfig(
 		IconPath:  iconPath,
 		StatePath: statePath,
 	}
+}
+
+func hasArg(args []string, flag string) bool {
+	for _, a := range args {
+		if strings.EqualFold(a, flag) {
+			return true
+		}
+	}
+	return false
+}
+
+// updateGuardArg returns the state file passed as --update-guard <statefile>.
+func updateGuardArg(args []string) (string, bool) {
+	for i, a := range args {
+		if strings.EqualFold(a, update.FlagGuard) {
+			if i+1 < len(args) {
+				return args[i+1], true
+			}
+			return "", true
+		}
+	}
+	return "", false
+}
+
+// runUpdateGuard finishes a pending self-update (see internal/update/guard.go)
+// and returns the process exit code.
+func runUpdateGuard(exeDir, statePath string) int {
+	env := update.RealGuardEnv(exeDir)
+	if err := update.ValidateGuardStatePath(exeDir, statePath); err != nil {
+		env.Logf("guard: %v", err)
+		return 2
+	}
+	env.OpenParentEarly()
+	outcome, err := update.RunGuard(env)
+	env.Logf("guard: finished (%s)", outcome)
+	if err != nil {
+		env.Logf("guard: %v", err)
+		return 1
+	}
+	return 0
 }
 
 func envEnabled(name string) bool {

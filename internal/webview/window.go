@@ -34,6 +34,11 @@ func NewWindow(cfg WindowConfig) error {
 	}
 	w := webview.New(cfg.Debug)
 	defer w.Destroy()
+	// The self-updater closes the app after starting its restart guard.
+	cfg.API.SetQuitHook(func() {
+		w.Dispatch(func() { w.Terminate() })
+	})
+	defer cfg.API.SetQuitHook(nil)
 	w.SetTitle(cfg.Title)
 	w.SetSize(cfg.Width, cfg.Height, webview.HintNone)
 	w.SetSize(cfg.MinWidth, cfg.MinHeight, webview.HintMin)
@@ -59,7 +64,15 @@ func NewWindow(cfg WindowConfig) error {
 	w.Bind("__api_get_system_info", cfg.API.GetSystemInfo)
 	w.Bind("__api_get_portable_paths", cfg.API.GetPortablePaths)
 	w.Bind("__api_get_app_version", cfg.API.GetAppVersion)
+	w.Bind("__api_get_update_settings", cfg.API.GetUpdateSettings)
+	w.Bind("__api_set_update_settings", cfg.API.SetUpdateSettings)
 	w.Bind("__api_check_for_updates", cfg.API.CheckForUpdates)
+	w.Bind("__api_skip_update_version", cfg.API.SkipUpdateVersion)
+	w.Bind("__api_start_update", cfg.API.StartUpdate)
+	w.Bind("__api_update_progress", cfg.API.UpdateProgress)
+	w.Bind("__api_update_ready", cfg.API.UpdateReady)
+	w.Bind("__api_get_rollback_info", cfg.API.GetRollbackInfo)
+	w.Bind("__api_rollback_update", cfg.API.RollbackUpdate)
 	w.Bind("__api_get_programs_data", cfg.API.GetProgramsData)
 	w.Bind("__api_get_programs_for_profile", cfg.API.GetProgramsForProfile)
 	w.Bind("__api_install_selected_programs", cfg.API.InstallSelectedPrograms)
@@ -120,7 +133,15 @@ window.api = {
   get_system_info: function() { return __api_get_system_info().then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
   get_portable_paths: function() { return __api_get_portable_paths().then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
   get_app_version: function() { return __api_get_app_version().catch(function(){return ''}) },
-  check_for_updates: function() { return __api_check_for_updates().then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
+  get_update_settings: function() { return __api_get_update_settings().then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
+  set_update_settings: function(j) { return __api_set_update_settings(typeof j === 'string' ? j : JSON.stringify(j||{})).then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
+  check_for_updates: function(m) { return __api_check_for_updates(m === 'auto' ? 'auto' : 'manual').then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
+  skip_update_version: function(v) { return __api_skip_update_version(String(v||'')).then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
+  start_update: function(v) { return __api_start_update(String(v||'')).then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
+  update_progress: function(s) { return __api_update_progress(String(s||'')).then(function(r){return JSON.parse(r)}).catch(function(e){return{state:'error',error:String(e)}}) },
+  update_ready: function() { return __api_update_ready().then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
+  get_rollback_info: function() { return __api_get_rollback_info().then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
+  rollback_update: function() { return __api_rollback_update().then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
   get_programs_data: function() { return __api_get_programs_data().then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
   get_programs_for_profile: function(p) { return __api_get_programs_for_profile(p).then(function(r){return JSON.parse(r)}).catch(function(e){return[]}) },
   install_selected_programs: function(p,t) { return __api_install_selected_programs(p,t).then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },

@@ -1,5 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     const title = document.body.dataset.pageTitle || document.title;
+    // Translate the elements marked with data-i18n (e.g. the Updates panel).
+    if (typeof applyTranslations === 'function') {
+        applyTranslations();
+        document.title = title;
+    }
     const themeButton = document.getElementById('theme-toggle-btn');
     const themeIcon = themeButton?.querySelector('.theme-icon');
     const languageSelect = document.getElementById('lang-select');
@@ -17,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (languageSelect && typeof getCurrentLang === 'function') {
-        languageSelect.value = getCurrentLang();
+        languageSelect.value = (typeof getLanguageChoice === "function" ? getLanguageChoice() : getCurrentLang());
         languageSelect.addEventListener('change', event => {
             if (typeof setLanguage === 'function') setLanguage(event.target.value);
             document.title = title;
@@ -28,56 +33,87 @@ document.addEventListener('DOMContentLoaded', () => {
         window.initSystemTools();
     }
 
+    // === Updates (Settings) ===
+    const tt = (key, vars) => (typeof t === 'function' ? t(key, vars) : key);
     const updateButton = document.getElementById('app-update-check');
-    const openReleaseButton = document.getElementById('app-update-open');
+    const rollbackButton = document.getElementById('app-update-rollback');
     const updateStatus = document.getElementById('app-update-status');
-    const currentVersion = document.getElementById('app-current-version');
-    let releaseUrl = '';
-
-    if (currentVersion && window.api?.get_app_version) {
-        window.api.get_app_version().then(version => {
-            currentVersion.textContent = version || '—';
-        });
-    }
+    const versionLine = document.getElementById('app-current-version-line');
+    const channelSelect = document.getElementById('app-update-channel');
+    const autoCheck = document.getElementById('app-update-auto');
+    let installedVersion = '';
+    let rollbackVersion = '';
 
     const setUpdateStatus = (message, state = '') => {
         if (!updateStatus) return;
         updateStatus.textContent = message;
         updateStatus.dataset.state = state;
     };
+    const showVersion = () => {
+        if (versionLine) versionLine.textContent = tt('upd_installed_version', { version: installedVersion || '—' });
+    };
+
+    async function loadUpdateSettings() {
+        if (window.api?.get_app_version) installedVersion = await window.api.get_app_version();
+        showVersion();
+        if (window.api?.get_update_settings) {
+            const s = await window.api.get_update_settings();
+            if (s && !s.error) {
+                if (channelSelect) channelSelect.value = s.channel === 'test' ? 'test' : 'stable';
+                if (autoCheck) autoCheck.checked = s.autoCheck !== false;
+            }
+        }
+        if (window.api?.get_rollback_info && rollbackButton) {
+            const info = await window.api.get_rollback_info();
+            rollbackVersion = (info && info.available && info.version) || '';
+            rollbackButton.classList.toggle('hidden', !rollbackVersion);
+        }
+    }
+
+    async function saveUpdateSettings() {
+        if (!window.api?.set_update_settings) return;
+        const result = await window.api.set_update_settings(JSON.stringify({
+            channel: channelSelect?.value === 'test' ? 'test' : 'stable',
+            autoCheck: !!autoCheck?.checked
+        }));
+        if (result && result.error) uiToast(result.error, { kind: 'error' });
+    }
+
+    channelSelect?.addEventListener('change', saveUpdateSettings);
+    autoCheck?.addEventListener('change', saveUpdateSettings);
 
     updateButton?.addEventListener('click', async () => {
-        if (!window.api?.check_for_updates) {
-            setUpdateStatus('Sprawdzanie aktualizacji jest niedostępne w tej wersji.', 'error');
-            return;
-        }
-
+        if (!window.CoreUpdater) return;
         updateButton.disabled = true;
-        openReleaseButton?.classList.add('hidden');
-        setUpdateStatus('Łączenie z GitHub Releases…', 'checking');
-
+        setUpdateStatus(tt('upd_checking'), 'checking');
         try {
-            const result = await window.api.check_for_updates();
-            if (currentVersion) currentVersion.textContent = result.currentVersion || '—';
-            if (result.error) {
-                setUpdateStatus(`Nie udało się sprawdzić: ${result.error}`, 'error');
-                return;
+            const result = await window.CoreUpdater.checkNow();
+            if (!result || result.error) {
+                setUpdateStatus(tt('upd_check_error', { error: (result && result.error) || '?' }), 'error');
+            } else if (result.updateAvailable) {
+                setUpdateStatus(tt('upd_message', { version: result.latestVersion, current: result.currentVersion }), 'available');
+            } else {
+                setUpdateStatus(tt('upd_up_to_date', { version: result.currentVersion || installedVersion }), 'current');
             }
-            if (result.updateAvailable) {
-                releaseUrl = result.releaseUrl || '';
-                setUpdateStatus(`Dostępna jest wersja ${result.latestVersion}.`, 'available');
-                if (releaseUrl) openReleaseButton?.classList.remove('hidden');
-                return;
-            }
-            setUpdateStatus(`Masz najnowszą wersję (${result.currentVersion}).`, 'current');
         } catch (error) {
-            setUpdateStatus(`Nie udało się sprawdzić: ${String(error)}`, 'error');
+            setUpdateStatus(tt('upd_check_error', { error: String(error) }), 'error');
         } finally {
             updateButton.disabled = false;
         }
     });
 
-    openReleaseButton?.addEventListener('click', () => {
-        if (releaseUrl) window.api?.open_url?.(releaseUrl);
+    rollbackButton?.addEventListener('click', async () => {
+        if (!rollbackVersion || !window.api?.rollback_update) {
+            uiToast(tt('upd_rollback_none'), { kind: 'neutral' });
+            return;
+        }
+        const ok = await uiConfirm(tt('upd_rollback_confirm', { version: rollbackVersion }), { confirmLabel: tt('upd_rollback') });
+        if (!ok) return;
+        const result = await window.api.rollback_update();
+        if (result && result.error) uiToast(tt('upd_failed', { error: result.error }), { kind: 'error' });
+        else uiToast(tt('upd_restarting'), { kind: 'success' });
     });
+
+    document.getElementById('lang-select')?.addEventListener('change', () => setTimeout(showVersion, 0));
+    loadUpdateSettings().catch(e => console.warn('update settings', e));
 });

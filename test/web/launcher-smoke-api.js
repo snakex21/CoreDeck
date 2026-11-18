@@ -31,6 +31,30 @@
         return { done: true, results: [{ name: p.name, success: true, outcome: 'ok', message: 'Instalator zakończony', type: 'installer' }] };
     };
 
+    // Updater stubs. ?update=1 offers version 9.9.9 with sample notes;
+    // ?update=fail makes the download fail the checksum check.
+    const updateMode = new URLSearchParams(location.search).get('update');
+    let updateTick = 0;
+    api.update_ready = async () => ({ justUpdated: '', rolledBack: null });
+    api.check_for_updates = async (mode) => {
+        calls.push({ m: 'check_for_updates', args: [mode] });
+        if (!updateMode) return { currentVersion: '2.4.0', latestVersion: '2.4.0', updateAvailable: false };
+        return {
+            currentVersion: '2.4.0', latestVersion: '9.9.9', updateAvailable: true, prerelease: updateMode === 'test',
+            publishedAt: '2026-11-18T12:00:00Z', channel: 'stable',
+            notes: '## CoreDeck 9.9.9\n\n**PL**\n\n- **Aktualizacje w aplikacji**: kanał stabilny i testowy, suma SHA-256, kopia poprzedniej wersji.\n- **30 języków** interfejsu.\n\n**EN**\n\n- **In-app updates**: stable and test channels, SHA-256 check, previous version kept.\n- **30 interface languages**.'
+        };
+    };
+    api.skip_update_version = async () => ({ success: true });
+    api.start_update = async () => ({ sessionId: 'upd-1' });
+    api.update_progress = async () => {
+        updateTick += 1;
+        if (updateMode === 'fail' && updateTick > 2) return { state: 'error', errorCode: 'bad_checksum', error: 'sha256 mismatch' };
+        if (updateTick < 6) return { state: 'downloading', percent: updateTick * 18 };
+        if (updateTick < 8) return { state: 'verifying' };
+        return { state: 'restarting' };
+    };
+
     // Any other binding resolves to an empty object instead of throwing.
     window.api = new Proxy(api, {
         get(target, prop) {
