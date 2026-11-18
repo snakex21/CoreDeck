@@ -1,4 +1,4 @@
-param(
+﻿param(
     [switch]$SkipBuild,
     [switch]$DebugBuild
 )
@@ -36,7 +36,9 @@ if (Test-Path $helper) {
     Copy-Item $helper -Destination $toolsDir
 }
 
-$versionText = Get-Content (Join-Path $root "internal\version\version.go") -Raw
+# PowerShell 5 reads files without a BOM as ANSI: always say UTF-8.
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+$versionText = [System.IO.File]::ReadAllText((Join-Path $root "internal\version\version.go"), $utf8NoBom)
 $versionMatch = [regex]::Match($versionText, 'Current\s*=\s*"([^"]+)"')
 $manifest = [ordered]@{
     product = "CoreDeck"
@@ -46,11 +48,24 @@ $manifest = [ordered]@{
     packageType = "public-empty-template"
     note = "Pusta baza startowa. Dane użytkownika są tworzone przy pierwszym uruchomieniu."
 }
-$manifest | ConvertTo-Json | Set-Content (Join-Path $packageRoot "release-manifest.json") -Encoding UTF8
+# UTF-8 without BOM, so JSON parsers and the updater read it as is.
+[System.IO.File]::WriteAllText((Join-Path $packageRoot "release-manifest.json"), ($manifest | ConvertTo-Json), $utf8NoBom)
 
 $zipPath = Join-Path $dist "CoreDeck-Portable.zip"
 Compress-Archive -Path "$packageRoot\*" -DestinationPath $zipPath -CompressionLevel Optimal
 Remove-Item $packageRoot -Recurse -Force
+
+# Release assets next to the ZIP: the bare exe and SHA256SUMS.txt.
+# The in-app updater requires lines for CoreDeck.exe and CoreDeck-Portable.zip.
+Copy-Item $exe -Destination (Join-Path $dist "CoreDeck.exe")
+$sums = @(
+    "{0}  CoreDeck.exe" -f (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+    "{0}  CoreDeck-Portable.zip" -f (Get-FileHash $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+)
+if (Test-Path $helper) {
+    $sums += "{0}  disk-helper.exe" -f (Get-FileHash $helper -Algorithm SHA256).Hash.ToLowerInvariant()
+}
+[System.IO.File]::WriteAllText((Join-Path $dist "SHA256SUMS.txt"), (($sums -join "`n") + "`n"), $utf8NoBom)
 
 Write-Host ""
 Write-Host "PACZKA GOTOWA" -ForegroundColor Green
