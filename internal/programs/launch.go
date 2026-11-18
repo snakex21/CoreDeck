@@ -29,6 +29,10 @@ type LaunchResult struct {
 	// folder was opened in Explorer instead.
 	OpenedFolder bool   `json:"openedFolder,omitempty"`
 	Folder       string `json:"folder,omitempty"`
+	// Code names the message for translated UI text ("launch_" + Code), with
+	// Params filling its placeholders; Message is the Polish fallback.
+	Code   string            `json:"code,omitempty"`
+	Params map[string]string `json:"params,omitempty"`
 }
 
 // IsLaunchable reports whether an install type is started in place (from the
@@ -62,13 +66,13 @@ func LaunchProgram(exeDir string, p Program, variantIndex int, file string) Laun
 	cfg := resolveVariant(p, exeDir)
 	res := LaunchResult{Name: p.Name}
 	if !IsLaunchable(cfg.InstallType) {
-		res.Message = "Ten wpis nie jest programem portable."
+		res.Message, res.Code = "Ten wpis nie jest programem portable.", "not_portable"
 		return res
 	}
 	folder := paths.ResolvePath(exeDir, cfg.FolderPath)
 	res.Folder = folder
 	if info, err := os.Stat(folder); err != nil || !info.IsDir() {
-		res.Message = "Nie znaleziono folderu programu: " + folder
+		res.Message, res.Code, res.Params = "Nie znaleziono folderu programu: "+folder, "folder_missing", map[string]string{"path": folder}
 		return res
 	}
 
@@ -78,13 +82,17 @@ func LaunchProgram(exeDir string, p Program, variantIndex int, file string) Laun
 		path, err := executableInFolder(folder, file)
 		if err != nil {
 			res.Message = err.Error()
+			var fe *fileError
+			if errors.As(err, &fe) {
+				res.Code, res.Params = fe.code, map[string]string{"file": file}
+			}
 			return res
 		}
 		target = path
 	case strings.TrimSpace(cfg.InstallerFile) != "":
 		path, err := executableInFolder(folder, cfg.InstallerFile)
 		if err != nil {
-			res.Message = "Plik wskazany w katalogu nie istnieje: " + cfg.InstallerFile
+			res.Message, res.Code, res.Params = "Plik wskazany w katalogu nie istnieje: "+cfg.InstallerFile, "file_missing", map[string]string{"file": cfg.InstallerFile}
 			return res
 		}
 		target = path
@@ -97,12 +105,12 @@ func LaunchProgram(exeDir string, p Program, variantIndex int, file string) Laun
 		}
 		if main == "" {
 			if err := openFolder(folder); err != nil {
-				res.Message = "Nie znaleziono pliku .exe, a folderu nie udało się otworzyć: " + err.Error()
+				res.Message, res.Code, res.Params = "Nie znaleziono pliku .exe, a folderu nie udało się otworzyć: "+err.Error(), "failed", map[string]string{"error": err.Error()}
 				return res
 			}
 			res.Success = true
 			res.OpenedFolder = true
-			res.Message = "W folderze nie ma programu do uruchomienia (np. tylko archiwum lub instalator). Otwarto folder."
+			res.Message, res.Code = "W folderze nie ma programu do uruchomienia (np. tylko archiwum lub instalator). Otwarto folder.", "opened_folder"
 			return res
 		}
 		target = main
@@ -110,6 +118,10 @@ func LaunchProgram(exeDir string, p Program, variantIndex int, file string) Laun
 
 	if err := startExecutable(target); err != nil {
 		res.Message = launchErrorMessage(err)
+		res.Code, res.Params = "failed", map[string]string{"error": err.Error()}
+		if exit, ok := installerExitFromError(err); ok && exit.Outcome == OutcomeCancelled {
+			res.Code, res.Params = "cancelled", nil
+		}
 		return res
 	}
 	slog.Info("program launched", "name", p.Name, "path", target)
@@ -129,17 +141,22 @@ func executableInFolder(folder, file string) (string, error) {
 	path = filepath.Clean(path)
 	rel, err := filepath.Rel(folder, path)
 	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || filepath.IsAbs(rel) {
-		return "", fmt.Errorf("plik %s jest poza folderem programu", file)
+		return "", &fileError{"outside_folder", fmt.Sprintf("plik %s jest poza folderem programu", file)}
 	}
 	if !strings.EqualFold(filepath.Ext(path), ".exe") {
-		return "", fmt.Errorf("można uruchomić tylko plik .exe: %s", file)
+		return "", &fileError{"only_exe", fmt.Sprintf("można uruchomić tylko plik .exe: %s", file)}
 	}
 	info, err := os.Stat(path)
 	if err != nil || info.IsDir() {
-		return "", fmt.Errorf("nie znaleziono pliku %s", file)
+		return "", &fileError{"file_missing", fmt.Sprintf("nie znaleziono pliku %s", file)}
 	}
 	return path, nil
 }
+
+// fileError carries the UI message code of a rejected file.
+type fileError struct{ code, msg string }
+
+func (e *fileError) Error() string { return e.msg }
 
 func launchErrorMessage(err error) string {
 	if exit, ok := installerExitFromError(err); ok {

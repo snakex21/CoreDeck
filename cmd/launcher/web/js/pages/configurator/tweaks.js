@@ -434,7 +434,7 @@ async function applyTweaks() {
     const alreadyActive = selected.filter(t => t.stateKnown && t.active);
 
     if (toApply.length === 0) {
-        uiToast(`${t('all_tweaks_active')} ${plur(alreadyActive.length, 'program w profilu', 'programy w profilu', 'programów w profilu')}.`, { kind: 'info' });
+        uiToast(`${t('all_tweaks_active')} ${tn('count_programs', alreadyActive.length)}.`, { kind: 'info' });
         return;
     }
 

@@ -672,7 +672,7 @@ loadKnowledge();
 if (typeof applyTranslations === 'function') applyTranslations();
 const langSelect = document.getElementById('lang-select');
 if (langSelect && typeof getCurrentLang === 'function') {
-    langSelect.value = getCurrentLang();
+    langSelect.value = (typeof getLanguageChoice === "function" ? getLanguageChoice() : getCurrentLang());
     langSelect.addEventListener('change', (e) => {
         if (typeof setLanguage === 'function') setLanguage(e.target.value);
     });

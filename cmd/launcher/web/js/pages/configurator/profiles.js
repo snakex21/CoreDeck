@@ -42,7 +42,7 @@ function renderProfiles() {
                 </div>
                 <div class="name">${displayName}</div>
                 <div class="desc">${displayDesc}</div>
-                <div class="count">${plur(count, 'program w profilu', 'programy w profilu', 'programów w profilu')}${isOverridden ? ' ' + t('cfg_profile_modified') : ''}</div>
+                <div class="count">${tn('count_programs', count)}${isOverridden ? ' ' + t('cfg_profile_modified') : ''}</div>
             </div>
         `;
     }
@@ -64,7 +64,7 @@ function renderProfiles() {
                 </div>
                 <div class="name">${cp.name}</div>
                 <div class="desc">${cp.description || ''}</div>
-                <div class="count">${plur(count, 'program w profilu', 'programy w profilu', 'programów w profilu')}</div>
+                <div class="count">${tn('count_programs', count)}</div>
             </div>
         `;
     }

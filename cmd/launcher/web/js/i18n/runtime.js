@@ -1,31 +1,108 @@
 // Language detection and DOM translation runtime.
-// --- Language detection & application ---
+
+// Interface languages, in the order shown in the picker (native names).
+const LANGUAGES = [
+  ['en', 'English'], ['pl', 'Polski'], ['bg', 'Български'], ['cs', 'Čeština'],
+  ['da', 'Dansk'], ['de', 'Deutsch'], ['el', 'Ελληνικά'], ['es', 'Español'],
+  ['et', 'Eesti'], ['fi', 'Suomi'], ['fr', 'Français'], ['hr', 'Hrvatski'],
+  ['hu', 'Magyar'], ['it', 'Italiano'], ['lt', 'Lietuvių'], ['lv', 'Latviešu'],
+  ['nb', 'Norsk bokmål'], ['nl', 'Nederlands'], ['pt', 'Português (Brasil)'],
+  ['ro', 'Română'], ['ru', 'Русский'], ['sk', 'Slovenčina'], ['sl', 'Slovenščina'],
+  ['sr-Latn', 'Srpski (latinica)'], ['sv', 'Svenska'], ['tr', 'Türkçe'],
+  ['uk', 'Українська'], ['zh', '中文（简体）'], ['ja', '日本語'], ['ko', '한국어']
+].filter(([code]) => I18N[code]);
+
+// BCP 47 tags for Intl (plural rules, number formatting).
+const LANGUAGE_TAGS = { pt: 'pt-BR', 'sr-Latn': 'sr-Latn', nb: 'nb', zh: 'zh-CN' };
+
+// Maps a system/browser language tag (e.g. "pt-PT", "sr-Latn-RS", "nn-NO")
+// to one of LANGUAGES, or "" when none fits.
+function matchLanguage(tag) {
+  const lower = String(tag || '').toLowerCase();
+  const base = lower.split('-')[0];
+  if (!base) return '';
+  if (base === 'sr' || base === 'sh' || base === 'bs') return I18N['sr-Latn'] ? 'sr-Latn' : '';
+  if (base === 'no' || base === 'nn' || base === 'nb') return I18N.nb ? 'nb' : '';
+  if (base === 'cz') return 'cs';
+  return I18N[base] ? base : '';
+}
+
+function savedLanguage() {
+  try {
+    const saved = localStorage.getItem('launcher-lang');
+    return saved && I18N[saved] ? saved : '';
+  } catch (_) {
+    return '';
+  }
+}
 
 function detectLanguage() {
-  // 1. Check localStorage for manual override
-  const saved = localStorage.getItem('launcher-lang');
-  if (saved && I18N[saved]) return saved;
-
-  // 2. Auto-detect from browser/OS
-  const browserLangs = navigator.languages || [navigator.language || navigator.userLanguage || 'pl'];
+  const saved = savedLanguage();
+  if (saved) return saved;
+  const browserLangs = navigator.languages || [navigator.language || navigator.userLanguage || 'en'];
   for (const lang of browserLangs) {
-    const code = lang.split('-')[0].toLowerCase();
-    if (I18N[code]) return code;
+    const code = matchLanguage(lang);
+    if (code) return code;
   }
-  return 'pl'; // fallback
+  return 'en';
 }
 
 let currentLang = detectLanguage();
 
-function t(key) {
-  return (I18N[currentLang] && I18N[currentLang][key]) || (I18N['pl'] && I18N['pl'][key]) || key;
+// t(key) -> text in the current language, then English, then Polish (the
+// original), then the key. t(key, { name: value }) fills {name} placeholders.
+function t(key, vars) {
+  const text = (I18N[currentLang] && I18N[currentLang][key]) ||
+    (I18N.en && I18N.en[key]) || (I18N.pl && I18N.pl[key]) || key;
+  return vars ? fillPlaceholders(text, vars) : text;
+}
+
+function fillPlaceholders(text, vars) {
+  return String(text).replace(/\{([a-z_]+)\}/g, (m, name) =>
+    Object.prototype.hasOwnProperty.call(vars, name) ? String(vars[name]) : m);
+}
+
+// tn(base, n) -> plural form base_<one|few|many|other|...> chosen by the
+// CLDR rules of the current language, with {n} filled in.
+function tn(base, n, vars) {
+  const lang = currentLang;
+  let category = 'other';
+  try {
+    category = new Intl.PluralRules(LANGUAGE_TAGS[lang] || lang).select(n);
+  } catch (_) { /* old engine: "other" */ }
+  const table = I18N[lang] || {};
+  const text = table[`${base}_${category}`] || table[`${base}_other`] ||
+    (I18N.en && (I18N.en[`${base}_${new Intl.PluralRules('en').select(n)}`] || I18N.en[`${base}_other`])) || base;
+  return fillPlaceholders(text, Object.assign({ n }, vars || {}));
+}
+
+// "auto" or the language picked by hand.
+function getLanguageChoice() {
+  return savedLanguage() || 'auto';
 }
 
 function setLanguage(lang) {
-  if (!I18N[lang]) return;
-  currentLang = lang;
-  localStorage.setItem('launcher-lang', lang);
+  if (lang === 'auto') {
+    try { localStorage.removeItem('launcher-lang'); } catch (_) { /* ignore */ }
+    currentLang = detectLanguage();
+  } else {
+    if (!I18N[lang]) return;
+    currentLang = lang;
+    try { localStorage.setItem('launcher-lang', lang); } catch (_) { /* ignore */ }
+  }
   applyTranslations();
+}
+
+// Fills every language picker (<select id="lang-select">) from LANGUAGES.
+function populateLanguageSelects() {
+  document.querySelectorAll('select#lang-select, select.lang-select').forEach(select => {
+    select.textContent = '';
+    select.add(new Option(t('lang_auto'), 'auto'));
+    LANGUAGES.forEach(([code, name]) => select.add(new Option(name, code)));
+    select.value = getLanguageChoice();
+    select.setAttribute('aria-label', t('lang_label'));
+    select.title = t('lang_label');
+  });
 }
 
 function applyTranslations() {
@@ -74,6 +151,9 @@ function applyTranslations() {
 
   // Apply to title
   document.title = t('title');
+  document.documentElement.lang = LANGUAGE_TAGS[currentLang] || currentLang;
+  const autoOption = document.querySelector('select#lang-select option[value="auto"]');
+  if (autoOption) autoOption.textContent = t('lang_auto');
 }
 
 // Expose globally
@@ -82,3 +162,8 @@ window.t = t;
 window.setLanguage = setLanguage;
 window.applyTranslations = applyTranslations;
 window.getCurrentLang = () => currentLang;
+window.tn = tn;
+window.getLanguageChoice = getLanguageChoice;
+window.LANGUAGES = LANGUAGES;
+
+populateLanguageSelects();

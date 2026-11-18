@@ -674,7 +674,7 @@ function renderBackupRow(r) {
     const name = escapeHtml(getBaseName(r.targetPath));
     const path = escapeHtml(r.targetPath || '');
     const date = escapeHtml(formatBackupDate(r.createdAt));
-    const progText = plur(r.programCount || 0, 'program', 'programy', 'programów');
+    const progText = tn('count_programs', r.programCount || 0);
     const drvText = plur(r.driverCount || 0, 'sterownik', 'sterowniki', 'sterowników');
     const filesNote = r.includeFiles === false ? t('backup_json_only') : t('backup_with_files');
     const id = escapeHtml(r.id || '');
