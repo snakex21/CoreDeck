@@ -114,10 +114,10 @@ async function savePage() {
     }
 }
 
-function confirmDeletePage(pageListIndex) {
+async function confirmDeletePage(pageListIndex) {
     const page = getPages()[pageListIndex];
     if (!page) return;
-    if (!confirm(`Usunąć stronę "${page.name}"?\n\nTo usunie wpis z launchera oraz plik HTML, jeśli leży w folderze pages/.`)) return;
+    if (!(await uiConfirm(`Usunąć stronę "${page.name}"?\n\nTo usunie wpis z launchera oraz plik HTML, jeśli leży w folderze pages/.`, { danger: true }))) return;
     deletePage(page);
 }
 

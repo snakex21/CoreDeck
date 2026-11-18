@@ -13,7 +13,10 @@ import (
 
 // ResolvePath maps a catalogue path to an absolute, cleaned path.
 //
-// Absolute paths are returned cleaned. Relative paths are tried against these
+// Absolute paths are returned cleaned. An absolute path that no longer exists
+// but does exist on CoreDeck's own drive (the pendrive got another letter,
+// e.g. J:\X -> L:\X) resolves to the path on the current drive.
+// Relative paths are tried against these
 // candidates, and the first one that exists wins:
 //
 //  1. <exeDir>\<raw>               the literal relative meaning
@@ -38,7 +41,13 @@ func resolve(exeDir, driveRoot, raw string) (string, bool) {
 	rel := filepath.FromSlash(strings.ReplaceAll(raw, `\`, "/"))
 	if filepath.IsAbs(rel) {
 		p := filepath.Clean(rel)
-		return p, exists(p)
+		if exists(p) {
+			return p, true
+		}
+		if moved, ok := onDrive(p, driveRoot); ok {
+			return moved, true
+		}
+		return p, false
 	}
 
 	stripped := rel
@@ -65,4 +74,25 @@ func resolve(exeDir, driveRoot, raw string) (string, bool) {
 func exists(p string) bool {
 	_, err := os.Stat(p)
 	return err == nil
+}
+
+// onDrive maps an absolute drive-letter path (X:\rest) onto driveRoot
+// (driveRoot\rest) when it lives on another letter and exists there.
+func onDrive(abs, driveRoot string) (string, bool) {
+	vol := filepath.VolumeName(abs)
+	if len(vol) != 2 || vol[1] != ':' || driveRoot == "" {
+		return "", false // UNC paths and the like are left alone
+	}
+	if strings.EqualFold(vol, filepath.Clean(driveRoot)) || strings.EqualFold(vol+string(filepath.Separator), driveRoot) {
+		return "", false
+	}
+	rest := strings.TrimLeft(abs[len(vol):], `\/`)
+	if rest == "" {
+		return "", false
+	}
+	candidate := filepath.Join(driveRoot, rest)
+	if exists(candidate) {
+		return candidate, true
+	}
+	return "", false
 }

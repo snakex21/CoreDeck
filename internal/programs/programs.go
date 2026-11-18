@@ -77,6 +77,11 @@ type InstallResult struct {
 	Message string `json:"message"`
 	Type    string `json:"type"`
 	Path    string `json:"path,omitempty"`
+	// Outcome is one of OutcomeOK, OutcomeOKNote, OutcomeCancelled,
+	// OutcomeError. Cancelled duplicates OutcomeCancelled for older UIs.
+	Outcome   string `json:"outcome,omitempty"`
+	Cancelled bool   `json:"cancelled,omitempty"`
+	ExitCode  int    `json:"exitCode,omitempty"`
 }
 
 type InstallProgress struct {
@@ -374,15 +379,14 @@ func runInstallerStaged(installerPath, tempDir, name, installerArgs string) Inst
 	cmd.Dir = filepath.Dir(installerPath)
 
 	if err = cmd.Start(); err != nil {
-		return InstallResult{Name: name, Success: false, Message: "Błąd uruchamiania: " + err.Error(), Type: "installer"}
+		return installerResult(name, installerPath, true, err)
 	}
 
 	slog.Info("staged installer started", "name", name, "path", installerPath)
-	if err = cmd.Wait(); err != nil {
-		return InstallResult{Name: name, Success: false, Message: commandFailureMessage("Instalator zakończył się błędem", err), Type: "installer"}
-	}
-
-	return InstallResult{Name: name, Success: true, Message: installerDoneMessage(installerPath, true), Type: "installer"}
+	err = cmd.Wait()
+	result := installerResult(name, installerPath, true, err)
+	slog.Info("staged installer finished", "name", name, "outcome", result.Outcome, "code", result.ExitCode)
+	return result
 }
 
 type installConfig struct {
@@ -551,30 +555,14 @@ func runInstaller(installerDir, name, installerFile, installerArgs string, runFr
 	cmd.Dir = filepath.Dir(installerPath)
 
 	if err = cmd.Start(); err != nil {
-		return InstallResult{
-			Name:    name,
-			Success: false,
-			Message: "Błąd uruchamiania: " + err.Error(),
-			Type:    "installer",
-		}
+		return installerResult(name, installerPath, runFromTemp, err)
 	}
 
 	slog.Info("installer started", "name", name, "path", installerPath)
-	if err = cmd.Wait(); err != nil {
-		return InstallResult{
-			Name:    name,
-			Success: false,
-			Message: commandFailureMessage("Instalator zakończył się błędem", err),
-			Type:    "installer",
-		}
-	}
-
-	return InstallResult{
-		Name:    name,
-		Success: true,
-		Message: installerDoneMessage(installerPath, runFromTemp),
-		Type:    "installer",
-	}
+	err = cmd.Wait()
+	result := installerResult(name, installerPath, runFromTemp, err)
+	slog.Info("installer finished", "name", name, "outcome", result.Outcome, "code", result.ExitCode)
+	return result
 }
 
 func resolveInstallerPath(installerDir, installerFile string) string {
@@ -790,7 +778,7 @@ func powershellFileCommand(scriptPath string, args []string) *exec.Cmd {
 func commandFailureMessage(prefix string, err error) string {
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) {
-		return fmt.Sprintf("%s (kod %d): %v", prefix, exitErr.ExitCode(), err)
+		return fmt.Sprintf("%s (%s).", prefix, formatExitCode(exitErr.ExitCode()))
 	}
 	return prefix + ": " + err.Error()
 }

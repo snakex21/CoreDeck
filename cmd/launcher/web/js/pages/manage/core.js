@@ -128,6 +128,11 @@ async function copyToClipboard(text) {
 
 let toastTimer = null;
 function showToast(message, isError) {
+    // One toast style for the whole app (js/shared/dialogs.js).
+    if (typeof window.uiToast === 'function') {
+        window.uiToast(message, { kind: isError ? 'error' : 'success', timeout: isError ? 6000 : 2400 });
+        return;
+    }
     let toast = document.getElementById('manage-toast');
     if (!toast) {
         toast = document.createElement('div');

@@ -27,10 +27,10 @@ async function loadDrivers() {
 function saveDrivers() {
     return window.api.save_drivers_data(JSON.stringify(driversData))
         .then((r) => {
-            if (r && r.error) { alert(t('err_save_prefix') + r.error); return false; }
+            if (r && r.error) { uiToast(t('err_save_prefix') + r.error, { kind: 'error' }); return false; }
             return true;
         })
-        .catch((e) => { alert(t('err_save_prefix') + String(e)); return false; });
+        .catch((e) => { uiToast(t('err_save_prefix') + String(e), { kind: 'error' }); return false; });
 }
 
 function sortedTypeEntries() {
@@ -361,11 +361,11 @@ async function saveDriverEditor() {
         const brandKey = document.getElementById('drv-series-brand').value.trim();
         const name = document.getElementById('drv-series-name').value.trim();
         const folderPath = document.getElementById('drv-series-folder').value.trim();
-        if (!typeKey || !brandKey) { alert('Wybierz typ i producenta.'); return; }
-        if (!name) { alert(t('val_series_name')); return; }
-        if (!folderPath) { alert(t('val_folder_path')); return; }
-        if (!driversData.types[typeKey]) { alert(t('err_type_not_exists')); return; }
-        if (!driversData.types[typeKey].brands[brandKey]) { alert(t('err_brand_not_exists')); return; }
+        if (!typeKey || !brandKey) { uiToast('Wybierz typ i producenta.', { kind: 'warn' }); return; }
+        if (!name) { uiToast(t('val_series_name'), { kind: 'warn' }); return; }
+        if (!folderPath) { uiToast(t('val_folder_path'), { kind: 'warn' }); return; }
+        if (!driversData.types[typeKey]) { uiToast(t('err_type_not_exists'), { kind: 'error' }); return; }
+        if (!driversData.types[typeKey].brands[brandKey]) { uiToast(t('err_brand_not_exists'), { kind: 'error' }); return; }
 
         if (driverEditContext) {
             const ctx = driverEditContext;
@@ -380,16 +380,16 @@ async function saveDriverEditor() {
     } else if (driverEditorMode === 'type') {
         let key = document.getElementById('drv-type-key').value.trim();
         const title = document.getElementById('drv-type-title').value.trim();
-        if (!title) { alert(t('val_display_name')); return; }
+        if (!title) { uiToast(t('val_display_name'), { kind: 'warn' }); return; }
         if (!key) key = slugify(title);
         if (!/^[a-z0-9_]+$/.test(key)) {
-            alert(t('val_type_id_format'));
+            uiToast(t('val_type_id_format'), { kind: 'warn' });
             return;
         }
         if (driverEditContext) {
             const oldKey = driverEditContext.typeKey;
             if (oldKey !== key && driversData.types[key]) {
-                alert('Typ o ID "' + key + '" ' + (typeof t === 'function' ? t('err_already_exists') : 'już istnieje.')); return;
+                uiToast('Typ o ID "' + key + '" ' + (typeof t === 'function' ? t('err_already_exists') : 'już istnieje.'), { kind: 'error' }); return;
             }
             const oldVal = driversData.types[oldKey];
             delete driversData.types[oldKey];
@@ -397,7 +397,7 @@ async function saveDriverEditor() {
             driversData.types[key].title = title;
             if (selectedDriverType === oldKey) selectedDriverType = key;
         } else {
-            if (driversData.types[key]) { alert('Typ o ID "' + key + '" ' + (typeof t === 'function' ? t('err_already_exists') : 'już istnieje.')); return; }
+            if (driversData.types[key]) { uiToast('Typ o ID "' + key + '" ' + (typeof t === 'function' ? t('err_already_exists') : 'już istnieje.'), { kind: 'error' }); return; }
             driversData.types[key] = { title, brands: {} };
             selectedDriverType = key;
         }
@@ -405,9 +405,9 @@ async function saveDriverEditor() {
         const typeKey = document.getElementById('drv-brand-type').value.trim();
         let key = document.getElementById('drv-brand-key').value.trim();
         const title = document.getElementById('drv-brand-title').value.trim();
-        if (!typeKey) { alert(typeof t === 'function' ? t('val_select_type') : 'Wybierz typ.'); return; }
-        if (!title) { alert(t('val_name_required')); return; }
-        if (!driversData.types[typeKey]) { alert(t('err_type_not_exists')); return; }
+        if (!typeKey) { uiToast(typeof t === 'function' ? t('val_select_type') : 'Wybierz typ.', { kind: 'warn' }); return; }
+        if (!title) { uiToast(t('val_name_required'), { kind: 'warn' }); return; }
+        if (!driversData.types[typeKey]) { uiToast(t('err_type_not_exists'), { kind: 'error' }); return; }
         if (!driversData.types[typeKey].brands) driversData.types[typeKey].brands = {};
 
         if (driverEditContext) {
@@ -415,10 +415,10 @@ async function saveDriverEditor() {
             const oldBrands = driversData.types[ctx.typeKey].brands;
             const sameType = ctx.typeKey === typeKey;
             if (!sameType && driversData.types[typeKey].brands[key]) {
-                alert('Producent o ID "' + key + '" ' + (typeof t === 'function' ? t('err_brand_exists_in_type') : 'już istnieje w tym typie.')); return;
+                uiToast('Producent o ID "' + key + '" ' + (typeof t === 'function' ? t('err_brand_exists_in_type') : 'już istnieje w tym typie.'), { kind: 'error' }); return;
             }
             if (sameType && ctx.brandKey !== key && driversData.types[typeKey].brands[key]) {
-                alert('Producent o ID "' + key + '" ' + (typeof t === 'function' ? t('err_brand_exists_in_type') : 'już istnieje w tym typie.')); return;
+                uiToast('Producent o ID "' + key + '" ' + (typeof t === 'function' ? t('err_brand_exists_in_type') : 'już istnieje w tym typie.'), { kind: 'error' }); return;
             }
             const oldVal = oldBrands[ctx.brandKey];
             if (ctx.typeKey !== typeKey) delete oldBrands[ctx.brandKey];
@@ -426,7 +426,7 @@ async function saveDriverEditor() {
             driversData.types[typeKey].brands[key] = { title, series: oldVal.series || [] };
         } else {
             if (driversData.types[typeKey].brands[key]) {
-                alert('Producent o ID "' + key + '" ' + (typeof t === 'function' ? t('err_brand_exists_in_type') : 'już istnieje w tym typie.')); return;
+                uiToast('Producent o ID "' + key + '" ' + (typeof t === 'function' ? t('err_brand_exists_in_type') : 'już istnieje w tym typie.'), { kind: 'error' }); return;
             }
             driversData.types[typeKey].brands[key] = { title, series: [] };
         }
@@ -441,7 +441,7 @@ async function deleteDriverType(typeKey) {
     if (!t) return;
     const seriesCount = Object.values(t.brands || {}).reduce((sum, b) => sum + (b.series || []).length, 0);
     const msg = `Usunąć typ „${t.title}” wraz z ${Object.keys(t.brands || {}).length} producentami i ${seriesCount} seriami?`;
-    if (!confirm(msg)) return;
+    if (!(await uiConfirm(msg, { danger: true }))) return;
     delete driversData.types[typeKey];
     if (selectedDriverType === typeKey) selectedDriverType = null;
     if (await saveDrivers()) renderDriversPane();
@@ -451,7 +451,7 @@ async function deleteDriverBrand(typeKey, brandKey) {
     const b = driversData.types[typeKey]?.brands?.[brandKey];
     if (!b) return;
     const seriesCount = (b.series || []).length;
-    if (!confirm(`Usunąć producenta „${b.title}” wraz z ${seriesCount} seriami?`)) return;
+    if (!(await uiConfirm(`Usunąć producenta „${b.title}” wraz z ${seriesCount} seriami?`, { danger: true }))) return;
     delete driversData.types[typeKey].brands[brandKey];
     if (await saveDrivers()) renderDriversPane();
 }
@@ -460,7 +460,7 @@ async function deleteDriverSeries(typeKey, brandKey, seriesIndex) {
     const list = driversData.types[typeKey]?.brands?.[brandKey]?.series;
     if (!list || !list[seriesIndex]) return;
     const name = list[seriesIndex].name;
-    if (!confirm(`Usunąć serię „${name}”?`)) return;
+    if (!(await uiConfirm(`Usunąć serię „${name}”?`, { danger: true }))) return;
     list.splice(seriesIndex, 1);
     if (await saveDrivers()) renderDriversPane();
 }

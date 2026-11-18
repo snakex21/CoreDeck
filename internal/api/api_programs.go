@@ -72,7 +72,7 @@ func (a *API) InstallSelectedPrograms(programsJSON string, targetDir string) str
 	}
 
 	if targetDir == "" {
-		targetDir = filepath.Join(os.Getenv("SYSTEMDRIVE"), "Programs")
+		targetDir = defaultTargetDir()
 	}
 	os.MkdirAll(targetDir, 0755)
 
@@ -185,9 +185,51 @@ func (a *API) CheckInstallProgress(sessionID string) string {
 	return string(data)
 }
 
+// defaultTargetDir is <system drive>\Programs. filepath.Join("C:", "Programs")
+// would give the drive-relative "C:Programs", so the separator is explicit.
+func defaultTargetDir() string {
+	drive := os.Getenv("SYSTEMDRIVE")
+	if drive == "" {
+		drive = "C:"
+	}
+	return filepath.Join(drive+string(filepath.Separator), "Programs")
+}
+
+// LaunchProgram starts a portable program (or tool) straight from the
+// catalogue folder. The program is looked up by name in the catalogue, so the
+// page can only choose which entry and, optionally, which .exe inside that
+// entry's folder (file, relative to the folder) to start.
+func (a *API) LaunchProgram(name string, variantIndex int, file string) string {
+	if a.ProgramsData == nil {
+		a.GetProgramsData()
+	}
+	if a.ProgramsData == nil {
+		return jsonError("Brak katalogu programów")
+	}
+	for _, p := range a.ProgramsData.Programs {
+		if p.Name != name {
+			continue
+		}
+		result := programs.LaunchProgram(a.ExeDir, p, variantIndex, file)
+		status := "failed"
+		switch {
+		case result.Launched != "":
+			status = "launched"
+		case len(result.Candidates) > 0:
+			status = "choose"
+		case result.OpenedFolder:
+			status = "opened_folder"
+		}
+		a.recordAudit("program.launch", name, status, "", map[string]any{"path": result.Launched})
+		data, _ := json.Marshal(result)
+		return string(data)
+	}
+	return jsonError("Nie znaleziono programu w katalogu: " + name)
+}
+
 func (a *API) OpenTargetFolder(path string) error {
 	if path == "" {
-		path = filepath.Join(os.Getenv("SYSTEMDRIVE"), "Programs")
+		path = defaultTargetDir()
 	}
 	os.MkdirAll(path, 0755)
 	return exec.Command("explorer", path).Start()

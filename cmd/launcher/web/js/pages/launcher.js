@@ -338,9 +338,19 @@
         return ((variant && variant.installType) || item.installType || '').toLowerCase();
     }
 
+    function isPortableType(installType) {
+        return installType === 'portable' || installType === 'tool';
+    }
+
     function canRunProgram(item, variantIndex) {
         const installType = getProgramInstallType(item, variantIndex);
-        return installType === 'installer' || installType === 'script';
+        return installType === 'installer' || installType === 'script' || isPortableType(installType);
+    }
+
+    function runLabelFor(installType) {
+        if (isPortableType(installType)) return tr('run_program', 'Uruchom');
+        if (installType === 'script') return tr('run_script', 'Uruchom skrypt');
+        return tr('run_installer', 'Uruchom instalator');
     }
 
     function updateCardVariantPath(card) {
@@ -363,7 +373,7 @@
         if (runButton) {
             const runnable = canRunProgram(item, variantIndex);
             const installType = getProgramInstallType(item, variantIndex);
-            const label = installType === 'script' ? tr('run_script', 'Uruchom skrypt') : tr('run_installer', 'Uruchom instalator');
+            const label = runLabelFor(installType);
             runButton.hidden = !runnable;
             card.classList.toggle('is-runnable', runnable);
             runButton.dataset.variantIndex = String(variantIndex);
@@ -372,19 +382,89 @@
         }
     }
 
-    async function runProgramFromCard(button, card, item) {
-        if (!window.api || typeof window.api.install_selected_programs !== 'function') {
-            alert('Funkcja uruchamiania nie jest dostępna w tej wersji programu.');
+    function resetRunButton(button, defaultLabel, doneText) {
+        if (!doneText) {
+            button.disabled = false;
+            button.textContent = `▶ ${defaultLabel}`;
             return;
         }
+        button.textContent = doneText;
+        setTimeout(() => {
+            if (button.isConnected) {
+                button.disabled = false;
+                button.textContent = `▶ ${defaultLabel}`;
+            }
+        }, 2200);
+    }
 
+    // Portable programs and tools start in place, straight from the pendrive.
+    async function launchPortable(button, item, variantIndex, defaultLabel) {
+        if (!window.api || typeof window.api.launch_program !== 'function') {
+            uiToast('Uruchamianie programów portable wymaga nowszej wersji CoreDeck.', { kind: 'error' });
+            return;
+        }
+        button.disabled = true;
+        button.textContent = '⏳ Uruchamianie...';
+        try {
+            let result = await window.api.launch_program(item.name, variantIndex, '');
+            if (result && Array.isArray(result.candidates) && result.candidates.length) {
+                const choice = await uiChoose(
+                    tr('launch_choose_hint', 'W folderze programu jest kilka plików .exe.'),
+                    result.candidates.map(rel => {
+                        const parts = rel.split('/');
+                        return { label: parts[parts.length - 1], hint: parts.length > 1 ? rel : '', value: rel };
+                    }),
+                    {
+                        title: `${tr('launch_choose_title', 'Który plik uruchomić?')} — ${item.name}`,
+                        extra: { label: `📂 ${tr('launch_open_folder', 'Otwórz folder')}`, value: '__open_folder__' }
+                    }
+                );
+                if (choice === '__open_folder__') {
+                    const folderPath = getProgramPath(item, variantIndex);
+                    addToHistory(item.name, folderPath);
+                    openFolder(folderPath);
+                    resetRunButton(button, defaultLabel);
+                    return;
+                }
+                if (!choice) {
+                    resetRunButton(button, defaultLabel);
+                    return;
+                }
+                result = await window.api.launch_program(item.name, variantIndex, choice);
+            }
+            if (!result || result.error || !result.success) {
+                throw new Error((result && (result.error || result.message)) || 'Nie udało się uruchomić programu.');
+            }
+            if (result.openedFolder) {
+                uiToast(result.message || 'Otwarto folder programu.', { kind: 'info', title: item.name });
+                resetRunButton(button, defaultLabel);
+                return;
+            }
+            uiToast(`${tr('launch_started', 'Uruchomiono')}: ${item.name}`, { kind: 'success', timeout: 2500 });
+            resetRunButton(button, defaultLabel, '✓ Uruchomiono');
+        } catch (error) {
+            resetRunButton(button, defaultLabel);
+            uiToast(error.message || String(error), { kind: 'error', title: item.name });
+        }
+    }
+
+    // The click is the decision: installers and scripts start without asking.
+    async function runProgramFromCard(button, card, item) {
         const variantIndex = Number.parseInt(button.dataset.variantIndex, 10);
         const selectedVariant = Number.isInteger(variantIndex) ? variantIndex : getDefaultVariantIndex(item);
         const installType = getProgramInstallType(item, selectedVariant);
-        const actionName = installType === 'script' ? 'skrypt' : 'instalator';
-        if (!confirm(`Uruchomić ${actionName} programu „${item.name}”?`)) return;
-
         const defaultLabel = button.dataset.defaultLabel || 'Uruchom';
+
+        if (isPortableType(installType)) {
+            await launchPortable(button, item, selectedVariant, defaultLabel);
+            return;
+        }
+
+        if (!window.api || typeof window.api.install_selected_programs !== 'function') {
+            uiToast('Funkcja uruchamiania nie jest dostępna w tej wersji programu.', { kind: 'error' });
+            return;
+        }
+
         button.disabled = true;
         button.textContent = '⏳ Uruchamianie...';
 
@@ -403,21 +483,22 @@
             } while (!progress.done);
 
             const result = Array.isArray(progress.results) ? progress.results[0] : null;
+            if (result && (result.cancelled || result.outcome === 'cancelled')) {
+                resetRunButton(button, defaultLabel);
+                uiToast(tr('install_cancelled', 'Instalacja anulowana'), { kind: 'neutral', title: item.name, timeout: 3000 });
+                return;
+            }
             if (!result || !result.success) {
                 throw new Error((result && result.message) || progress.error || 'Uruchamianie zakończyło się błędem.');
             }
 
-            button.textContent = '✓ Zakończono';
-            setTimeout(() => {
-                if (button.isConnected) {
-                    button.disabled = false;
-                    button.textContent = `▶ ${defaultLabel}`;
-                }
-            }, 2200);
+            if (result.outcome === 'ok_note') {
+                uiToast(result.message, { kind: 'warn', title: item.name, timeout: 9000 });
+            }
+            resetRunButton(button, defaultLabel, '✓ Zakończono');
         } catch (error) {
-            button.disabled = false;
-            button.textContent = `▶ ${defaultLabel}`;
-            alert(`Nie udało się uruchomić „${item.name}”:\n\n${error.message || String(error)}`);
+            resetRunButton(button, defaultLabel);
+            uiToast(error.message || String(error), { kind: 'error', title: item.name });
         }
     }
 
@@ -554,7 +635,7 @@
         const links = getProgramResourceLinks(item);
         const tags = Array.isArray(item.tags) ? item.tags.filter(Boolean).slice(0, 8) : [];
         const runnable = canRunProgram(item, variantIndex);
-        const runLabel = installType === 'script' ? 'Uruchom skrypt' : 'Uruchom instalator';
+        const runLabel = runLabelFor(installType);
 
         const resourceLinks = links.map(link => {
             const url = String(link.url || '');

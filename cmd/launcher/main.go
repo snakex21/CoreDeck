@@ -12,6 +12,7 @@ import (
 	"launcher/internal/api"
 	"launcher/internal/audit"
 	"launcher/internal/llm"
+	"launcher/internal/paths"
 	"launcher/internal/programs"
 	"launcher/internal/server"
 	"launcher/internal/system"
@@ -37,6 +38,7 @@ func main() {
 	go system.Detect()
 
 	seedDataFiles(exeDir)
+	migrateDriveLetters(exeDir)
 
 	// Extract the embedded icon into the runtime state directory.
 	iconPath := extractIcon(exeDir)
@@ -156,6 +158,23 @@ func seedDataFiles(exeDir string) {
 		}
 		if err := os.WriteFile(dst, data, 0644); err != nil {
 			slog.Warn("seed: cannot write default", "file", dst, "error", err)
+		}
+	}
+}
+
+// migrateDriveLetters repairs catalogue paths saved as absolute paths on the
+// pendrive's previous letter (e.g. J:\... after it became L:). Tweaks are
+// not touched: their commands are approved by hash.
+func migrateDriveLetters(exeDir string) {
+	for _, name := range []string{"programs.json", "drivers.json", "settings.json"} {
+		file := filepath.Join(exeDir, "data", name)
+		rewrites, err := paths.MigrateDriveLetters(exeDir, file)
+		if err != nil {
+			slog.Warn("drive letter migration skipped", "file", file, "error", err)
+			continue
+		}
+		for _, rw := range rewrites {
+			slog.Info("drive letter migration", "file", name, "old", rw.Old, "new", rw.New)
 		}
 	}
 }

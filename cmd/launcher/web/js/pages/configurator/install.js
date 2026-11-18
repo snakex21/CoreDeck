@@ -15,13 +15,13 @@ async function startInstall() {
         return p;
     });
     if (selected.length === 0) {
-        alert(t('val_no_programs'));
+        uiToast(t('val_no_programs'), { kind: 'warn' });
         return;
     }
 
     const targetDir = document.getElementById('target-dir').value || 'C:\\Tools';
 
-    if (!confirm(`${t('confirm_install_start')} ${selected.length} ${t('confirm_install_mid')}?\n\nPortable/tool/addon: kopiowanie do:\n${targetDir}\nInstalator: uruchomienie instalatora i czekanie na zamknięcie\nSkrypt: uruchomienie skryptu\n\nKontynuować?`)) {
+    if (!(await uiConfirm(`${t('confirm_install_start')} ${selected.length} ${t('confirm_install_mid')}?\n\nPortable/tool/addon: kopiowanie do:\n${targetDir}\nInstalator: uruchomienie instalatora i czekanie na zamknięcie\nSkrypt: uruchomienie skryptu\n\nKontynuować?`, { confirmLabel: 'Rozpocznij' }))) {
         return;
     }
 

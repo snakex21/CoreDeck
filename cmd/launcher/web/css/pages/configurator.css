@@ -337,6 +337,7 @@
 }
 .progress-log .ok { color: var(--success); }
 .progress-log .err { color: var(--danger); }
+.progress-log .cancelled { color: var(--text-secondary); }
 
 /* Select all bar */
 .select-bar {

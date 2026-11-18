@@ -761,7 +761,7 @@ async function onBackupRowClick(e) {
 }
 
 async function clearBackupHistory() {
-    if (!confirm(t('confirm_clear_history'))) return;
+    if (!(await uiConfirm(t('confirm_clear_history'), { danger: true, confirmLabel: 'Wyczyść' }))) return;
     try {
         const res = await window.api.clear_export_history();
         if (res.success) {

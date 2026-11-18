@@ -353,7 +353,7 @@ async function startCategoryReview() {
     const category = knowledgeData.categories[currentCategoryIndex];
     if (!category) return;
     if (!window.api || !window.api.start_knowledge_link_check) {
-        alert('Moduł weryfikacji linków wymaga ponownego uruchomienia launchera.');
+        uiToast('Moduł weryfikacji linków wymaga ponownego uruchomienia launchera.', { kind: 'error' });
         return;
     }
     clearTimeout(linkReviewTimer);
@@ -451,14 +451,14 @@ async function bulkKeepGreen(scope) {
     const candidates = pool.filter(result => result.state === 'ok' && !linkReviewDecisions.has(reviewKey(result)));
     if (!candidates.length) return;
     const label = scope === 'page' ? 'na tej stronie' : 'w całej obecnie zeskanowanej kolejce';
-    if (!window.confirm(`Zatwierdzić ${candidates.length} technicznie działających linków ${label}?\n\nNie obejrzysz ich ręcznie, ale decyzja ✓ zostanie zapisana.`)) return;
+    if (!(await uiConfirm(`Zatwierdzić ${candidates.length} technicznie działających linków ${label}?\n\nNie obejrzysz ich ręcznie, ale decyzja ✓ zostanie zapisana.`, { confirmLabel: 'Zatwierdź' }))) return;
     const response = await window.api.bulk_keep_knowledge_links(JSON.stringify({
         category: candidates[0].category,
         urls: candidates.map(result => result.url),
         confirmed: true,
     }));
     if (!response || response.error) {
-        alert(response?.error || 'Nie udało się zatwierdzić linków.');
+        uiToast(response?.error || 'Nie udało się zatwierdzić linków.', { kind: 'error' });
         return;
     }
     candidates.forEach(result => linkReviewDecisions.set(reviewKey(result), '✓ zatwierdzono zbiorczo'));
@@ -471,14 +471,14 @@ async function reviewLink(index, action) {
     let confirmed = false;
     if (action === 'remove') {
         const protection = result.starred ? '\n\nTo jest wyróżniony link — czy na pewno chcesz go usunąć?' : '';
-        confirmed = window.confirm(`Usunąć „${result.name}” z kategorii „${result.category}”?${protection}`);
+        confirmed = await uiConfirm(`Usunąć „${result.name}” z kategorii „${result.category}”?${protection}`, { danger: true });
         if (!confirmed) return;
     }
     const response = await window.api.review_knowledge_link(JSON.stringify({
         action, category: result.category, url: result.url, confirmed,
     }));
     if (!response || response.error) {
-        alert(response?.error || 'Nie udało się zapisać decyzji.');
+        uiToast(response?.error || 'Nie udało się zapisać decyzji.', { kind: 'error' });
         return;
     }
     linkReviewDecisions.set(reviewKey(result), action === 'keep' ? '✓ zostawiono' : action === 'flag' ? '⚠ do sprawdzenia' : '✕ usunięto');
@@ -495,7 +495,7 @@ async function openLinkReview(category, url) {
     }
     const response = await window.api.open_knowledge_link_review(category, url);
     if (!response || response.error) {
-        alert(response?.error || 'Nie udało się otworzyć okna kontroli.');
+        uiToast(response?.error || 'Nie udało się otworzyć okna kontroli.', { kind: 'error' });
         return;
     }
     watchExternalLinkReview(category, url, response.openedAt);

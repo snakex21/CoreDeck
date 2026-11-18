@@ -99,6 +99,10 @@ go test ./...
 python -m unittest discover -s scripts
 ```
 
+Testy w przeglądarce: uruchom `python -m http.server 8765` w katalogu repo
+i otwórz `http://127.0.0.1:8765/test/web/dialogs-smoke.html` (okna i powiadomienia,
+wynik „PASS n/n” w tytule) albo `test/web/launcher-smoke.html` (launcher ze stubem API).
+
 ## Struktura
 
 ```text

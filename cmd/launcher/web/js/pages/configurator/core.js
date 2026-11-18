@@ -30,8 +30,10 @@ function escapeHtml(s) {
 }
 
 function renderProgressResult(r) {
-    const icon = r.success ? '✅' : '❌';
-    const cls = r.success ? 'ok' : 'err';
+    // A cancelled installer (code 1602/1223) is the user's choice, not an error.
+    const cancelled = r.cancelled || r.outcome === 'cancelled';
+    const icon = cancelled ? '⏹' : r.success ? (r.outcome === 'ok_note' ? 'ℹ️' : '✅') : '❌';
+    const cls = cancelled ? 'cancelled' : r.success ? 'ok' : 'err';
     const pathBtn = r.path
         ? ` <button class="btn-mini progress-open-folder" data-path="${escapeHtml(r.path)}">📂 Otwórz folder</button>`
         : '';

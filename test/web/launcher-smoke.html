@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>launcher smoke</title>
+    <!-- Serve the repository root over HTTP and open /test/web/launcher-smoke.html.
+         Loads the real index.html with stubbed window.api bindings, so program
+         cards, the run button, dialogs and toasts can be checked in a browser
+         without starting anything. -->
+</head>
+<body>
+<script>
+fetch('/cmd/launcher/web/index.html')
+    .then(r => r.text())
+    .then(html => {
+        const stubs = '<base href="/cmd/launcher/web/">'
+            + '<script src="/test/web/smoke-api.js"><\/script>'
+            + '<script src="/test/web/launcher-smoke-api.js"><\/script>';
+        document.open();
+        document.write(html.replace(/<head>/i, '<head>' + stubs));
+        document.close();
+        // ?search=<text>&run=<program name>: filter the list and press that
+        // card's run button once the cards are rendered (screenshots, demos).
+        const params = new URLSearchParams(location.search);
+        if (params.get('run')) pressRun(params.get('search') || '', params.get('run'));
+    });
+
+function pressRun(search, name, tries = 0) {
+    const box = document.getElementById('search-box');
+    const card = [...document.querySelectorAll('.program-card')].find(c => c.dataset.itemName === name);
+    if (box && search && box.value !== search) {
+        box.value = search;
+        box.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    const button = card && card.querySelector('.run-program-btn:not([hidden])');
+    if (button) { button.click(); return; }
+    if (tries < 100) setTimeout(() => pressRun(search, name, tries + 1), 100);
+}
+</script>
+</body>
+</html>

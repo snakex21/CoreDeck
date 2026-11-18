@@ -218,12 +218,12 @@ async function reviewTweakScripts(list, plainConfirmMessage) {
     const ids = list.map(tw => tw.id);
     const preview = await window.api.preview_tweaks(JSON.stringify(ids));
     if (!preview || preview.error) {
-        alert(`❌ ${(preview && preview.error) || 'preview_tweaks'}`);
+        uiToast((preview && preview.error) || 'preview_tweaks', { kind: 'error' });
         return null;
     }
     const pending = (preview.tweaks || []).filter(p => !p.approved);
     if (pending.length === 0) {
-        return confirm(plainConfirmMessage) ? { ids, approve: [] } : null;
+        return (await uiConfirm(plainConfirmMessage, { confirmLabel: 'Uruchom' })) ? { ids, approve: [] } : null;
     }
 
     const overlay = document.getElementById('tweak-review-overlay');
@@ -270,7 +270,7 @@ async function reviewTweakScripts(list, plainConfirmMessage) {
 async function applyDebloat() {
     const toApply = allTweaks.filter(t => t.category === 'debloat' && t.selected && !(t.stateKnown && t.active));
     if (toApply.length === 0) {
-        alert(t('val_no_debloat'));
+        uiToast(t('val_no_debloat'), { kind: 'warn' });
         return;
     }
 
@@ -426,7 +426,7 @@ function updateRemovedButton() {
 async function applyTweaks() {
     const selected = allTweaks.filter(t => t.selected);
     if (selected.length === 0) {
-        alert(t('val_no_tweaks'));
+        uiToast(t('val_no_tweaks'), { kind: 'warn' });
         return;
     }
 
@@ -434,7 +434,7 @@ async function applyTweaks() {
     const alreadyActive = selected.filter(t => t.stateKnown && t.active);
 
     if (toApply.length === 0) {
-        alert(`${t('all_tweaks_active')} ${plur(alreadyActive.length, 'program w profilu', 'programy w profilu', 'programów w profilu')}.`);
+        uiToast(`${t('all_tweaks_active')} ${plur(alreadyActive.length, 'program w profilu', 'programy w profilu', 'programów w profilu')}.`, { kind: 'info' });
         return;
     }
 
@@ -481,7 +481,7 @@ async function revertTweak(idx) {
     const tweak = allTweaks[idx];
     if (!tweak) return;
 
-    if (!confirm(`${t('confirm_revert')} "${tweak.name}"?\n\n${t('confirm_revert_mid')}`)) {
+    if (!(await uiConfirm(`${t('confirm_revert')} "${tweak.name}"?\n\n${t('confirm_revert_mid')}`, { confirmLabel: 'Cofnij' }))) {
         return;
     }
 

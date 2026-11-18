@@ -86,7 +86,7 @@ async function scanInstallerFiles(idx) {
     const p = allPrograms[idx];
     if (!p) return;
     const folder = p.folderPath || '';
-    if (!folder) { alert('Brak folderPath'); return; }
+    if (!folder) { uiToast('Brak folderPath', { kind: 'warn' }); return; }
 
     const picker = document.querySelector(`.program-installer-picker[data-idx="${idx}"]`);
     if (!picker) return;

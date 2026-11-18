@@ -326,7 +326,7 @@ async function deleteKnowledgeLink(catIdx, linkIdx) {
     const cat = allKnowledge[catIdx];
     if (!cat || !cat.links || !cat.links[linkIdx]) return;
     const l = cat.links[linkIdx];
-    if (!confirm(`Usunąć "${l.name}"?`)) return;
+    if (!(await uiConfirm(`Usunąć "${l.name}"?`, { danger: true }))) return;
     cat.links.splice(linkIdx, 1);
     await persistKnowledge();
     renderKnowledgeList();
@@ -387,7 +387,7 @@ async function persistKnowledge() {
 async function renameKnowledgeSection(catIdx, oldName) {
     const cat = allKnowledge[catIdx];
     if (!cat) return;
-    const newName = prompt(t('prompt_section_name'), oldName);
+    const newName = await uiPrompt(t('prompt_section_name'), oldName);
     if (!newName || newName === oldName) return;
     (cat.links || []).forEach(l => {
         if (l.section === oldName) l.section = newName;
@@ -399,7 +399,7 @@ async function renameKnowledgeSection(catIdx, oldName) {
 async function deleteKnowledgeSection(catIdx, sectionName) {
     const cat = allKnowledge[catIdx];
     if (!cat) return;
-    if (!confirm(`Usunąć sekcję "${sectionName}"? Linki zostaną ale bez sekcji.`)) return;
+    if (!(await uiConfirm(`Usunąć sekcję "${sectionName}"? Linki zostaną ale bez sekcji.`, { danger: true }))) return;
     (cat.links || []).forEach(l => {
         if (l.section === sectionName) l.section = '';
     });

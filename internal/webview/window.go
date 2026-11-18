@@ -65,6 +65,7 @@ func NewWindow(cfg WindowConfig) error {
 	w.Bind("__api_install_selected_programs", cfg.API.InstallSelectedPrograms)
 	w.Bind("__api_check_install_progress", cfg.API.CheckInstallProgress)
 	w.Bind("__api_open_target_folder", cfg.API.OpenTargetFolder)
+	w.Bind("__api_launch_program", cfg.API.LaunchProgram)
 	w.Bind("__api_get_tweaks_data", cfg.API.GetTweaksData)
 	w.Bind("__api_get_tweaks_for_profile", cfg.API.GetTweaksForProfile)
 	w.Bind("__api_get_tweak_states", cfg.API.GetTweakStates)
@@ -125,6 +126,7 @@ window.api = {
   install_selected_programs: function(p,t) { return __api_install_selected_programs(p,t).then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
   check_install_progress: function(s) { return __api_check_install_progress(s).then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e),done:true}}) },
   open_target_folder: function(p) { return __api_open_target_folder(p).catch(function(e){console.error(e)}) },
+  launch_program: function(n,v,f) { return __api_launch_program(String(n), Number.isInteger(v)?v:-1, f||'').then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
   get_tweaks_data: function() { return __api_get_tweaks_data().then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },
   get_tweaks_for_profile: function(p) { return __api_get_tweaks_for_profile(p).then(function(r){return JSON.parse(r)}).catch(function(e){return[]}) },
   get_tweak_states: function() { return __api_get_tweak_states().then(function(r){return JSON.parse(r)}).catch(function(e){return{error:String(e)}}) },

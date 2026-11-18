@@ -123,7 +123,7 @@ async function saveSetting() {
 async function deleteSetting(idx) {
     const s = allSettings[idx];
     if (!s) return;
-    if (!confirm(`Usunąć "${s.name}"?`)) return;
+    if (!(await uiConfirm(`Usunąć "${s.name}"?`, { danger: true }))) return;
     allSettings.splice(idx, 1);
     await persistSettings();
     renderSettingsList();

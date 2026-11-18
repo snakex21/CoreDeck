@@ -205,7 +205,7 @@ function closeProgramEditor() {
 
 async function saveNewProgram() {
     const name = document.getElementById('prog-name').value.trim();
-    if (!name) { alert(t('err_name_required')); return; }
+    if (!name) { uiToast(t('err_name_required'), { kind: 'error' }); return; }
 
     const tags = document.getElementById('prog-tags').value.split(',').map(t => t.trim()).filter(t => t);
     const profileRelevant = Array.from(document.querySelectorAll('.prog-profile-cb'))
@@ -264,23 +264,23 @@ async function saveNewProgram() {
 
     try {
         const result = await window.api.add_program(JSON.stringify(obj));
-        if (result.error) { alert(t('err_prefix') + result.error); return; }
+        if (result.error) { uiToast(t('err_prefix') + result.error, { kind: 'error' }); return; }
         closeProgramEditor();
         await loadPrograms();
     } catch (e) {
-        alert(t('err_save_prefix') + String(e));
+        uiToast(t('err_save_prefix') + String(e), { kind: 'error' });
     }
 }
 
 async function deleteProgramUI(encodedName) {
     const name = decodeURIComponent(encodedName);
-    if (!confirm(t('confirm_delete_prog') + ` "${name}"?`)) return;
+    if (!(await uiConfirm(t('confirm_delete_prog') + ` "${name}"?`, { danger: true }))) return;
     try {
         const result = await window.api.delete_program(name);
-        if (result.error) { alert(t('err_prefix') + result.error); return; }
+        if (result.error) { uiToast(t('err_prefix') + result.error, { kind: 'error' }); return; }
         await loadPrograms();
     } catch (e) {
-        alert(t('err_delete_prefix') + String(e));
+        uiToast(t('err_delete_prefix') + String(e), { kind: 'error' });
     }
 }
 

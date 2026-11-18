@@ -229,7 +229,7 @@ function editCurrentProfileDebloat() {
 
 function openProfileTweakEditor(mode) {
     if (!currentActiveProfile) {
-        alert(t('msg_select_profile_first'));
+        uiToast(t('msg_select_profile_first'), { kind: 'warn' });
         return;
     }
 
@@ -390,7 +390,7 @@ async function saveTweakProfileEditor() {
     try {
         const result = await window.api.save_custom_profile(JSON.stringify(profile));
         if (result.error) {
-            alert(t('err_prefix') + result.error);
+            uiToast(t('err_prefix') + result.error, { kind: 'error' });
             return;
         }
         await loadCustomProfiles();
@@ -399,7 +399,7 @@ async function saveTweakProfileEditor() {
         else await applyCustomProfile(profileKey);
         renderProfiles();
     } catch (e) {
-        alert(t('err_save_prefix') + String(e));
+        uiToast(t('err_save_prefix') + String(e), { kind: 'error' });
     }
 }
 
@@ -544,21 +544,21 @@ async function saveProfile() {
     const desc = document.getElementById('profile-desc').value.trim();
     const icon = document.getElementById('profile-icon').value.trim() || '📦';
 
-    if (!id) { alert(t('val_profile_id')); return; }
-    if (!name) { alert(t('val_profile_name')); return; }
+    if (!id) { uiToast(t('val_profile_id'), { kind: 'warn' }); return; }
+    if (!name) { uiToast(t('val_profile_name'), { kind: 'warn' }); return; }
 
     const profile = { id, name, description: desc, icon, programs: [...editorSelectedPrograms], tweaks: [...editorSelectedTweaks] };
 
     try {
         const result = await window.api.save_custom_profile(JSON.stringify(profile));
         if (result.error) {
-            alert(t('err_prefix') + result.error);
+            uiToast(t('err_prefix') + result.error, { kind: 'error' });
             return;
         }
         await loadCustomProfiles();
         closeProfileEditor();
     } catch (e) {
-        alert(t('err_save_prefix') + String(e));
+        uiToast(t('err_save_prefix') + String(e), { kind: 'error' });
     }
 }
 
@@ -566,16 +566,16 @@ async function deleteProfile(profileId) {
     const cp = customProfiles.find(p => p.id === profileId);
     if (!cp) return;
 
-    if (!confirm(t('confirm_delete_profile') + ` "${cp.name}"?`)) return;
+    if (!(await uiConfirm(t('confirm_delete_profile') + ` "${cp.name}"?`, { danger: true }))) return;
 
     try {
         const result = await window.api.delete_custom_profile(profileId);
         if (result.error) {
-            alert(t('err_prefix') + result.error);
+            uiToast(t('err_prefix') + result.error, { kind: 'error' });
             return;
         }
         await loadCustomProfiles();
     } catch (e) {
-        alert(t('err_delete_prefix') + String(e));
+        uiToast(t('err_delete_prefix') + String(e), { kind: 'error' });
     }
 }

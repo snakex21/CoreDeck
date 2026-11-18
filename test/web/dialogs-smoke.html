@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <!-- Serve the repository root over HTTP (python -m http.server) and open
+         /test/web/dialogs-smoke.html. The page tests js/shared/dialogs.js in a
+         real browser and reports "PASS n/n" or "FAIL ..." in the title and in
+         #result (read it with Playwright, the Claude browser pane, etc.). -->
+    <base href="/cmd/launcher/web/">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dialogs smoke: running</title>
+    <link rel="stylesheet" href="css/app.css">
+    <style>
+        body { padding: 32px; }
+        #result { font: 600 16px/1.4 var(--font-sans); margin: 16px 0; }
+        #result.pass { color: var(--success); }
+        #result.fail { color: var(--danger); }
+        #log { font: 13px/1.6 ui-monospace, monospace; color: var(--text-secondary); white-space: pre-wrap; }
+        .demo { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    </style>
+</head>
+<body>
+    <h1>CoreDeck dialogs</h1>
+    <button id="opener" class="btn-secondary">Opener</button>
+    <div id="result">running…</div>
+    <div id="log"></div>
+    <div class="demo">
+        <button class="btn-primary" id="demo-confirm">Pokaż potwierdzenie usuwania</button>
+        <button class="btn-secondary" id="demo-toasts">Pokaż toasty</button>
+        <button class="btn-secondary" id="demo-choose">Pokaż wybór pliku</button>
+    </div>
+
+    <script src="js/i18n/translations.js"></script>
+    <script src="js/i18n/runtime.js"></script>
+    <script src="js/shared/dialogs.js"></script>
+    <script>
+    (async function () {
+        const log = document.getElementById('log');
+        const results = [];
+        const nextFrame = () => new Promise(r => setTimeout(r, 40));
+        const key = (k, opts) => document.activeElement.dispatchEvent(new KeyboardEvent('keydown', Object.assign({ key: k, bubbles: true, cancelable: true }, opts)));
+        function check(name, ok, detail) {
+            results.push({ name, ok });
+            log.textContent += `${ok ? '✓' : '✗'} ${name}${detail ? ' — ' + detail : ''}\n`;
+        }
+        const dialog = () => document.querySelector('.cd-dialog-backdrop:not(.is-closing) .cd-dialog');
+        // Background tabs throttle timers, so wait for state instead of sleeping.
+        async function settled() {
+            for (let i = 0; i < 100; i++) {
+                const d = dialog();
+                if (d && d.contains(document.activeElement)) return;
+                await new Promise(r => setTimeout(r, 20));
+            }
+        }
+
+        // Native dialogs must never be used: make any call fail loudly.
+        let nativeCalls = 0;
+        window.alert = window.confirm = window.prompt = () => { nativeCalls++; return false; };
+
+        const opener = document.getElementById('opener');
+
+        // 1. Confirm: Enter accepts, focus moves into the dialog and comes back.
+        opener.focus();
+        let p = uiConfirm('Usunąć „Test”?', { danger: true });
+        await settled();
+        check('confirm renders an in-app dialog', !!dialog() && dialog().getAttribute('aria-modal') === 'true');
+        check('focus moves into the dialog', dialog().contains(document.activeElement), document.activeElement && document.activeElement.textContent);
+        check('danger dialog uses danger styling', dialog().classList.contains('cd-dialog--danger'));
+        key('Enter');
+        check('Enter confirms', (await p) === true);
+        await nextFrame();
+        check('focus returns to the opener', document.activeElement === opener);
+
+        // 2. Confirm: Escape cancels.
+        p = uiConfirm('Kontynuować?');
+        await settled();
+        key('Escape');
+        check('Escape cancels', (await p) === false);
+
+        // 3. Tab stays inside the dialog.
+        p = uiConfirm('Tab?');
+        await settled();
+        const buttons = dialog().querySelectorAll('button');
+        buttons[buttons.length - 1].focus();
+        key('Tab');
+        check('Tab wraps inside the dialog', document.activeElement === buttons[0]);
+        key('Escape');
+        await p;
+
+        // 4. Prompt: typed value with Enter, null with Escape.
+        p = uiPrompt('Nowa nazwa sekcji:', 'Stara');
+        await settled();
+        const input = dialog().querySelector('input');
+        check('prompt focuses its input with the default value', document.activeElement === input && input.value === 'Stara');
+        input.value = 'Nowa';
+        key('Enter');
+        check('prompt returns the typed value', (await p) === 'Nowa');
+        p = uiPrompt('x', 'y');
+        await settled();
+        key('Escape');
+        check('prompt returns null on Escape', (await p) === null);
+
+        // 5. Alert resolves on Enter.
+        p = uiAlert('Coś się nie udało', { kind: 'error' });
+        await settled();
+        check('error alert is an alertdialog', dialog().getAttribute('role') === 'alertdialog');
+        key('Enter');
+        await p;
+        check('alert closes on Enter', true);
+
+        // 6. Choose returns the clicked value.
+        p = uiChoose('Kilka plików .exe', [{ label: 'a.exe', value: 'a.exe' }, { label: 'b.exe', hint: 'bin/b.exe', value: 'bin/b.exe' }]);
+        await settled();
+        dialog().querySelectorAll('.cd-dialog-choice')[1].click();
+        check('choose returns the picked file', (await p) === 'bin/b.exe');
+
+        // 7. Queued dialogs open one after another.
+        const first = uiConfirm('Pierwszy');
+        const second = uiConfirm('Drugi');
+        await settled();
+        check('only one dialog at a time', document.querySelectorAll('.cd-dialog-backdrop:not(.is-closing)').length === 1);
+        key('Enter'); await first; await settled();
+        check('second dialog follows', dialog() && dialog().textContent.includes('Drugi'));
+        key('Escape'); await second;
+
+        // 8. Toasts.
+        const toast = uiToast('Instalacja anulowana', { kind: 'neutral', title: 'ByClick Downloader', timeout: 0 });
+        check('toast is shown in a live region', toast.element.isConnected && toast.element.closest('[aria-live]') !== null);
+        const errorToast = uiToast('Błąd', { kind: 'error', timeout: 0 });
+        check('error toast is announced as alert', errorToast.element.getAttribute('role') === 'alert');
+        toast.dismiss(); errorToast.dismiss();
+
+        for (let i = 0; i < 100 && document.querySelector('.cd-dialog-backdrop'); i++) await new Promise(r => setTimeout(r, 20));
+        check('no dialogs left open', !document.querySelector('.cd-dialog-backdrop'));
+        check('no native alert/confirm/prompt used', nativeCalls === 0);
+
+        const failed = results.filter(r => !r.ok);
+        const summary = failed.length ? `FAIL ${failed.length}/${results.length}: ${failed.map(f => f.name).join('; ')}` : `PASS ${results.length}/${results.length}`;
+        const el = document.getElementById('result');
+        el.textContent = summary;
+        el.className = failed.length ? 'fail' : 'pass';
+        document.title = 'dialogs smoke: ' + summary;
+        // #demo=confirm|toasts|choose opens a sample for screenshots.
+        const demo = (location.hash.match(/demo=(\w+)/) || [])[1];
+        if (demo) document.getElementById('demo-' + demo)?.click();
+    })();
+
+    document.getElementById('demo-confirm').addEventListener('click', () => uiConfirm('Usunąć program „ByClick Downloader”?', { danger: true }));
+    document.getElementById('demo-toasts').addEventListener('click', () => {
+        uiToast('Instalacja anulowana', { kind: 'neutral', title: 'ByClick Downloader', timeout: 0 });
+        uiToast('Uruchomiono: DeOldify.NET', { kind: 'success', timeout: 0 });
+        uiToast('Zainstalowano. Uruchom ponownie komputer, aby dokończyć instalację.', { kind: 'warn', title: 'Visual C++ Runtime', timeout: 0 });
+        uiToast('Trwa inna instalacja. Poczekaj, aż się skończy, i spróbuj ponownie.', { kind: 'error', title: 'VLC Media Player', timeout: 0 });
+    });
+    document.getElementById('demo-choose').addEventListener('click', () => uiChoose('W folderze programu jest kilka plików .exe.', [
+        { label: 'FMOD Studio.exe', value: '1' }, { label: 'fmodstudio.exe', value: '2' }, { label: 'fmodstudiocl.exe', value: '3' }
+    ], { title: 'Który plik uruchomić? — FMOD Studio', extra: { label: '📂 Otwórz folder', value: 'folder' } }));
+    </script>
+</body>
+</html>
