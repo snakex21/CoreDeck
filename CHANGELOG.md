@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.4.0 (2026-11-18)
+## 2.4.0 (2026-11-19)
 
 ### PL
 
@@ -27,11 +27,18 @@
   się po angielsku).
 - **README w 27 językach** (`readme\README.<język>.md`) z sekcjami
   o aktualizacjach i językach.
+- **Teksty interfejsu jako klucze tłumaczeń**: napisy w HTML i JS (także
+  własne okna i powiadomienia aplikacji) są kluczami tłumaczeń, zdania nie są
+  sklejane z kawałków, liczby mają formy liczby mnogiej. Komunikaty serwera
+  mają stałe kody (`internal/uimsg`), które interfejs tłumaczy na wybrany
+  język; polski tekst zostaje w logach.
 - **Poprawka**: `release-manifest.json` w paczce ma poprawne polskie znaki
   (skrypt `scripts\package.ps1` czyta i zapisuje UTF-8 jawnie).
 - **Testy**: zła suma SHA-256 i zły rozmiar przerywają aktualizację, podmiana
   i wycofanie na makiecie, kontrola zdrowia po restarcie, kanały stabilny
-  i testowy, komplet kluczy i form liczby mnogiej we wszystkich językach.
+  i testowy, komplet kluczy i form liczby mnogiej we wszystkich językach,
+  brak zaszytych tekstów w UI i w komunikatach serwera, słownik terminów
+  (`docs\i18n-glossary.md`) i znaki diakrytyczne każdego języka.
 
 Aktualizacja z 2.3.x: zamknij CoreDeck i podmień `CoreDeck.exe` (oraz
 `data\tools\disk-helper.exe`). Kolejne wersje zainstalujesz już z aplikacji.
@@ -60,11 +67,21 @@ Aktualizacja z 2.3.x: zamknij CoreDeck i podmień `CoreDeck.exe` (oraz
   used to show in English).
 - **README in 27 languages** (`readme\README.<lang>.md`) with sections on
   updates and languages.
+- **Interface texts as translation keys**: texts in HTML and JS (including the
+  app's own dialogs and notifications) are translation keys, sentences are no
+  longer glued from fragments, counts use plural forms. Server messages carry
+  stable codes (`internal/uimsg`) that the interface translates into the chosen
+  language; the Polish text stays in the logs.
 - **Fix**: `release-manifest.json` in the package has correct Polish
   characters (`scripts\package.ps1` reads and writes UTF-8 explicitly).
 - **Tests**: a wrong SHA-256 or size stops the update, swap and rollback on a
   mock, the health check after restart, stable and test channels, every key and
-  plural form in every language.
+  plural form in every language, no hard-coded texts in the UI or in server
+  messages, the term glossary (`docs\i18n-glossary.md`) and the diacritics of
+  every language.
+
+Update from 2.3.x: close CoreDeck and replace `CoreDeck.exe` (and
+`data\tools\disk-helper.exe`). Later versions install from the app.
 
 ## 2.3.2 (2026-11-18)
 
