@@ -27,7 +27,7 @@ func (a *API) SaveCustomProfile(profileJSON string) string {
 	}
 
 	if err := a.ProfilesStore.Save(p); err != nil {
-		return jsonError(err.Error())
+		return jsonErr(err)
 	}
 	return `{"success": true}`
 }
@@ -38,7 +38,7 @@ func (a *API) DeleteCustomProfile(id string) string {
 	}
 
 	if err := a.ProfilesStore.Delete(id); err != nil {
-		return jsonError(err.Error())
+		return jsonErr(err)
 	}
 	return `{"success": true}`
 }
@@ -49,7 +49,7 @@ func (a *API) AddProgramToProfile(profileID, programName string) string {
 	}
 
 	if err := a.ProfilesStore.AddProgramToProfile(profileID, programName); err != nil {
-		return jsonError(err.Error())
+		return jsonErr(err)
 	}
 	return `{"success": true}`
 }
@@ -60,7 +60,7 @@ func (a *API) RemoveProgramFromProfile(profileID, programName string) string {
 	}
 
 	if err := a.ProfilesStore.RemoveProgramFromProfile(profileID, programName); err != nil {
-		return jsonError(err.Error())
+		return jsonErr(err)
 	}
 	return `{"success": true}`
 }

@@ -59,7 +59,7 @@
 </head>
 <body>
     <main class="user-page-shell">
-        <a class="user-page-back" href="/index.html" title="Wróć do launchera" aria-label="Wróć do launchera">
+        <a class="user-page-back" href="/index.html" title="Wróć do launchera" aria-label="Wróć do launchera" data-i18n-title="upv_back_title" data-i18n-aria="upv_back_title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <polyline points="15 18 9 12 15 6"></polyline>
             </svg>
@@ -68,11 +68,18 @@
             id="user-page-frame"
             class="user-page-frame"
             title="Własna strona użytkownika"
+            data-i18n-title="upv_frame_title"
             sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox">
         </iframe>
     </main>
+    <script src="js/i18n/translations.js"></script>
+    <script src="js/i18n/runtime.js"></script>
     <script>
         (() => {
+            // Static texts first: applyTranslations() also resets document.title,
+            // so the page-specific title and back-button text are set after it.
+            applyTranslations();
+            document.title = t('upv_page_title');
             const params = new URLSearchParams(window.location.search);
             const rawPath = params.get('path') || '';
             let returnProgram = params.get('returnProgram') || '';
@@ -85,7 +92,9 @@
             if (returnProgram) {
                 const backButton = document.querySelector('.user-page-back');
                 backButton.href = `/index.html?details=${encodeURIComponent(returnProgram)}`;
-                backButton.title = `Wróć do szczegółów: ${returnProgram}`;
+                backButton.removeAttribute('data-i18n-title');
+                backButton.removeAttribute('data-i18n-aria');
+                backButton.title = t('upv_back_to_details', { name: returnProgram });
                 backButton.setAttribute('aria-label', backButton.title);
             }
             const normalized = rawPath.replace(/\\/g, '/').replace(/^\/+/, '');
@@ -99,7 +108,7 @@
                 frame.remove();
                 const error = document.createElement('p');
                 error.className = 'user-page-error';
-                error.textContent = 'Nieprawidłowa ścieżka własnej strony.';
+                error.textContent = t('upv_invalid_path');
                 document.querySelector('.user-page-shell').appendChild(error);
                 return;
             }

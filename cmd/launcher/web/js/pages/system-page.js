@@ -1,10 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const title = document.body.dataset.pageTitle || document.title;
-    // Translate the elements marked with data-i18n (e.g. the Updates panel).
-    if (typeof applyTranslations === 'function') {
-        applyTranslations();
-        document.title = title;
-    }
+    // applyTranslations() sets the generic "CoreDeck" title, so the page title
+    // (data-page-title-key) is applied again after every translation pass.
+    const titleKey = document.body.dataset.pageTitleKey;
+    const applyPageTitle = () => {
+        if (titleKey) document.title = t(titleKey);
+    };
+    applyTranslations();
+    applyPageTitle();
     const themeButton = document.getElementById('theme-toggle-btn');
     const themeIcon = themeButton?.querySelector('.theme-icon');
     const languageSelect = document.getElementById('lang-select');
@@ -25,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
         languageSelect.value = (typeof getLanguageChoice === "function" ? getLanguageChoice() : getCurrentLang());
         languageSelect.addEventListener('change', event => {
             if (typeof setLanguage === 'function') setLanguage(event.target.value);
-            document.title = title;
+            applyPageTitle();
         });
     }
 
@@ -34,7 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // === Updates (Settings) ===
-    const tt = (key, vars) => (typeof t === 'function' ? t(key, vars) : key);
     const updateButton = document.getElementById('app-update-check');
     const rollbackButton = document.getElementById('app-update-rollback');
     const updateStatus = document.getElementById('app-update-status');
@@ -50,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateStatus.dataset.state = state;
     };
     const showVersion = () => {
-        if (versionLine) versionLine.textContent = tt('upd_installed_version', { version: installedVersion || '—' });
+        if (versionLine) versionLine.textContent = t('upd_installed_version', { version: installedVersion || '—' });
     };
 
     async function loadUpdateSettings() {
@@ -76,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
             channel: channelSelect?.value === 'test' ? 'test' : 'stable',
             autoCheck: !!autoCheck?.checked
         }));
-        if (result && result.error) uiToast(result.error, { kind: 'error' });
+        if (result && result.error) uiToast(tErr(result), { kind: 'error' });
     }
 
     channelSelect?.addEventListener('change', saveUpdateSettings);
@@ -85,18 +86,18 @@ document.addEventListener('DOMContentLoaded', () => {
     updateButton?.addEventListener('click', async () => {
         if (!window.CoreUpdater) return;
         updateButton.disabled = true;
-        setUpdateStatus(tt('upd_checking'), 'checking');
+        setUpdateStatus(t('upd_checking'), 'checking');
         try {
             const result = await window.CoreUpdater.checkNow();
             if (!result || result.error) {
-                setUpdateStatus(tt('upd_check_error', { error: (result && result.error) || '?' }), 'error');
+                setUpdateStatus(t('upd_check_error', { error: (result && result.error) || '?' }), 'error');
             } else if (result.updateAvailable) {
-                setUpdateStatus(tt('upd_message', { version: result.latestVersion, current: result.currentVersion }), 'available');
+                setUpdateStatus(t('upd_message', { version: result.latestVersion, current: result.currentVersion }), 'available');
             } else {
-                setUpdateStatus(tt('upd_up_to_date', { version: result.currentVersion || installedVersion }), 'current');
+                setUpdateStatus(t('upd_up_to_date', { version: result.currentVersion || installedVersion }), 'current');
             }
         } catch (error) {
-            setUpdateStatus(tt('upd_check_error', { error: String(error) }), 'error');
+            setUpdateStatus(t('upd_check_error', { error: String(error) }), 'error');
         } finally {
             updateButton.disabled = false;
         }
@@ -104,14 +105,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     rollbackButton?.addEventListener('click', async () => {
         if (!rollbackVersion || !window.api?.rollback_update) {
-            uiToast(tt('upd_rollback_none'), { kind: 'neutral' });
+            uiToast(t('upd_rollback_none'), { kind: 'neutral' });
             return;
         }
-        const ok = await uiConfirm(tt('upd_rollback_confirm', { version: rollbackVersion }), { confirmLabel: tt('upd_rollback') });
+        const ok = await uiConfirm(t('upd_rollback_confirm', { version: rollbackVersion }), { confirmLabel: t('upd_rollback') });
         if (!ok) return;
         const result = await window.api.rollback_update();
-        if (result && result.error) uiToast(tt('upd_failed', { error: result.error }), { kind: 'error' });
-        else uiToast(tt('upd_restarting'), { kind: 'success' });
+        if (result && result.error) uiToast(t('upd_failed', { error: result.error }), { kind: 'error' });
+        else uiToast(t('upd_restarting'), { kind: 'success' });
     });
 
     document.getElementById('lang-select')?.addEventListener('change', () => setTimeout(showVersion, 0));

@@ -55,7 +55,7 @@ function renderPrograms() {
         let versionBadge = '';
         if (p.variants && p.variants.length > 0) {
             const variant = p.variants.find((v, vi) => vi === p.defaultVariant) || p.variants[0];
-            versionBadge = `<span class="row-version" title="${t('badge_variant')}">${escapeHtml(variant.name || 'Wariant 1')} ${ICON.chevDown}</span>`;
+            versionBadge = `<span class="row-version" title="${t('badge_variant')}">${escapeHtml(variant.name || t('mng_variant_default'))} ${ICON.chevDown}</span>`;
         }
 
         const isPage = p.type === 'link';
@@ -90,7 +90,7 @@ function populateCategories() {
     const select = document.getElementById('filter-category');
     if (!select) return;
     const cats = [...new Set(allPrograms.map(p => p.category).filter(Boolean))].sort();
-    select.innerHTML = '<option value="all">Wszystkie kategorie</option>';
+    select.innerHTML = `<option value="all">${escapeHtml(t('filter_all_cats'))}</option>`;
     cats.forEach(c => {
         const opt = document.createElement('option');
         opt.value = c;
@@ -142,17 +142,17 @@ function addProgramLinkRow(label = '', url = '', kind = 'guide') {
     const row = document.createElement('div');
     row.className = 'program-link-row';
     const kinds = [
-        ['guide', 'Instrukcja'],
-        ['docs', 'Dokumentacja'],
-        ['download', 'Pobieranie'],
-        ['official', 'Oficjalna strona'],
-        ['other', 'Inny']
+        ['guide', t('mng_link_kind_guide')],
+        ['docs', t('mng_link_kind_docs')],
+        ['download', t('mng_link_kind_download')],
+        ['official', t('mng_link_kind_official')],
+        ['other', t('mng_link_kind_other')]
     ];
     row.innerHTML = `
-        <input type="text" class="form-input program-link-label" placeholder="Nazwa linku" value="${escapeHtml(label || '')}" />
-        <input type="text" class="form-input program-link-url" placeholder="https://... lub folder/strona.html" value="${escapeHtml(url || '')}" />
+        <input type="text" class="form-input program-link-label" placeholder="${escapeHtml(t('mng_ph_link_label'))}" value="${escapeHtml(label || '')}" />
+        <input type="text" class="form-input program-link-url" placeholder="${escapeHtml(t('mng_ph_link_url'))}" value="${escapeHtml(url || '')}" />
         <select class="form-select program-link-kind">
-            ${kinds.map(([value, text]) => `<option value="${value}" ${value === (kind || 'guide') ? 'selected' : ''}>${text}</option>`).join('')}
+            ${kinds.map(([value, text]) => `<option value="${value}" ${value === (kind || 'guide') ? 'selected' : ''}>${escapeHtml(text)}</option>`).join('')}
         </select>
         <button type="button" title="${t('title_delete')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -169,9 +169,9 @@ function addVersionRow(label, folderPath, installType, installerFile, installerA
     row.className = 'version-row';
     const types = ['portable', 'installer', 'script', 'tool', 'addon', 'other'];
     const selType = installType || 'portable';
-    const options = types.map(t => `<option value="${t}" ${t === selType ? 'selected' : ''}>${t}</option>`).join('');
+    const options = types.map(ty => `<option value="${ty}" ${ty === selType ? 'selected' : ''}>${ty}</option>`).join('');
     row.innerHTML = `
-        <input type="text" class="form-input" placeholder="Etykieta" value="${label ? String(label).replace(/"/g, '&quot;') : ''}" />
+        <input type="text" class="form-input" placeholder="${escapeHtml(t('ph_variant_label'))}"value="${label ? String(label).replace(/"/g, '&quot;') : ''}" />
         <input type="text" class="form-input" placeholder="folderPath" value="${folderPath ? String(folderPath).replace(/"/g, '&quot;') : ''}" />
         <input type="text" class="form-input" placeholder="installerFile" value="${escapeHtml(installerFile || '')}" />
         <input type="text" class="form-input" placeholder="args" value="${escapeHtml(installerArgs || '')}" />
@@ -184,7 +184,7 @@ function addVersionRow(label, folderPath, installType, installerFile, installerA
 }
 
 function openAddProgram() {
-    document.getElementById('program-editor-title').textContent = 'Dodaj program';
+    document.getElementById('program-editor-title').textContent = t('editor_add_program');
     fillProgramForm(null);
     document.getElementById('program-editor-overlay').classList.add('active');
     setTimeout(() => document.getElementById('prog-name')?.focus(), 50);
@@ -194,7 +194,7 @@ function openEditProgram(encodedName) {
     const name = decodeURIComponent(encodedName);
     const p = allPrograms.find(x => x.name === name);
     if (!p) return;
-    document.getElementById('program-editor-title').textContent = 'Edytuj program';
+    document.getElementById('program-editor-title').textContent = t('mng_editor_edit_program');
     fillProgramForm(p);
     document.getElementById('program-editor-overlay').classList.add('active');
 }
@@ -264,23 +264,23 @@ async function saveNewProgram() {
 
     try {
         const result = await window.api.add_program(JSON.stringify(obj));
-        if (result.error) { uiToast(t('err_prefix') + result.error, { kind: 'error' }); return; }
+        if (result.error) { uiToast(t('mng_err_generic', { error: tErr(result) }), { kind: 'error' }); return; }
         closeProgramEditor();
         await loadPrograms();
     } catch (e) {
-        uiToast(t('err_save_prefix') + String(e), { kind: 'error' });
+        uiToast(t('mng_err_save', { error: String(e) }), { kind: 'error' });
     }
 }
 
 async function deleteProgramUI(encodedName) {
     const name = decodeURIComponent(encodedName);
-    if (!(await uiConfirm(t('confirm_delete_prog') + ` "${name}"?`, { danger: true }))) return;
+    if (!(await uiConfirm(t('mng_confirm_delete_program', { name }), { danger: true }))) return;
     try {
         const result = await window.api.delete_program(name);
-        if (result.error) { uiToast(t('err_prefix') + result.error, { kind: 'error' }); return; }
+        if (result.error) { uiToast(t('mng_err_generic', { error: tErr(result) }), { kind: 'error' }); return; }
         await loadPrograms();
     } catch (e) {
-        uiToast(t('err_delete_prefix') + String(e), { kind: 'error' });
+        uiToast(t('mng_err_delete', { error: String(e) }), { kind: 'error' });
     }
 }
 

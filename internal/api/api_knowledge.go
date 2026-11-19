@@ -14,6 +14,7 @@ import (
 	"launcher/internal/knowledge"
 	"launcher/internal/linkcheck"
 	"launcher/internal/linkreview"
+	"launcher/internal/uimsg"
 )
 
 // GetKnowledgeData returns the knowledge base JSON.
@@ -42,7 +43,7 @@ func (a *API) SaveKnowledgeData(knowledgeJSON string) string {
 	a.knowledgeMu.Lock()
 	defer a.knowledgeMu.Unlock()
 	if err := knowledge.Save(a.WebDir, &kd); err != nil {
-		return jsonError(err.Error())
+		return jsonErr(err)
 	}
 	a.KnowledgeData = &kd
 	return `{"success": true}`
@@ -66,8 +67,13 @@ type knowledgeCheckResult struct {
 	StatusCode int    `json:"statusCode,omitempty"`
 	FinalURL   string `json:"finalUrl,omitempty"`
 	Detail     string `json:"detail"`
-	CheckedAt  string `json:"checkedAt"`
+	// DetailCode / DetailParams: see linkcheck.Result.
+	DetailCode   string            `json:"detailCode,omitempty"`
+	DetailParams map[string]string `json:"detailParams,omitempty"`
+	CheckedAt    string            `json:"checkedAt"`
 }
+
+var linkGone = uimsg.New("msg_kbr_link_gone", "Link nie istnieje już w tej kategorii")
 
 type knowledgeCheckSession struct {
 	mu      sync.Mutex
@@ -85,7 +91,7 @@ var knowledgeCheckCounter int64
 func (a *API) StartKnowledgeLinkCheck(category string, limit int) string {
 	category = strings.TrimSpace(category)
 	if category == "" {
-		return `{"error":"Wybierz kategorię do sprawdzenia"}`
+		return jsonMsg(uimsg.New("msg_kbr_choose_category", "Wybierz kategorię do sprawdzenia"))
 	}
 	if limit <= 0 {
 		limit = 50
@@ -100,7 +106,7 @@ func (a *API) StartKnowledgeLinkCheck(category string, limit int) string {
 			a.KnowledgeData = kd
 		} else {
 			a.knowledgeMu.Unlock()
-			return jsonError(err.Error())
+			return jsonErr(err)
 		}
 	}
 	items := make([]knowledgeCheckItem, 0, limit)
@@ -121,7 +127,7 @@ func (a *API) StartKnowledgeLinkCheck(category string, limit int) string {
 	a.knowledgeMu.Unlock()
 
 	if len(items) == 0 {
-		return `{"error":"Nie znaleziono linków w tej kategorii"}`
+		return jsonMsg(uimsg.New("msg_kbr_no_links", "Nie znaleziono linków w tej kategorii"))
 	}
 
 	sessionID := fmt.Sprintf("knowledge-check-%d", atomic.AddInt64(&knowledgeCheckCounter, 1))
@@ -129,7 +135,7 @@ func (a *API) StartKnowledgeLinkCheck(category string, limit int) string {
 	for index, item := range items {
 		results[index] = knowledgeCheckResult{
 			Category: item.Category, Name: item.Name, URL: item.URL, Section: item.Section, Starred: item.Starred,
-			State: "pending", Detail: "Oczekuje w kolejce sprawdzania",
+			State: "pending", Detail: "Oczekuje w kolejce sprawdzania", DetailCode: "msg_kbr_pending",
 		}
 	}
 	session := &knowledgeCheckSession{total: len(items), results: results}
@@ -151,7 +157,8 @@ func (a *API) StartKnowledgeLinkCheck(category string, limit int) string {
 					check := linkcheck.Check(item.URL)
 					result := knowledgeCheckResult{
 						Category: item.Category, Name: item.Name, URL: item.URL, Section: item.Section, Starred: item.Starred,
-						State: check.State, StatusCode: check.StatusCode, FinalURL: check.FinalURL, Detail: check.Detail, CheckedAt: check.CheckedAt,
+						State: check.State, StatusCode: check.StatusCode, FinalURL: check.FinalURL, CheckedAt: check.CheckedAt,
+						Detail: check.Detail, DetailCode: check.DetailCode, DetailParams: check.DetailParams,
 					}
 					session.mu.Lock()
 					session.results[index] = result
@@ -179,7 +186,7 @@ func (a *API) StartKnowledgeLinkCheck(category string, limit int) string {
 func (a *API) GetKnowledgeLinkCheck(sessionID string) string {
 	value, ok := knowledgeCheckSessions.Load(sessionID)
 	if !ok {
-		return `{"error":"Nie znaleziono sesji sprawdzania","done":true}`
+		return jsonMsgExtra(uimsg.New("msg_kbr_session_missing", "Nie znaleziono sesji sprawdzania"), map[string]any{"done": true})
 	}
 	session := value.(*knowledgeCheckSession)
 	session.mu.Lock()
@@ -202,13 +209,13 @@ type knowledgeReviewRequest struct {
 func (a *API) ReviewKnowledgeLink(requestJSON string) string {
 	var request knowledgeReviewRequest
 	if err := json.Unmarshal([]byte(requestJSON), &request); err != nil {
-		return `{"error":"Nieprawidłowa decyzja"}`
+		return jsonMsg(uimsg.New("msg_kbr_invalid_decision", "Nieprawidłowa decyzja"))
 	}
 	request.Action = strings.TrimSpace(request.Action)
 	request.Category = strings.TrimSpace(request.Category)
 	request.URL = strings.TrimSpace(request.URL)
 	if request.Category == "" || request.URL == "" || (request.Action != "keep" && request.Action != "flag" && request.Action != "remove") {
-		return `{"error":"Brakuje danych decyzji"}`
+		return jsonMsg(uimsg.New("msg_kbr_decision_incomplete", "Brakuje danych decyzji"))
 	}
 
 	a.knowledgeMu.Lock()
@@ -217,7 +224,7 @@ func (a *API) ReviewKnowledgeLink(requestJSON string) string {
 		if kd, err := loadCatalogue(a.WebDir, "knowledge.json", knowledge.Load, knowledge.LoadFromFS, a.WebFS); err == nil {
 			a.KnowledgeData = kd
 		} else {
-			return jsonError(err.Error())
+			return jsonErr(err)
 		}
 	}
 
@@ -236,7 +243,8 @@ func (a *API) ReviewKnowledgeLink(requestJSON string) string {
 				found = true
 				featured = link.Starred
 				if featured && !request.Confirmed {
-					return `{"error":"Wyróżniony link wymaga dodatkowego potwierdzenia","requiresConfirmation":true}`
+					return jsonMsgExtra(uimsg.New("msg_kbr_starred_needs_confirm", "Wyróżniony link wymaga dodatkowego potwierdzenia"),
+						map[string]any{"requiresConfirmation": true})
 				}
 				cat.Links = append(cat.Links[:linkIndex], cat.Links[linkIndex+1:]...)
 				break
@@ -244,23 +252,23 @@ func (a *API) ReviewKnowledgeLink(requestJSON string) string {
 			break
 		}
 		if !found {
-			return `{"error":"Link nie istnieje już w tej kategorii"}`
+			return jsonMsg(linkGone)
 		}
 	}
 
 	reviews, err := knowledge.LoadReviewData(a.WebDir)
 	if err != nil {
-		return jsonError(err.Error())
+		return jsonErr(err)
 	}
 	reviews.Decisions[knowledge.ReviewKey(request.Category, request.URL)] = knowledge.ReviewDecision{
 		Category: request.Category, URL: request.URL, Action: request.Action, UpdatedAt: time.Now().UTC().Format(time.RFC3339Nano),
 	}
 	if err := knowledge.SaveReviewData(a.WebDir, reviews); err != nil {
-		return jsonError(err.Error())
+		return jsonErr(err)
 	}
 	if request.Action == "remove" {
 		if err := knowledge.Save(a.WebDir, a.KnowledgeData); err != nil {
-			return jsonError(err.Error())
+			return jsonErr(err)
 		}
 	}
 	data, _ := json.Marshal(map[string]interface{}{"success": true, "action": request.Action, "featured": featured})
@@ -274,14 +282,14 @@ func (a *API) GetKnowledgeLinkReviewDecision(category, rawURL string) string {
 	category = strings.TrimSpace(category)
 	rawURL = strings.TrimSpace(rawURL)
 	if category == "" || rawURL == "" {
-		return `{"error":"Brakuje kategorii lub adresu linku"}`
+		return jsonMsg(uimsg.New("msg_kbr_link_incomplete", "Brakuje kategorii lub adresu linku"))
 	}
 
 	a.knowledgeMu.Lock()
 	defer a.knowledgeMu.Unlock()
 	reviews, err := knowledge.LoadReviewData(a.WebDir)
 	if err != nil {
-		return jsonError(err.Error())
+		return jsonErr(err)
 	}
 	decision, found := reviews.Decisions[knowledge.ReviewKey(category, rawURL)]
 	data, _ := json.Marshal(map[string]interface{}{
@@ -303,11 +311,11 @@ type knowledgeBulkKeepRequest struct {
 func (a *API) BulkKeepKnowledgeLinks(requestJSON string) string {
 	var request knowledgeBulkKeepRequest
 	if err := json.Unmarshal([]byte(requestJSON), &request); err != nil {
-		return `{"error":"Nieprawidłowe zatwierdzenie zbiorcze"}`
+		return jsonMsg(uimsg.New("msg_kbr_invalid_bulk", "Nieprawidłowe zatwierdzenie zbiorcze"))
 	}
 	request.Category = strings.TrimSpace(request.Category)
 	if request.Category == "" || len(request.URLs) == 0 || !request.Confirmed {
-		return `{"error":"Brakuje potwierdzenia lub linków"}`
+		return jsonMsg(uimsg.New("msg_kbr_bulk_incomplete", "Brakuje potwierdzenia lub linków"))
 	}
 
 	a.knowledgeMu.Lock()
@@ -316,7 +324,7 @@ func (a *API) BulkKeepKnowledgeLinks(requestJSON string) string {
 		if kd, err := loadCatalogue(a.WebDir, "knowledge.json", knowledge.Load, knowledge.LoadFromFS, a.WebFS); err == nil {
 			a.KnowledgeData = kd
 		} else {
-			return jsonError(err.Error())
+			return jsonErr(err)
 		}
 	}
 
@@ -333,7 +341,7 @@ func (a *API) BulkKeepKnowledgeLinks(requestJSON string) string {
 
 	reviews, err := knowledge.LoadReviewData(a.WebDir)
 	if err != nil {
-		return jsonError(err.Error())
+		return jsonErr(err)
 	}
 	updated := 0
 	for _, rawURL := range request.URLs {
@@ -350,10 +358,10 @@ func (a *API) BulkKeepKnowledgeLinks(requestJSON string) string {
 		updated++
 	}
 	if updated == 0 {
-		return `{"error":"Żaden z linków nie istnieje już w tej kategorii"}`
+		return jsonMsg(uimsg.New("msg_kbr_links_gone", "Żaden z linków nie istnieje już w tej kategorii"))
 	}
 	if err := knowledge.SaveReviewData(a.WebDir, reviews); err != nil {
-		return jsonError(err.Error())
+		return jsonErr(err)
 	}
 	data, _ := json.Marshal(map[string]interface{}{"success": true, "updated": updated})
 	return string(data)
@@ -366,7 +374,7 @@ func (a *API) OpenKnowledgeLinkReview(category, rawURL string) string {
 	category = strings.TrimSpace(category)
 	rawURL = strings.TrimSpace(rawURL)
 	if category == "" || rawURL == "" {
-		return `{"error":"Brakuje kategorii lub adresu linku"}`
+		return jsonMsg(uimsg.New("msg_kbr_link_incomplete", "Brakuje kategorii lub adresu linku"))
 	}
 
 	a.knowledgeMu.Lock()
@@ -375,7 +383,7 @@ func (a *API) OpenKnowledgeLinkReview(category, rawURL string) string {
 			a.KnowledgeData = kd
 		} else {
 			a.knowledgeMu.Unlock()
-			return jsonError(err.Error())
+			return jsonErr(err)
 		}
 	}
 	name := rawURL
@@ -395,7 +403,7 @@ func (a *API) OpenKnowledgeLinkReview(category, rawURL string) string {
 	}
 	a.knowledgeMu.Unlock()
 	if !found {
-		return `{"error":"Link nie istnieje już w tej kategorii"}`
+		return jsonMsg(linkGone)
 	}
 
 	openedAt := time.Now().UTC().Format(time.RFC3339Nano)
@@ -410,7 +418,7 @@ func (a *API) OpenKnowledgeLinkReview(category, rawURL string) string {
 		},
 	})
 	if err != nil {
-		return jsonError(err.Error())
+		return jsonErr(err)
 	}
 	data, _ := json.Marshal(map[string]interface{}{"success": true, "openedAt": openedAt})
 	return string(data)

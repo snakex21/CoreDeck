@@ -7,7 +7,6 @@
 (function () {
     'use strict';
 
-    const tt = (key, vars) => (typeof window.t === 'function' ? window.t(key, vars) : key);
     const api = () => window.api || {};
     const has = name => typeof api()[name] === 'function';
 
@@ -70,10 +69,10 @@
 
     function errorText(result) {
         switch (result && result.errorCode) {
-            case 'bad_checksum': return tt('upd_bad_checksum');
-            case 'bad_size': return tt('upd_bad_size');
-            case 'no_asset': return tt('upd_no_asset');
-            default: return tt('upd_failed', { error: (result && result.error) || '?' });
+            case 'bad_checksum': return t('upd_bad_checksum');
+            case 'bad_size': return t('upd_bad_size');
+            case 'no_asset': return t('upd_no_asset');
+            default: return t('upd_failed', { error: (result && result.error) || '?' });
         }
     }
 
@@ -82,31 +81,31 @@
         const body = el('div', 'cd-update');
         const meta = el('div', 'cd-update-meta');
         meta.appendChild(el('span', 'cd-update-version', `CoreDeck ${info.latestVersion}`));
-        if (info.prerelease) meta.appendChild(el('span', 'cd-update-badge', tt('upd_prerelease')));
+        if (info.prerelease) meta.appendChild(el('span', 'cd-update-badge', t('upd_prerelease')));
         if (info.publishedAt) {
             const date = new Date(info.publishedAt);
             if (!Number.isNaN(date.getTime())) meta.appendChild(el('span', 'cd-update-date', date.toLocaleDateString(document.documentElement.lang || undefined)));
         }
         body.appendChild(meta);
-        body.appendChild(el('h3', 'cd-update-heading', tt('upd_whats_new')));
+        body.appendChild(el('h3', 'cd-update-heading', t('upd_whats_new')));
         body.appendChild(renderNotes(info.notes));
-        body.appendChild(el('p', 'cd-update-safety', tt('upd_safety_note')));
+        body.appendChild(el('p', 'cd-update-safety', t('upd_safety_note')));
 
         const choice = await uiDialog({
-            title: tt('upd_title'),
-            message: tt('upd_message', { version: info.latestVersion, current: info.currentVersion }),
+            title: t('upd_title'),
+            message: t('upd_message', { version: info.latestVersion, current: info.currentVersion }),
             body,
             wide: true,
             buttons: [
-                { label: tt('upd_skip'), value: 'skip' },
-                { label: tt('upd_later'), value: 'later' },
-                { label: tt('upd_now'), value: 'now', variant: 'primary', confirm: true }
+                { label: t('upd_skip'), value: 'skip' },
+                { label: t('upd_later'), value: 'later' },
+                { label: t('upd_now'), value: 'now', variant: 'primary', confirm: true }
             ],
             cancelValue: 'later'
         });
         if (choice === 'skip') {
             if (has('skip_update_version')) await api().skip_update_version(info.latestVersion);
-            uiToast(tt('upd_skipped', { version: info.latestVersion }), { kind: 'neutral' });
+            uiToast(t('upd_skipped', { version: info.latestVersion }), { kind: 'neutral' });
         } else if (choice === 'now') {
             await runUpdate(info.latestVersion);
         }
@@ -116,7 +115,7 @@
     // Downloads, verifies and installs; shows progress in a toast.
     async function runUpdate(version) {
         if (!has('start_update')) return;
-        const toast = uiToast(tt('upd_downloading', { percent: 0 }), { kind: 'info', title: `CoreDeck ${version}`, timeout: 0 });
+        const toast = uiToast(t('upd_downloading', { percent: 0 }), { kind: 'info', title: `CoreDeck ${version}`, timeout: 0 });
         const start = await api().start_update(version);
         if (!start || start.error || !start.sessionId) {
             toast.update(errorText(start), 'error');
@@ -126,17 +125,17 @@
             await new Promise(resolve => setTimeout(resolve, 300));
             const p = await api().update_progress(start.sessionId);
             if (!p || p.error && p.state !== 'error') { toast.update(errorText(p), 'error'); return; }
-            if (p.state === 'downloading') toast.update(tt('upd_downloading', { percent: Math.max(0, Math.min(100, Math.round(p.percent || 0))) }));
-            else if (p.state === 'verifying') toast.update(tt('upd_verifying'));
-            else if (p.state === 'installing') toast.update(tt('upd_installing'));
-            else if (p.state === 'restarting') { toast.update(tt('upd_restarting'), 'success'); return; }
+            if (p.state === 'downloading') toast.update(t('upd_downloading', { percent: Math.max(0, Math.min(100, Math.round(p.percent || 0))) }));
+            else if (p.state === 'verifying') toast.update(t('upd_verifying'));
+            else if (p.state === 'installing') toast.update(t('upd_installing'));
+            else if (p.state === 'restarting') { toast.update(t('upd_restarting'), 'success'); return; }
             else if (p.state === 'error') { toast.update(errorText(p), 'error'); return; }
         }
     }
 
     // Manual check (Settings). Returns the backend result.
     async function checkNow() {
-        if (!has('check_for_updates')) return { error: 'unsupported' };
+        if (!has('check_for_updates')) return { error: t('sys_upd_unsupported') };
         const result = await api().check_for_updates('manual');
         if (!result || result.error) return result || { error: '?' };
         if (result.updateAvailable) await offerUpdate(result);
@@ -148,9 +147,9 @@
     async function startupCheck() {
         if (has('update_ready')) {
             const ready = await api().update_ready();
-            if (ready && ready.justUpdated) uiToast(tt('upd_done', { version: ready.justUpdated }), { kind: 'success', timeout: 6000 });
+            if (ready && ready.justUpdated) uiToast(t('upd_done', { version: ready.justUpdated }), { kind: 'success', timeout: 6000 });
             if (ready && ready.rolledBack) {
-                uiToast(tt('upd_rolled_back', { version: ready.rolledBack.to || '?', current: ready.rolledBack.from || '?' }), { kind: 'warn', timeout: 12000 });
+                uiToast(t('upd_rolled_back', { version: ready.rolledBack.to || '?', current: ready.rolledBack.from || '?' }), { kind: 'warn', timeout: 12000 });
             }
         }
         if (!has('check_for_updates')) return;

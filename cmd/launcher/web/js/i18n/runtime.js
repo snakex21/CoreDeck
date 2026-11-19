@@ -76,6 +76,30 @@ function tn(base, n, vars) {
   return fillPlaceholders(text, Object.assign({ n }, vars || {}));
 }
 
+function hasKey(key) {
+  return Boolean((I18N[currentLang] && I18N[currentLang][key]) ||
+    (I18N.en && I18N.en[key]) || (I18N.pl && I18N.pl[key]));
+}
+
+// Backend messages (internal/uimsg): Go sends a stable code - a key of this
+// file - with params, next to the Polish text it keeps for logs. tMsg()
+// translates the code (count_* codes are plural families, n in params) and
+// falls back to the text for codes this build does not know.
+function tMsg(code, params, fallback) {
+  const vars = params || {};
+  if (code && code.startsWith('count_') && hasKey(`${code}_other`)) {
+    return tn(code, Number(vars.n) || 0, vars);
+  }
+  if (code && hasKey(code)) return t(code, vars);
+  return fallback == null ? '' : String(fallback);
+}
+
+// tErr(response) -> translated error/message of an API response object.
+function tErr(response) {
+  if (!response) return '';
+  return tMsg(response.code, response.params, response.error || response.message || '');
+}
+
 // "auto" or the language picked by hand.
 function getLanguageChoice() {
   return savedLanguage() || 'auto';
@@ -163,6 +187,8 @@ window.setLanguage = setLanguage;
 window.applyTranslations = applyTranslations;
 window.getCurrentLang = () => currentLang;
 window.tn = tn;
+window.tMsg = tMsg;
+window.tErr = tErr;
 window.getLanguageChoice = getLanguageChoice;
 window.LANGUAGES = LANGUAGES;
 

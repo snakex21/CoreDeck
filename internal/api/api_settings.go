@@ -30,7 +30,7 @@ func (a *API) SaveSettingsData(settingsJSON string) string {
 		return `{"error": "Invalid settings JSON"}`
 	}
 	if err := settings.SaveSettings(a.WebDir, &sd); err != nil {
-		return jsonError(err.Error())
+		return jsonErr(err)
 	}
 	a.SettingsData = &sd
 	return `{"success": true}`

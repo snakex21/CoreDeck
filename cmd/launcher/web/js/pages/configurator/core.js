@@ -14,12 +14,6 @@ let tweakEditorProfileId = null;
 let tweakEditorSelectedTweaks = [];
 let tweakEditorMode = 'tweaks';
 
-function plur(n, one, few, many) {
-    if (n === 1) return `${n} ${one}`;
-    if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return `${n} ${few}`;
-    return `${n} ${many}`;
-}
-
 function escapeHtml(s) {
     return String(s || '')
         .replace(/&/g, '&amp;')
@@ -35,9 +29,9 @@ function renderProgressResult(r) {
     const icon = cancelled ? '⏹' : r.success ? (r.outcome === 'ok_note' ? 'ℹ️' : '✅') : '❌';
     const cls = cancelled ? 'cancelled' : r.success ? 'ok' : 'err';
     const pathBtn = r.path
-        ? ` <button class="btn-mini progress-open-folder" data-path="${escapeHtml(r.path)}">📂 Otwórz folder</button>`
+        ? ` <button class="btn-mini progress-open-folder" data-path="${escapeHtml(r.path)}">📂 ${escapeHtml(t('open_folder'))}</button>`
         : '';
-    return `<div class="${cls}">${icon} ${escapeHtml(r.name)} — ${escapeHtml(r.message)}${pathBtn}</div>`;
+    return `<div class="${cls}">${icon} ${escapeHtml(r.name)} — ${escapeHtml(tMsg(r.code, r.params, r.message))}${pathBtn}</div>`;
 }
 let editingProfileId = null;
 let editorSelectedPrograms = []; // global state for profile editor
@@ -130,15 +124,15 @@ async function loadSystemInfo() {
         el.innerHTML = `
             <div class="sys-info-card" style="margin-bottom:12px;">
                 <div class="label">${t('sys_os')}</div>
-                <div class="value small">${info.os || 'Unknown'}</div>
+                <div class="value small">${info.os || t('cfg_sys_unknown')}</div>
             </div>
             <div class="sys-info-card" style="margin-bottom:12px;">
                 <div class="label">${t('sys_cpu')}</div>
-                <div class="value small">${info.cpu || 'Unknown'}</div>
+                <div class="value small">${info.cpu || t('cfg_sys_unknown')}</div>
             </div>
             <div class="sys-info-card" style="margin-bottom:12px;">
                 <div class="label">${t('sys_gpu')}</div>
-                <div class="value small">${(info.gpu || []).join(', ') || 'Unknown'}</div>
+                <div class="value small">${(info.gpu || []).join(', ') || t('cfg_sys_unknown')}</div>
             </div>
             <div class="sys-info-card" style="margin-bottom:12px;">
                 <div class="label">${t('sys_ram')}</div>

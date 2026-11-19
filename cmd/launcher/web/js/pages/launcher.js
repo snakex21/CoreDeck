@@ -13,35 +13,35 @@
 
     // --- BAZA DANYCH #3: PRZEWODNIK KONFIGURACJI ---
     const setupWorkflow = {
-        get name() { return typeof t === 'function' ? t('workflow_title') : 'Pierwsza Konfiguracja Komputera'; },
+        get name() { return t('workflow_title'); },
         steps: [
             {
-                get title() { return typeof t === 'function' ? t('workflow_step1_title') : 'Krok 1: Instalatory Zbiorcze (Ninite)'; },
-                get description() { return typeof t === 'function' ? t('workflow_step1_desc') : 'Zainstaluj podstawowy zestaw programów za pomocą przygotowanych instalatorów Ninite.'; },
+                get title() { return t('workflow_step1_title'); },
+                get description() { return t('workflow_step1_desc'); },
                 subItems: [
-                    { get name() { return typeof t === 'function' ? t('workflow_step1_sub1') : 'Pakiet bez narzędzi programistycznych'; }, folderPath: '../Centrum Narzędzi i Oprogramowania/Programy do 1 konfiguracji komputera/1. Ninite/programy bez programowania' },
-                    { get name() { return typeof t === 'function' ? t('workflow_step1_sub2') : 'Pakiet z narzędziami programistycznymi'; }, folderPath: '../Centrum Narzędzi i Oprogramowania/Programy do 1 konfiguracji komputera/1. Ninite/programy z programowaniem' },
-                    { get name() { return typeof t === 'function' ? t('workflow_step1_sub3') : 'Pakiet dla PC testowego'; }, folderPath: '../Centrum Narzędzi i Oprogramowania/Programy do 1 konfiguracji komputera/Instalacja automatyczna – PC testowy' }
+                    { get name() { return t('workflow_step1_sub1'); }, folderPath: '../Centrum Narzędzi i Oprogramowania/Programy do 1 konfiguracji komputera/1. Ninite/programy bez programowania' },
+                    { get name() { return t('workflow_step1_sub2'); }, folderPath: '../Centrum Narzędzi i Oprogramowania/Programy do 1 konfiguracji komputera/1. Ninite/programy z programowaniem' },
+                    { get name() { return t('workflow_step1_sub3'); }, folderPath: '../Centrum Narzędzi i Oprogramowania/Programy do 1 konfiguracji komputera/Instalacja automatyczna – PC testowy' }
                 ]
             },
             {
-                get title() { return typeof t === 'function' ? t('workflow_step2_title') : 'Krok 2: Debloat Systemu'; },
-                get description() { return typeof t === 'function' ? t('workflow_step2_desc') : 'Uruchom skrypty PowerShell, aby usunąć zbędne komponenty i aplikacje z Windows.'; },
+                get title() { return t('workflow_step2_title'); },
+                get description() { return t('workflow_step2_desc'); },
                 folderPath: '../Centrum Narzędzi i Oprogramowania/Programy do 1 konfiguracji komputera/2. skrypt do debloata'
             },
             {
-                get title() { return typeof t === 'function' ? t('workflow_step3_title') : 'Krok 3: Dodatkowe Programy'; },
-                get description() { return typeof t === 'function' ? t('workflow_step3_desc') : 'Przejrzyj folder z najczęściej używanymi programami do ewentualnej, ręcznej instalacji.'; },
+                get title() { return t('workflow_step3_title'); },
+                get description() { return t('workflow_step3_desc'); },
                 folderPath: '../Centrum Narzędzi i Oprogramowania/Programy do 1 konfiguracji komputera/3. programy'
             },
             {
-                get title() { return typeof t === 'function' ? t('workflow_step4_title') : 'Krok 4: Optymalizacja pod Gry'; },
-                get description() { return typeof t === 'function' ? t('workflow_step4_desc') : 'Zastosuj modyfikacje rejestru, plany zasilania i inne tweaki w celu poprawy wydajności w grach.'; },
+                get title() { return t('workflow_step4_title'); },
+                get description() { return t('workflow_step4_desc'); },
                 folderPath: '../Centrum Narzędzi i Oprogramowania/Programy do 1 konfiguracji komputera/4. optymalizacja kompa pod gry'
             },
             {
-                get title() { return typeof t === 'function' ? t('workflow_step5_title') : 'Krok 5: Personalizacja (Tapeta)'; },
-                get description() { return typeof t === 'function' ? t('workflow_step5_desc') : 'Ustaw swoją ulubioną tapetę, aby zakończyć proces konfiguracji.'; },
+                get title() { return t('workflow_step5_title'); },
+                get description() { return t('workflow_step5_desc'); },
                 folderPath: '../Centrum Narzędzi i Oprogramowania/Programy do 1 konfiguracji komputera/5. tapeta'
             }
         ]
@@ -294,7 +294,7 @@
         if (!directUrl || links.some(link => String(link.url) === String(directUrl))) return links;
 
         links.unshift({
-            label: item.localPath ? 'Otwórz wbudowaną stronę' : 'Otwórz stronę projektu',
+            label: item.localPath ? t('detail_open_builtin_page') : t('detail_open_project_page'),
             url: directUrl,
             kind: item.localPath ? 'guide' : 'official'
         });
@@ -303,16 +303,17 @@
 
     function installTypeLabel(value) {
         const labels = {
-            installer: 'Instalator',
-            portable: 'Portable',
-            script: 'Skrypt',
-            tool: 'Narzędzie',
-            addon: 'Dodatek',
-            collection: 'Zbiór',
-            other: 'Inne'
+            installer: 'detail_type_installer',
+            portable: 'detail_type_portable',
+            script: 'detail_type_script',
+            tool: 'detail_type_tool',
+            addon: 'detail_type_addon',
+            collection: 'detail_type_collection',
+            other: 'filter_other'
         };
         const key = String(value || '').toLowerCase();
-        return labels[key] || value || 'Nie określono';
+        if (labels[key]) return t(labels[key]);
+        return value || t('detail_type_unspecified');
     }
 
     function getVariantList(item) {
@@ -397,29 +398,14 @@
         }, 2200);
     }
 
-    // Translated text for a launch_program result (backend codes -> keys).
+    // Translated text of a launch_program / installer result: the backend
+    // sends a message code with params (internal/uimsg), see tErr().
     function launchMessage(result) {
-        if (result && result.code) {
-            const key = `launch_${result.code}`;
-            const text = tr(key, '');
-            if (text) return fillText(text, result.params || {});
-        }
-        return (result && (result.error || result.message)) || tr('launch_failed', 'Nie udało się uruchomić programu.').replace('{error}', '');
+        return tErr(result) || t('launch_failed_generic');
     }
 
-    // Translated text for an installer result (exit codes -> keys).
     function installerMessage(result) {
-        const code = result && Number(result.exitCode);
-        if (code) {
-            const text = tr(`inst_code_${code}`, '');
-            if (text) return text;
-            if (result.outcome === 'error') return fillText(tr('inst_code_other', 'Instalator zakończył się błędem (kod {code}).'), { code });
-        }
-        return (result && result.message) || '';
-    }
-
-    function fillText(text, vars) {
-        return String(text).replace(/\{([a-z_]+)\}/g, (m, name) => (name in vars ? String(vars[name]) : m));
+        return tErr(result);
     }
 
     // Portable programs and tools start in place, straight from the pendrive.
@@ -440,7 +426,7 @@
                         return { label: parts[parts.length - 1], hint: parts.length > 1 ? rel : '', value: rel };
                     }),
                     {
-                        title: `${tr('launch_choose_title', 'Który plik uruchomić?')} — ${item.name}`,
+                        title: t('launch_choose_title_named', { name: item.name }),
                         extra: { label: `📂 ${tr('launch_open_folder', 'Otwórz folder')}`, value: '__open_folder__' }
                     }
                 );
@@ -465,7 +451,7 @@
                 resetRunButton(button, defaultLabel);
                 return;
             }
-            uiToast(`${tr('launch_started', 'Uruchomiono')}: ${item.name}`, { kind: 'success', timeout: 2500 });
+            uiToast(t('launch_started_named', { name: item.name }), { kind: 'success', timeout: 2500 });
             resetRunButton(button, defaultLabel, `✓ ${tr('run_started_short', 'Uruchomiono')}`);
         } catch (error) {
             resetRunButton(button, defaultLabel);
@@ -478,7 +464,7 @@
         const variantIndex = Number.parseInt(button.dataset.variantIndex, 10);
         const selectedVariant = Number.isInteger(variantIndex) ? variantIndex : getDefaultVariantIndex(item);
         const installType = getProgramInstallType(item, selectedVariant);
-        const defaultLabel = button.dataset.defaultLabel || 'Uruchom';
+        const defaultLabel = button.dataset.defaultLabel || t('run_program');
 
         if (isPortableType(installType)) {
             await launchPortable(button, item, selectedVariant, defaultLabel);
@@ -486,7 +472,7 @@
         }
 
         if (!window.api || typeof window.api.install_selected_programs !== 'function') {
-            uiToast(tr('launch_unsupported', 'Funkcja uruchamiania nie jest dostępna w tej wersji programu.'), { kind: 'error' });
+            uiToast(t('launch_unsupported'), { kind: 'error' });
             return;
         }
 
@@ -497,7 +483,7 @@
             const selected = Object.assign({}, item, { selectedVariant });
             const start = await window.api.install_selected_programs(JSON.stringify([selected]), '');
             if (start.error || !start.sessionId) {
-                throw new Error(start.error || 'Nie udało się rozpocząć uruchamiania.');
+                throw new Error(tErr(start) || t('launch_start_failed'));
             }
 
             let progress;
@@ -514,7 +500,7 @@
                 return;
             }
             if (!result || !result.success) {
-                throw new Error(installerMessage(result) || progress.error || 'Uruchamianie zakończyło się błędem.');
+                throw new Error(installerMessage(result) || progress.error || t('launch_run_failed'));
             }
 
             if (result.outcome === 'ok_note') {
@@ -533,7 +519,7 @@
         let filteredItems;
         if (aiModeActive) {
             if (aiResultItems === null) {
-                appContainer.innerHTML = `<p style="padding:20px;color:var(--text-muted)">${typeof t === 'function' ? t('ai_placeholder') : 'Wpisz zapytanie i poczekaj na wyniki AI/LLM.'}</p>`;
+                appContainer.innerHTML = `<p style="padding:20px;color:var(--text-muted)">${t('ai_placeholder')}</p>`;
                 return;
             }
             filteredItems = aiResultItems
@@ -550,7 +536,7 @@
             });
         }
 
-        if (filteredItems.length === 0) { appContainer.innerHTML = `<p>${typeof t === 'function' ? t('no_results') : 'Brak pasujących programów.'}</p>`; return; }
+        if (filteredItems.length === 0) { appContainer.innerHTML = `<p>${t('no_results')}</p>`; return; }
 
         filteredItems.forEach(item => {
             const cardContent = template.content.cloneNode(true);
@@ -582,15 +568,14 @@
                     variantWrap.className = 'program-variant';
 
                     const label = document.createElement('label');
-                    label.textContent = typeof t === 'function' ? t('variant') : 'Wariant';
+                    label.textContent = t('variant');
 
                     const select = document.createElement('select');
                     select.className = 'program-variant-select';
-                    select.setAttribute('aria-label', `Wariant programu ${item.name}`);
+                    select.setAttribute('aria-label', t('launch_variant_aria', { name: item.name }));
 
                     variants.forEach((variant, index) => {
-                        const defaultLabel = (typeof t === 'function' ? t('variant') : 'Wariant');
-                        const option = new Option(variant.name || `${defaultLabel} ${index + 1}`, String(index));
+                        const option = new Option(variant.name || t('launch_variant_numbered', { index: index + 1 }), String(index));
                         select.add(option);
                     });
                     select.value = String(getDefaultVariantIndex(item));
@@ -622,7 +607,7 @@
     }
 
     function renderCategories() {
-        const allLabel = typeof t === 'function' ? t('all') : 'Wszystkie';
+        const allLabel = t('all');
         const categories = [allLabel, ...new Set(items.map(item => item.category))];
         categoryList.innerHTML = '';
         categories.forEach(categoryName => {
@@ -670,7 +655,7 @@
                     <span class="detail-resource-icon" aria-hidden="true">${detailLinkIcon(link.kind)}</span>
                     <span>
                         <strong>${escapeHtmlValue(link.label || url)}</strong>
-                        <small>${external ? 'Otwiera się poza launcherem' : 'Wbudowana strona programu'}</small>
+                        <small>${escapeHtmlValue(external ? t('detail_link_external') : t('detail_link_builtin'))}</small>
                     </span>
                     <span class="detail-resource-arrow" aria-hidden="true">→</span>
                 </a>
@@ -678,12 +663,12 @@
         }).join('');
 
         const technicalRows = [
-            ['Kategoria', item.category],
-            ['Typ', installTypeLabel(installType)],
-            installerFile ? ['Plik', installerFile] : null,
-            selectedVariant && selectedVariant.name ? ['Wariant', selectedVariant.name] : null,
-            variants.length > 1 ? ['Dostępne warianty', String(variants.length)] : null,
-            item.runFromTemp || (selectedVariant && selectedVariant.runFromTemp) ? ['Uruchamianie', 'Kopia tymczasowa'] : null
+            [t('btn_category'), item.category],
+            [t('label_type'), installTypeLabel(installType)],
+            installerFile ? [t('detail_file'), installerFile] : null,
+            selectedVariant && selectedVariant.name ? [t('label_variant'), selectedVariant.name] : null,
+            variants.length > 1 ? [t('detail_variants_available'), String(variants.length)] : null,
+            item.runFromTemp || (selectedVariant && selectedVariant.runFromTemp) ? [t('detail_run_mode'), t('detail_run_from_temp')] : null
         ].filter(Boolean).map(([label, value]) => `
             <div class="detail-fact">
                 <dt>${escapeHtmlValue(label)}</dt>
@@ -692,9 +677,9 @@
         `).join('');
 
         const tagMarkup = tags.map(tag => `<span class="detail-tag">${escapeHtmlValue(tag)}</span>`).join('');
-        const description = escapeHtmlValue(item.description || 'Brak opisu.');
+        const description = escapeHtmlValue(item.description || t('no_description'));
         const name = escapeHtmlValue(item.name);
-        const category = escapeHtmlValue(item.category || 'Program');
+        const category = escapeHtmlValue(item.category || t('detail_category_fallback'));
 
         detailContent.dataset.itemName = item.name;
         detailContent.dataset.variantIndex = String(variantIndex);
@@ -711,27 +696,27 @@
 
             <div class="detail-actions">
                 ${runnable ? `<button class="btn detail-action detail-run-program" data-variant-index="${variantIndex}" data-default-label="${escapeHtmlValue(runLabel)}">▶ ${escapeHtmlValue(runLabel)}</button>` : ''}
-                ${folderPath ? `<button class="btn detail-action detail-open-folder" data-path="${escapeHtmlValue(folderPath)}">📂 Otwórz folder</button>` : ''}
-                ${folderPath ? `<button class="btn detail-action detail-copy-path" data-path="${escapeHtmlValue(folderPath)}">Kopiuj ścieżkę</button>` : ''}
+                ${folderPath ? `<button class="btn detail-action detail-open-folder" data-path="${escapeHtmlValue(folderPath)}">📂 ${escapeHtmlValue(t('open_folder'))}</button>` : ''}
+                ${folderPath ? `<button class="btn detail-action detail-copy-path" data-path="${escapeHtmlValue(folderPath)}">${escapeHtmlValue(t('title_copy_path'))}</button>` : ''}
             </div>
 
             <div class="detail-layout">
                 <div class="detail-main-column">
                     ${item.details ? `
                         <section class="detail-section">
-                            <h2>O programie</h2>
+                            <h2>${escapeHtmlValue(t('detail_about'))}</h2>
                             <div class="detail-richtext">${item.details}</div>
                         </section>
                     ` : ''}
                     ${resourceLinks ? `
                         <section class="detail-section">
-                            <h2>Instrukcje i linki</h2>
+                            <h2>${escapeHtmlValue(t('detail_links'))}</h2>
                             <div class="detail-resources">${resourceLinks}</div>
                         </section>
                     ` : ''}
                 </div>
-                <aside class="detail-facts" aria-label="Dane techniczne programu">
-                    <h2>Dane techniczne</h2>
+                <aside class="detail-facts" aria-label="${escapeHtmlValue(t('detail_facts_aria'))}">
+                    <h2>${escapeHtmlValue(t('detail_facts'))}</h2>
                     <dl>${technicalRows}</dl>
                 </aside>
             </div>
@@ -753,11 +738,11 @@
 
             let html = `<h3>${step.title}</h3><p>${step.description}</p>`;
             if (step.folderPath) {
-                html += `<button class="btn copy-path-btn" data-path="${step.folderPath}">${typeof t === 'function' ? t('copy_path') : 'Skopiuj ścieżkę'}</button>`;
+                html += `<button class="btn copy-path-btn" data-path="${step.folderPath}">${t('copy_path')}</button>`;
             }
             if (step.subItems) {
                 step.subItems.forEach(sub => {
-                    html += `<div class="workflow-subitem"><span>${sub.name}</span><button class="btn copy-path-btn" data-path="${sub.folderPath}">${typeof t === 'function' ? t('copy_path') : 'Skopiuj ścieżkę'}</button></div>`;
+                    html += `<div class="workflow-subitem"><span>${sub.name}</span><button class="btn copy-path-btn" data-path="${sub.folderPath}">${t('copy_path')}</button></div>`;
                 });
             }
             stepElement.innerHTML = html;
@@ -956,7 +941,7 @@
     const driverSearchSection = document.getElementById('driver-search-section');
     function populateDriverTypeSelect() {
         // Wyczyść wszystko poza placeholderem, a potem dodaj typy z API.
-        driverTypeSelect.innerHTML = `<option value="">${typeof t === 'function' ? t('driver_select_type') : 'Wybierz typ...'}</option>`;
+        driverTypeSelect.innerHTML = `<option value="">${t('driver_select_type')}</option>`;
         if (!driversData || !driversData.types) return;
         for (const typeKey in driversData.types) {
             const option = new Option(driversData.types[typeKey].title, typeKey);
@@ -970,8 +955,8 @@
     }
     driverTypeSelect.addEventListener('change', () => {
         const selectedType = driverTypeSelect.value;
-        const brandLabel = typeof t === 'function' ? t('driver_select_brand') : 'Wybierz producenta...';
-        const seriesLabel = typeof t === 'function' ? t('driver_select_series') : 'Wybierz serię/model...';
+        const brandLabel = t('driver_select_brand');
+        const seriesLabel = t('driver_select_series');
         resetSelect(driverBrandSelect, brandLabel);
         resetSelect(driverSeriesSelect, seriesLabel);
         driverResultContainer.classList.add('hidden');
@@ -987,7 +972,7 @@
     driverBrandSelect.addEventListener('change', () => {
         const selectedType = driverTypeSelect.value;
         const selectedBrand = driverBrandSelect.value;
-        const seriesLabel = typeof t === 'function' ? t('driver_select_series') : 'Wybierz serię/model...';
+        const seriesLabel = t('driver_select_series');
         resetSelect(driverSeriesSelect, seriesLabel);
         driverResultContainer.classList.add('hidden');
         if (selectedBrand && driversData.types[selectedType] && driversData.types[selectedType].brands[selectedBrand]) {
@@ -1072,16 +1057,14 @@
         const titleElement = driverSearchSection.querySelector('.search-section-title');
 
         if (results.length === 0) {
-            const noFound = typeof t === 'function' ? t('no_drivers_found') : 'Nie znaleziono sterowników dla';
-            const tryOther = typeof t === 'function' ? t('try_other') : 'Spróbuj użyć innych słów kluczowych.';
-            titleElement.textContent = `${noFound}: "${searchTerm}"`;
+            const tryOther = t('try_other');
+            titleElement.textContent = t('launch_no_drivers_for', { query: searchTerm });
             resultsContainer.innerHTML = `<p style="color: var(--text-muted); padding: 10px;">${tryOther}</p>`;
             driverSearchSection.classList.remove('hidden');
             return;
         }
 
-        const foundDrivers = typeof t === 'function' ? t('found_drivers') : 'Znaleziono sterowników';
-        titleElement.textContent = `${foundDrivers}: ${results.length} (wyszukiwanie: "${searchTerm}")`;
+        titleElement.textContent = tn('count_launch_drivers_found', results.length, { query: searchTerm });
         resultsContainer.innerHTML = '';
 
         results.forEach(result => {
@@ -1091,8 +1074,8 @@
                 <div class="driver-result-info">
                     <strong>${result.type}</strong> → ${result.brand} → ${result.series}
                 </div>
-                    <button class="btn open-folder-btn" data-path="${result.path}">📂 ${typeof t === 'function' ? t('open_folder') : 'Otwórz folder'}</button>
-                    <button class="btn copy-path-btn copy-folder-btn" data-path="${result.path}">${typeof t === 'function' ? t('copy_path') : 'Skopiuj ścieżkę'}</button>
+                    <button class="btn open-folder-btn" data-path="${result.path}">📂 ${t('open_folder')}</button>
+                    <button class="btn copy-path-btn copy-folder-btn" data-path="${result.path}">${t('copy_path')}</button>
             `;
             resultsContainer.appendChild(card);
         });
@@ -1110,8 +1093,8 @@
         // Wyczyść menu rozwijane gdy używamy szybkiego wyszukiwania
         if (searchTerm.trim().length > 0) {
             driverTypeSelect.value = '';
-            const brandLabel = typeof t === 'function' ? t('driver_select_brand') : 'Wybierz producenta...';
-            const seriesLabel = typeof t === 'function' ? t('driver_select_series') : 'Wybierz serię/model...';
+            const brandLabel = t('driver_select_brand');
+            const seriesLabel = t('driver_select_series');
             resetSelect(driverBrandSelect, brandLabel);
             resetSelect(driverSeriesSelect, seriesLabel);
             driverResultContainer.classList.add('hidden');
@@ -1246,7 +1229,7 @@
     if (requestedDetails) {
         showDetailView(requestedDetails);
     }
-    coreDeckLoadingGate.setStatus('Loading icons…');
+    coreDeckLoadingGate.setStatus(t('launch_loading_icons'));
     settleInitialProgramIcons()
         .catch(() => {})
         .finally(() => {
@@ -1271,8 +1254,8 @@
                 if (typeof updateStats === 'function') updateStats();
                 // Re-populate driver selects with new language
                 populateDriverTypeSelect();
-                const brandLabel = typeof t === 'function' ? t('driver_select_brand') : 'Wybierz producenta...';
-                const seriesLabel = typeof t === 'function' ? t('driver_select_series') : 'Wybierz serię/model...';
+                const brandLabel = t('driver_select_brand');
+                const seriesLabel = t('driver_select_series');
                 resetSelect(driverBrandSelect, brandLabel);
                 resetSelect(driverSeriesSelect, seriesLabel);
             }
@@ -1283,26 +1266,11 @@
     // NEW FEATURES
     // ============================================
 
-    // === PLURALIZATION ===
-    function plur(n, one, few, many) {
-        if (n === 1) return `${n} ${one}`;
-        if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return `${n} ${few}`;
-        return `${n} ${many}`;
-    }
-
-    function plurWord(n, one, few, many) {
-        if (n === 1) return one;
-        if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return few;
-        return many;
-    }
-
     // === STATS ===
     function updateStats() {
         const totalPrograms = items.length;
         const categories = new Set(items.map(item => item.category).filter(c => c));
         document.getElementById('stats-total').textContent = totalPrograms;
-        const programsLabel = document.getElementById('stats-programs-label');
-        if (programsLabel) programsLabel.textContent = plurWord(totalPrograms, 'program', 'programy', 'programów');
         document.getElementById('stats-categories').textContent = categories.size;
     }
     updateStats();

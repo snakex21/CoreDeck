@@ -33,7 +33,7 @@ function renderPrograms() {
                 p.selectedVariant = (typeof p.defaultVariant === 'number' && p.defaultVariant >= 0 && p.defaultVariant < p.variants.length) ? p.defaultVariant : 0;
             }
             const opts = p.variants.map((v, vi) =>
-                `<option value="${vi}" ${vi === p.selectedVariant ? 'selected' : ''}>${v.name || (t('label_variant') + ' ' + (vi + 1))}</option>`
+                `<option value="${vi}" ${vi === p.selectedVariant ? 'selected' : ''}>${v.name || t('cfg_variant_numbered', { number: vi + 1 })}</option>`
             ).join('');
             versionSelect = `
                 <div class="program-variant">
@@ -46,13 +46,13 @@ function renderPrograms() {
         }
         let installerPicker = '';
         if (p.installType === 'installer') {
-            const current = p.installerFile || (p.variants ? '' : '(auto)');
+            const current = p.installerFile || (p.variants ? '' : t('cfg_installer_auto'));
             installerPicker = `
                 <div class="program-installer-picker" data-idx="${idx}">
                     <span class="installer-label">${t('cfg_installer_label')}</span>
                     <span class="installer-current" title="${current}">${current}</span>
                     <button class="btn-mini" onclick="scanInstallerFiles(${idx})">📁 ${t('cfg_installer_pick')}</button>
-                    <button class="btn-mini btn-reset" onclick="resetInstallerFile(${idx})" title="Reset">↺</button>
+                    <button class="btn-mini btn-reset" onclick="resetInstallerFile(${idx})" title="${t('cfg_installer_reset_title')}">↺</button>
                 </div>
             `;
         }
@@ -86,7 +86,7 @@ async function scanInstallerFiles(idx) {
     const p = allPrograms[idx];
     if (!p) return;
     const folder = p.folderPath || '';
-    if (!folder) { uiToast('Brak folderPath', { kind: 'warn' }); return; }
+    if (!folder) { uiToast(t('cfg_err_no_folder_path'), { kind: 'warn' }); return; }
 
     const picker = document.querySelector(`.program-installer-picker[data-idx="${idx}"]`);
     if (!picker) return;
@@ -98,7 +98,7 @@ async function scanInstallerFiles(idx) {
     try {
         const candidates = await window.api.scan_installer_candidates(folder);
         if (!candidates || candidates.length === 0) {
-            current.textContent = '(brak plików)';
+            current.textContent = t('cfg_installer_no_files');
             return;
         }
 
@@ -107,18 +107,18 @@ async function scanInstallerFiles(idx) {
             `<option value="${c.path}" ${c.path === (p.installerFile || '') ? 'selected' : ''}>${c.name}</option>`
         ).join('');
         picker.innerHTML = `
-            <span class="installer-label">Instalator:</span>
-            <select onchange="setInstallerFile(${idx}, this.value)" title="Wybierz plik instalatora">
-                <option value="">(auto)</option>
+            <span class="installer-label">${t('cfg_installer_label')}</span>
+            <select onchange="setInstallerFile(${idx}, this.value)" title="${t('cfg_installer_select_title')}">
+                <option value="">${t('cfg_installer_auto')}</option>
                 ${opts}
             </select>
-            <button class="btn-mini btn-reset" onclick="resetInstallerFile(${idx})" title="Reset">↺</button>
+            <button class="btn-mini btn-reset" onclick="resetInstallerFile(${idx})" title="${t('cfg_installer_reset_title')}">↺</button>
         `;
         // Select current value
         const sel = picker.querySelector('select');
         if (p.installerFile) sel.value = p.installerFile;
     } catch (e) {
-        current.textContent = '(błąd)';
+        current.textContent = t('cfg_installer_error');
     }
 }
 
@@ -147,8 +147,8 @@ function toggleProgram(idx, checked) {
 
 function updateCounts() {
     const count = allPrograms.filter(p => p.selected).length;
-    document.getElementById('selected-count').textContent = count + ' ' + (typeof t === 'function' ? t('cfg_selected') : 'wybranych');
-    document.getElementById('install-count').textContent = count;
+    document.getElementById('selected-count').textContent = tn('count_cfg_selected', count);
+    document.getElementById('install-count').textContent = tn('count_cfg_programs_to_install', count);
 }
 
 function populateCategories() {

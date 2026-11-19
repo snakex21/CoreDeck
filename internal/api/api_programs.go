@@ -17,6 +17,7 @@ import (
 
 	"launcher/internal/paths"
 	"launcher/internal/programs"
+	"launcher/internal/uimsg"
 )
 
 func (a *API) GetProgramsData() string {
@@ -204,7 +205,7 @@ func (a *API) LaunchProgram(name string, variantIndex int, file string) string {
 		a.GetProgramsData()
 	}
 	if a.ProgramsData == nil {
-		return jsonError("Brak katalogu programów")
+		return jsonMsg(uimsg.New("msg_prog_no_catalog", "Brak katalogu programów"))
 	}
 	for _, p := range a.ProgramsData.Programs {
 		if p.Name != name {
@@ -224,7 +225,7 @@ func (a *API) LaunchProgram(name string, variantIndex int, file string) string {
 		data, _ := json.Marshal(result)
 		return string(data)
 	}
-	return jsonError("Nie znaleziono programu w katalogu: " + name)
+	return jsonMsg(uimsg.New("msg_prog_not_in_catalog", "Nie znaleziono programu w katalogu: "+name, "name", name))
 }
 
 func (a *API) OpenTargetFolder(path string) error {
@@ -319,7 +320,7 @@ func (a *API) AddProgram(programJSON string) string {
 		return `{"error": "Invalid program JSON"}`
 	}
 	if p.Name == "" {
-		return `{"error": "Nazwa programu jest wymagana"}`
+		return jsonMsg(uimsg.New("msg_prog_name_required", "Nazwa programu jest wymagana"))
 	}
 
 	replaced := false
@@ -335,7 +336,7 @@ func (a *API) AddProgram(programJSON string) string {
 	}
 
 	if err := programs.SavePrograms(a.WebDir, a.ProgramsData); err != nil {
-		return jsonError(err.Error())
+		return jsonErr(err)
 	}
 	return `{"success": true}`
 }
@@ -359,7 +360,7 @@ func (a *API) DeleteProgram(name string) string {
 	a.ProgramsData.Programs = filtered
 
 	if err := programs.SavePrograms(a.WebDir, a.ProgramsData); err != nil {
-		return jsonError(err.Error())
+		return jsonErr(err)
 	}
 	return `{"success": true}`
 }

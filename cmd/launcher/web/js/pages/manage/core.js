@@ -58,9 +58,9 @@ function updateManageStats() {
     const categories = new Set(allPrograms.map(p => p.category).filter(Boolean));
     const ds = getDriverStats();
     setText('stat-programs', allPrograms.length || 0);
-    setText('stat-categories-sub', (categories.size || 0) + ' ' + t('stat_cats_suffix'));
+    setText('stat-categories-sub', tn('count_mng_categories', categories.size || 0));
     setText('stat-driver-types', ds.types || 0);
-    setText('stat-driver-series-sub', (ds.series || 0) + ' ' + t('stat_series_suffix'));
+    setText('stat-driver-series-sub', tn('count_mng_series', ds.series || 0));
     setText('seg-count-programs', allPrograms.length || 0);
     setText('seg-count-drivers', ds.types || 0);
     setText('seg-count-pages', allPrograms.filter(p => p.type === 'link').length || 0);
@@ -222,7 +222,7 @@ function initProgramIconPicker() {
             document.getElementById('prog-icon').value = dataUrl;
             renderIconPreview(dataUrl);
             const note = document.getElementById('prog-icon-note');
-            if (note) note.textContent = file.name + ' · zapisane jako obrazek w JSON';
+            if (note) note.textContent = t('mng_icon_note_file_saved', { name: file.name });
         };
         reader.onerror = () => showToast(t('error_image_load'), true);
         reader.readAsDataURL(file);

@@ -17,6 +17,7 @@ import (
 	"launcher/internal/jsonutil"
 	"launcher/internal/paths"
 	"launcher/internal/safeio"
+	"launcher/internal/uimsg"
 )
 
 type Variant struct {
@@ -75,13 +76,22 @@ type InstallResult struct {
 	Name    string `json:"name"`
 	Success bool   `json:"success"`
 	Message string `json:"message"`
-	Type    string `json:"type"`
-	Path    string `json:"path,omitempty"`
+	// Code is the UI message key (translations.js), Params its placeholders;
+	// Message is the Polish fallback and log text (see internal/uimsg).
+	Code   string            `json:"code,omitempty"`
+	Params map[string]string `json:"params,omitempty"`
+	Type   string            `json:"type"`
+	Path   string            `json:"path,omitempty"`
 	// Outcome is one of OutcomeOK, OutcomeOKNote, OutcomeCancelled,
 	// OutcomeError. Cancelled duplicates OutcomeCancelled for older UIs.
 	Outcome   string `json:"outcome,omitempty"`
 	Cancelled bool   `json:"cancelled,omitempty"`
 	ExitCode  int    `json:"exitCode,omitempty"`
+}
+
+// newResult builds an InstallResult carrying a UI message.
+func newResult(name, installType string, success bool, m uimsg.Msg) InstallResult {
+	return InstallResult{Name: name, Type: installType, Success: success, Message: m.Text, Code: m.Code, Params: m.Params}
 }
 
 type InstallProgress struct {
@@ -337,12 +347,8 @@ func InstallPrograms(exeDir string, programs []Program, targetDir string, progre
 				case "manual", "other":
 					result = installManual(j.path, targetDir, j.p.Name, j.cfg.InstallType)
 				default:
-					result = InstallResult{
-						Name:    j.p.Name,
-						Success: false,
-						Message: "Nieznany typ: " + j.cfg.InstallType + " - otwórz ręcznie",
-						Type:    j.cfg.InstallType,
-					}
+					result = newResult(j.p.Name, j.cfg.InstallType, false,
+						uimsg.New("msg_inst_unknown_type", "Nieznany typ: "+j.cfg.InstallType+" - otwórz ręcznie", "type", j.cfg.InstallType))
 				}
 
 				mu.Lock()
@@ -374,7 +380,7 @@ func runInstallerStaged(installerPath, tempDir, name, installerArgs string) Inst
 	args := splitCommandLine(installerArgs)
 	cmd, err := installerCommand(installerPath, args)
 	if err != nil {
-		return InstallResult{Name: name, Success: false, Message: err.Error(), Type: "installer"}
+		return newResult(name, "installer", false, uimsg.From(err))
 	}
 	cmd.Dir = filepath.Dir(installerPath)
 
@@ -441,80 +447,54 @@ func resolveVariant(p Program, exeDir string) installConfig {
 
 func installPortable(srcDir, targetDir, name string) InstallResult {
 	if _, err := os.Stat(srcDir); os.IsNotExist(err) {
-		return InstallResult{
-			Name:    name,
-			Success: false,
-			Message: "Folder nie znaleziony: " + srcDir,
-			Type:    "portable",
-		}
+		return newResult(name, "portable", false, folderMissing(srcDir))
 	}
 
 	destDir := filepath.Join(targetDir, name)
 	if err := copyDirFast(srcDir, destDir); err != nil {
-		return InstallResult{
-			Name:    name,
-			Success: false,
-			Message: "Błąd kopiowania: " + err.Error(),
-			Type:    "portable",
-		}
+		return newResult(name, "portable", false, copyFailed(err))
 	}
 
-	return InstallResult{
-		Name:    name,
-		Success: true,
-		Message: "Skopiowano do " + destDir,
-		Type:    "portable",
-		Path:    destDir,
-	}
+	r := newResult(name, "portable", true, uimsg.New("msg_inst_copied", "Skopiowano do "+destDir, "path", destDir))
+	r.Path = destDir
+	return r
+}
+
+func folderMissing(dir string) uimsg.Msg {
+	return uimsg.New("msg_inst_folder_missing", "Folder nie znaleziony: "+dir, "path", dir)
+}
+
+func copyFailed(err error) uimsg.Msg {
+	return uimsg.New("msg_inst_copy_failed", "Błąd kopiowania: "+err.Error(), "error", err.Error())
 }
 
 func installManual(srcDir, targetDir, name, installType string) InstallResult {
 	if _, err := os.Stat(srcDir); os.IsNotExist(err) {
-		return InstallResult{
-			Name:    name,
-			Success: false,
-			Message: "Folder nie znaleziony: " + srcDir,
-			Type:    installType,
-		}
+		return newResult(name, installType, false, folderMissing(srcDir))
 	}
 
 	destDir := filepath.Join(targetDir, name)
 	if err := copyDirFast(srcDir, destDir); err != nil {
-		return InstallResult{
-			Name:    name,
-			Success: false,
-			Message: "Błąd kopiowania: " + err.Error(),
-			Type:    installType,
-		}
+		return newResult(name, installType, false, copyFailed(err))
 	}
 
-	return InstallResult{
-		Name:    name,
-		Success: true,
-		Message: "Skopiowano do " + destDir + " — wymagana ręczna instalacja/konfiguracja. Otwórz folder i wykonaj instrukcję ze szczegółów programu.",
-		Type:    installType,
-		Path:    destDir,
-	}
+	r := newResult(name, installType, true, uimsg.New("msg_inst_copied_manual",
+		"Skopiowano do "+destDir+" — wymagana ręczna instalacja/konfiguracja. Otwórz folder i wykonaj instrukcję ze szczegółów programu.",
+		"path", destDir))
+	r.Path = destDir
+	return r
 }
 
 func runInstaller(installerDir, name, installerFile, installerArgs string, runFromTemp bool) InstallResult {
 	if _, err := os.Stat(installerDir); os.IsNotExist(err) {
-		return InstallResult{
-			Name:    name,
-			Success: false,
-			Message: "Folder nie znaleziony: " + installerDir,
-			Type:    "installer",
-		}
+		return newResult(name, "installer", false, folderMissing(installerDir))
 	}
 
 	installerPath := resolveInstallerPath(installerDir, installerFile)
 	if strings.TrimSpace(installerFile) != "" && installerPath == "" {
-		return InstallResult{
-			Name:    name,
-			Success: false,
-			Message: "Wskazany instalator nie istnieje albo nie jest obsługiwanym typem (.exe/.msi/.appx/.bat/.cmd/.ps1): " + installerFile,
-			Type:    "installer",
-		}
+		return newResult(name, "installer", false, uimsg.New("msg_inst_installer_invalid",
+			"Wskazany instalator nie istnieje albo nie jest obsługiwanym typem (.exe/.msi/.appx/.bat/.cmd/.ps1): "+installerFile,
+			"file", installerFile))
 	}
 
 	if installerPath == "" {
@@ -522,12 +502,7 @@ func runInstaller(installerDir, name, installerFile, installerArgs string, runFr
 	}
 
 	if installerPath == "" {
-		return InstallResult{
-			Name:    name,
-			Success: false,
-			Message: "Nie znaleziono instalatora w " + installerDir,
-			Type:    "installer",
-		}
+		return newResult(name, "installer", false, uimsg.New("msg_inst_installer_not_found", "Nie znaleziono instalatora w "+installerDir, "path", installerDir))
 	}
 
 	cleanup := func() {}
@@ -536,12 +511,7 @@ func runInstaller(installerDir, name, installerFile, installerArgs string, runFr
 		var err error
 		installerPath, tempDir, err = copyInstallerDirToTemp(installerDir, installerPath, name)
 		if err != nil {
-			return InstallResult{
-				Name:    name,
-				Success: false,
-				Message: "Błąd kopiowania instalatora do TEMP: " + err.Error(),
-				Type:    "installer",
-			}
+			return newResult(name, "installer", false, uimsg.New("msg_inst_temp_copy_failed", "Błąd kopiowania instalatora do TEMP: "+err.Error(), "error", err.Error()))
 		}
 		cleanup = func() { _ = os.RemoveAll(tempDir) }
 		defer cleanup()
@@ -550,7 +520,7 @@ func runInstaller(installerDir, name, installerFile, installerArgs string, runFr
 	args := splitCommandLine(installerArgs)
 	cmd, err := installerCommand(installerPath, args)
 	if err != nil {
-		return InstallResult{Name: name, Success: false, Message: err.Error(), Type: "installer"}
+		return newResult(name, "installer", false, uimsg.From(err))
 	}
 	cmd.Dir = filepath.Dir(installerPath)
 
@@ -604,7 +574,7 @@ func copyInstallerDirToTemp(installerDir, installerPath, name string) (string, s
 	rel, err := filepath.Rel(installerDir, installerPath)
 	if err != nil || strings.HasPrefix(rel, "..") || filepath.IsAbs(rel) {
 		_ = os.RemoveAll(tempDir)
-		return "", "", fmt.Errorf("instalator %s nie znajduje się w folderze %s", installerPath, installerDir)
+		return "", "", fmt.Errorf("installer %s is outside folder %s", installerPath, installerDir)
 	}
 
 	tempInstallerPath := filepath.Join(tempDir, rel)
@@ -641,12 +611,12 @@ func splitCommandLine(s string) []string {
 	return args
 }
 
-func installerDoneMessage(installerPath string, ranFromTemp bool) string {
-	msg := "Instalator zakończony: " + filepath.Base(installerPath)
+func installerDoneMessage(installerPath string, ranFromTemp bool) uimsg.Msg {
+	file := filepath.Base(installerPath)
 	if ranFromTemp {
-		msg += " (uruchomiony z TEMP, kopia usunięta)"
+		return uimsg.New("msg_inst_installer_done_temp", "Instalator zakończony: "+file+" (uruchomiony z TEMP, kopia usunięta)", "file", file)
 	}
-	return msg
+	return uimsg.New("msg_inst_installer_done", "Instalator zakończony: "+file, "file", file)
 }
 
 func findInstaller(installerDir string) string {
@@ -699,18 +669,19 @@ func findInstaller(installerDir string) string {
 
 func runScript(scriptDir, name, scriptFile, scriptArgs string) InstallResult {
 	if _, err := os.Stat(scriptDir); os.IsNotExist(err) {
-		return InstallResult{Name: name, Success: false, Message: "Folder nie znaleziony: " + scriptDir, Type: "script"}
+		return newResult(name, "script", false, folderMissing(scriptDir))
 	}
 
 	scriptPath := resolveScriptPath(scriptDir, scriptFile)
 	if strings.TrimSpace(scriptFile) != "" && scriptPath == "" {
-		return InstallResult{Name: name, Success: false, Message: "Wskazany skrypt nie istnieje albo ma nieobsługiwany typ (.ps1/.bat/.cmd/.reg): " + scriptFile, Type: "script"}
+		return newResult(name, "script", false, uimsg.New("msg_inst_script_invalid",
+			"Wskazany skrypt nie istnieje albo ma nieobsługiwany typ (.ps1/.bat/.cmd/.reg): "+scriptFile, "file", scriptFile))
 	}
 	if scriptPath == "" {
 		scriptPath = findScript(scriptDir)
 	}
 	if scriptPath == "" {
-		return InstallResult{Name: name, Success: false, Message: "Nie znaleziono skryptu w " + scriptDir, Type: "script"}
+		return newResult(name, "script", false, uimsg.New("msg_inst_script_not_found", "Nie znaleziono skryptu w "+scriptDir, "path", scriptDir))
 	}
 
 	lower := strings.ToLower(scriptPath)
@@ -724,17 +695,17 @@ func runScript(scriptDir, name, scriptFile, scriptArgs string) InstallResult {
 	case strings.HasSuffix(lower, ".reg"):
 		cmd = exec.Command("reg", "import", scriptPath)
 	default:
-		return InstallResult{Name: name, Success: false, Message: "Nieobsługiwany skrypt: " + filepath.Base(scriptPath), Type: "script"}
+		return newResult(name, "script", false, uimsg.New("msg_inst_script_unsupported", "Nieobsługiwany skrypt: "+filepath.Base(scriptPath), "file", filepath.Base(scriptPath)))
 	}
 
 	cmd.Dir = filepath.Dir(scriptPath)
 	if err := cmd.Start(); err != nil {
-		return InstallResult{Name: name, Success: false, Message: "Błąd uruchamiania skryptu: " + err.Error(), Type: "script"}
+		return newResult(name, "script", false, uimsg.New("msg_inst_script_start_failed", "Błąd uruchamiania skryptu: "+err.Error(), "error", err.Error()))
 	}
 	if err := cmd.Wait(); err != nil {
-		return InstallResult{Name: name, Success: false, Message: commandFailureMessage("Skrypt zakończył się błędem", err), Type: "script"}
+		return newResult(name, "script", false, scriptFailureMessage(err))
 	}
-	return InstallResult{Name: name, Success: true, Message: "Skrypt wykonany: " + filepath.Base(scriptPath), Type: "script"}
+	return newResult(name, "script", true, uimsg.New("msg_inst_script_done", "Skrypt wykonany: "+filepath.Base(scriptPath), "file", filepath.Base(scriptPath)))
 }
 
 func installerCommand(installerPath string, args []string) (*exec.Cmd, error) {
@@ -753,7 +724,8 @@ func installerCommand(installerPath string, args []string) (*exec.Cmd, error) {
 	case strings.HasSuffix(lower, ".exe"):
 		return exec.Command(installerPath, args...), nil
 	default:
-		return nil, fmt.Errorf("Nieobsługiwany typ instalatora: %s", filepath.Ext(installerPath))
+		ext := filepath.Ext(installerPath)
+		return nil, uimsg.Errorf("msg_inst_installer_unsupported", "Nieobsługiwany typ instalatora: "+ext, "ext", ext)
 	}
 }
 
@@ -775,12 +747,13 @@ func powershellFileCommand(scriptPath string, args []string) *exec.Cmd {
 	return exec.Command("powershell.exe", cmdArgs...)
 }
 
-func commandFailureMessage(prefix string, err error) string {
+func scriptFailureMessage(err error) uimsg.Msg {
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) {
-		return fmt.Sprintf("%s (%s).", prefix, formatExitCode(exitErr.ExitCode()))
+		code := formatExitCode(exitErr.ExitCode())
+		return uimsg.New("msg_inst_script_failed_code", "Skrypt zakończył się błędem (kod "+code+").", "code", code)
 	}
-	return prefix + ": " + err.Error()
+	return uimsg.New("msg_inst_script_failed", "Skrypt zakończył się błędem: "+err.Error(), "error", err.Error())
 }
 
 func resolveScriptPath(scriptDir, scriptFile string) string {

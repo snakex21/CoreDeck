@@ -263,7 +263,7 @@ func (a *API) ApplyTweaks(tweaksJSON string) string {
 	}
 	selected, pending, err := a.approvedTweaks(req)
 	if err != nil {
-		return jsonError(err.Error())
+		return jsonErr(err)
 	}
 	if len(pending) > 0 {
 		data, _ := json.Marshal(map[string]any{

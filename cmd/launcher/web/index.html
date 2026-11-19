@@ -19,10 +19,10 @@
         </div>
         <div class="coredeck-loading-copy">
             <strong>CoreDeck</strong>
-            <span>Windows Toolkit &amp; Launcher</span>
+            <span data-i18n="subtitle">Windows Toolkit &amp; Launcher</span>
         </div>
         <div class="coredeck-loading-progress" aria-hidden="true"><span></span></div>
-        <p id="coredeck-loading-status">Preparing workspace…</p>
+        <p id="coredeck-loading-status" data-i18n="launch_loading_workspace">Przygotowywanie przestrzeni roboczej…</p>
     </div>
 
     <!-- Górny, przyklejony pasek -->
@@ -59,7 +59,7 @@
             <button id="config-btn" class="btn btn-secondary nav-btn" onclick="window.location.href='configurator.html'">⚙️ <span data-i18n="config">1 Konfiguracja</span></button>
             <button id="knowledge-btn" class="btn btn-secondary nav-btn" onclick="window.location.href='knowledge.html'">📚 <span data-i18n="knowledge">Baza Wiedzy</span></button>
             <details class="header-nav-menu">
-                <summary class="btn btn-secondary nav-btn">🧰 System</summary>
+                <summary class="btn btn-secondary nav-btn">🧰 <span data-i18n="launch_nav_system">System</span></summary>
                 <div class="header-nav-menu-popover">
                     <a href="drivers.html" class="header-nav-menu-link">🧩 <span data-i18n="tab_drivers">Sterowniki</span></a>
                     <a href="settings.html" class="header-nav-menu-link">⚙ <span data-i18n="tab_settings">Ustawienia</span></a>
@@ -71,7 +71,7 @@
                 <span class="theme-icon">🌙</span>
             </button>
             <!-- Language Selector -->
-            <select id="lang-select" class="btn lang-select" aria-label="Wybierz język">
+            <select id="lang-select" class="btn lang-select" aria-label="Język" data-i18n-aria="lang_label">
                 <option value="pl">🇵🇱 PL</option>
                 <option value="en">🇬🇧 EN</option>
                 <option value="de">🇩🇪 DE</option>
@@ -139,12 +139,10 @@
 
                 <div id="driver-result-container" class="driver-result hidden">
                     <p data-i18n="driver_selected_folder">Wybrany folder ze sterownikami:</p>
-                    <button id="driver-open-btn" class="btn open-folder-btn" data-i18n="open_folder">
-                        📂 Otwórz folder
+                    <button id="driver-open-btn" class="btn open-folder-btn">
+                        📂 <span data-i18n="open_folder">Otwórz folder</span>
                     </button>
-                    <button id="driver-copy-path-btn" class="btn copy-folder-btn" data-i18n="driver_copy_path">
-                        Skopiuj ścieżkę
-                    </button>
+                    <button id="driver-copy-path-btn" class="btn copy-folder-btn" data-i18n="driver_copy_path">Skopiuj ścieżkę</button>
                 </div>
             </div>
 
@@ -157,7 +155,7 @@
                     <p data-i18n="settings_selected_folder">Wybrany folder ustawień:</p>
                     <div class="settings-result-name" id="settings-selected-name"></div>
                     <div class="settings-result-path" id="settings-selected-path"></div>
-                    <button id="settings-open-btn" class="btn open-folder-btn" data-i18n="settings_open_folder">📂 Otwórz folder</button>
+                    <button id="settings-open-btn" class="btn open-folder-btn">📂 <span data-i18n="settings_open_folder">Otwórz folder</span></button>
                     <button id="settings-copy-btn" class="btn copy-folder-btn" data-i18n="copy_path">Skopiuj ścieżkę</button>
                 </div>
             </div>
@@ -173,7 +171,7 @@
                             <span class="icon">🤖</span>
                             <span id="ai-results-count">Wyniki AI</span>
                         </h3>
-                        <button class="btn-clear-search" id="clear-ai-search" aria-label="Wyczyść wyniki AI" data-i18n-title="clear_results">✕</button>
+                        <button class="btn-clear-search" id="clear-ai-search" aria-label="Wyczyść wyniki AI" title="Wyczyść wyniki AI" data-i18n-aria="clear_results" data-i18n-title="clear_results">✕</button>
                     </div>
                     <div class="ai-search-results-container"></div>
                 </div>
@@ -227,15 +225,15 @@
             <h2 data-i18n="help_title">Jak korzystać z launchera?</h2>
 
             <div class="modal-section">
-                <h3 data-i18n="help_search_title">🔍 Dwa tryby wyszukiwania:</h3>
+                <h3>🔍 <span data-i18n="help_search_title">Dwa tryby wyszukiwania:</span></h3>
                 <ul>
                     <li><strong>🔍 <span data-i18n="search_name">Nazwa</span>:</strong> <span data-i18n="help_name_desc">Wpisz nazwę programu (np. "crystaldisk")</span></li>
-                    <li><strong>✨ <span data-i18n="search_ai">Szukaj</span>:</strong> <span data-i18n="help_ai_desc">Opisz czego szukasz po polsku (np. "odzyskiwanie plików", "monitoring GPU")</span></li>
+                    <li><strong>✨ <span data-i18n="search_ai">Szukaj</span>:</strong> <span data-i18n="help_ai_desc">Opisz czego szukasz (np. "odzyskiwanie plików", "monitoring GPU")</span></li>
                 </ul>
             </div>
 
             <div class="modal-section">
-                <h3 data-i18n="help_sections_title">📂 Sekcje:</h3>
+                <h3>📂 <span data-i18n="help_sections_title">Sekcje:</span></h3>
                 <ul>
                     <li><strong data-i18n="applications">Aplikacje</strong>: <span data-i18n="help_apps_desc">Główna lista. Kliknij kategorię lub użyj wyszukiwarki.</span></li>
                     <li><strong data-i18n="drivers">Sterowniki</strong>: <span data-i18n="help_drivers_desc">Lista na dole lewego panelu.</span></li>
@@ -243,7 +241,7 @@
             </div>
 
             <div class="modal-section">
-                <h3 data-i18n="help_features_title">⚡ Funkcje:</h3>
+                <h3>⚡ <span data-i18n="help_features_title">Funkcje:</span></h3>
                 <ul>
                     <li><strong data-i18n="open_folder">Otwórz folder</strong>: <span data-i18n="help_open_desc">Otwiera folder bezpośrednio w Eksploratorze</span></li>
                     <li><strong data-i18n="copy_path">Skopiuj ścieżkę</strong>: <span data-i18n="help_copy_desc">Kopiuje ścieżkę do schowka</span></li>

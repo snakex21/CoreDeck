@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	"launcher/internal/uimsg"
 	"sync/atomic"
 
 	"launcher/internal/jsonutil"
@@ -58,12 +60,16 @@ type Check struct {
 }
 
 type TweakState struct {
-	ID         string `json:"id"`
-	Active     bool   `json:"active"`
-	Known      bool   `json:"known"`
-	Removed    bool   `json:"removed"`
-	Message    string `json:"message,omitempty"`
-	Revertible bool   `json:"revertible,omitempty"`
+	ID      string `json:"id"`
+	Active  bool   `json:"active"`
+	Known   bool   `json:"known"`
+	Removed bool   `json:"removed"`
+	Message string `json:"message,omitempty"`
+	// Code is the UI message key (translations.js), Params its placeholders;
+	// Message is the Polish fallback and log text (see internal/uimsg).
+	Code       string            `json:"code,omitempty"`
+	Params     map[string]string `json:"params,omitempty"`
+	Revertible bool              `json:"revertible,omitempty"`
 }
 
 type TweaksData struct {
@@ -77,6 +83,19 @@ type TweakResult struct {
 	Name    string `json:"name"`
 	Success bool   `json:"success"`
 	Message string `json:"message"`
+	// Code / Params: see TweakState.
+	Code   string            `json:"code,omitempty"`
+	Params map[string]string `json:"params,omitempty"`
+}
+
+// newResult builds a TweakResult carrying a UI message.
+func newResult(id, name string, success bool, m uimsg.Msg) TweakResult {
+	return TweakResult{ID: id, Name: name, Success: success, Message: m.Text, Code: m.Code, Params: m.Params}
+}
+
+// setMsg sets the state's UI message.
+func (s *TweakState) setMsg(m uimsg.Msg) {
+	s.Message, s.Code, s.Params = m.Text, m.Code, m.Params
 }
 
 func LoadTweaks(webDir string) (*TweaksData, error) {
@@ -252,7 +271,7 @@ func CheckTweakState(t Tweak) TweakState {
 				state.Active = false
 				state.Removed = true
 				state.Known = true
-				state.Message = "Komponent usunięty z systemu"
+				state.setMsg(uimsg.New("msg_tws_component_removed", "Komponent usunięty z systemu"))
 				return state
 			}
 		}
@@ -260,7 +279,7 @@ func CheckTweakState(t Tweak) TweakState {
 
 	if len(t.Checks) == 0 {
 		state.Known = false
-		state.Message = "Brak reguły sprawdzania"
+		state.setMsg(uimsg.New("msg_tws_no_check_rule", "Brak reguły sprawdzania"))
 		return state
 	}
 
@@ -268,13 +287,13 @@ func CheckTweakState(t Tweak) TweakState {
 		ok, msg := RunCheck(check)
 		if !ok {
 			state.Active = false
-			state.Message = msg
+			state.setMsg(msg)
 			return state
 		}
 	}
 
 	state.Active = true
-	state.Message = "Aktywny"
+	state.setMsg(uimsg.New("msg_tws_active", "Aktywny"))
 	return state
 }
 
@@ -372,11 +391,8 @@ func CheckTweaksStatesWithProgress(tweaks []Tweak, progress func(completed, tota
 	return states
 }
 
-func runCheck(check Check) (bool, string) {
-	return RunCheck(check)
-}
-
-func RunCheck(check Check) (bool, string) {
+// RunCheck evaluates one check rule; the message explains the result.
+func RunCheck(check Check) (bool, uimsg.Msg) {
 	switch check.Type {
 	case "registry":
 		return checkRegistry(check)
@@ -387,7 +403,7 @@ func RunCheck(check Check) (bool, string) {
 	case "package":
 		return checkPackage(check)
 	default:
-		return false, "Nieznany typ sprawdzania: " + check.Type
+		return false, uimsg.New("msg_tws_unknown_check", "Nieznany typ sprawdzania: "+check.Type, "type", check.Type)
 	}
 }
 
@@ -486,32 +502,33 @@ func cachedServiceStartType(name string) (startType string, exists bool, known b
 
 // checkPackage reports a debloat tweak as ACTIVE when the appx package is NOT
 // installed (i.e. it has been removed).
-func checkPackage(check Check) (bool, string) {
+func checkPackage(check Check) (bool, uimsg.Msg) {
 	name := check.Package
 	if name == "" {
 		name = check.Name
 	}
 	if name == "" {
-		return false, "Brak nazwy pakietu"
+		return false, uimsg.New("msg_tws_no_package_name", "Brak nazwy pakietu")
 	}
 	if installed, known := cachedPackageInstalled(name); known {
 		if installed {
-			return false, "Zainstalowany"
+			return false, uimsg.New("msg_tws_installed", "Zainstalowany")
 		}
-		return true, "Usunięty"
+		return true, uimsg.New("msg_tws_removed", "Usunięty")
 	}
-	return false, "Nie można odczytać listy pakietów"
+	return false, uimsg.New("msg_tws_packages_unreadable", "Nie można odczytać listy pakietów")
 }
 
 // checkRegistry parses reg query output properly, line by line.
-func checkRegistry(check Check) (bool, string) {
+func checkRegistry(check Check) (bool, uimsg.Msg) {
 	if check.Path == "" || check.Name == "" {
-		return false, "Niepełna reguła registry"
+		return false, uimsg.New("msg_tws_registry_rule_incomplete", "Niepełna reguła registry")
 	}
 
 	output, err := runRegQuery(check.Path, check.Name)
 	if err != nil {
-		return false, "Brak wpisu: " + check.Path + "\\" + check.Name
+		entry := check.Path + "\\" + check.Name
+		return false, uimsg.New("msg_tws_registry_missing", "Brak wpisu: "+entry, "entry", entry)
 	}
 
 	outputStr := string(output)
@@ -560,17 +577,18 @@ func checkRegistry(check Check) (bool, string) {
 
 		// If no expected value, just checking existence
 		if check.Equals == "" {
-			return true, "Wpis istnieje"
+			return true, uimsg.New("msg_tws_entry_exists", "Wpis istnieje")
 		}
 
 		// Compare
 		if registryValueMatches(actualValue, check.Equals) {
-			return true, "Zgodny"
+			return true, uimsg.New("msg_tws_matches", "Zgodny")
 		}
-		return false, fmt.Sprintf("Oczekiwano %s, jest %s", check.Equals, actualValue)
+		return false, uimsg.New("msg_tws_value_mismatch", fmt.Sprintf("Oczekiwano %s, jest %s", check.Equals, actualValue),
+			"expected", check.Equals, "actual", actualValue)
 	}
 
-	return false, "Nie znaleziono wartości w output"
+	return false, uimsg.New("msg_tws_value_not_found", "Nie znaleziono wartości w output")
 }
 
 // registryValueMatches compares registry values handling DWORD formats
@@ -615,13 +633,13 @@ func parseHexOrDec(s string) *int {
 }
 
 // checkService uses PowerShell to get service start type (locale-independent).
-func checkService(check Check) (bool, string) {
+func checkService(check Check) (bool, uimsg.Msg) {
 	services := check.Services
 	if len(services) == 0 && check.Service != "" {
 		services = []string{check.Service}
 	}
 	if len(services) == 0 {
-		return false, "Brak nazwy usługi"
+		return false, uimsg.New("msg_tws_no_service_name", "Brak nazwy usługi")
 	}
 
 	expected := strings.ToLower(check.Startup)
@@ -632,10 +650,10 @@ func checkService(check Check) (bool, string) {
 	for _, svc := range services {
 		if actual, exists, known := cachedServiceStartType(svc); known {
 			if !exists {
-				return false, "Nie można odczytać usługi: " + svc
+				return false, serviceUnreadable(svc)
 			}
 			if !serviceStartTypeMatches(actual, expected) {
-				return false, fmt.Sprintf("Usługa %s: start=%s, oczekiwano %s", svc, actual, expected)
+				return false, serviceMismatch(svc, actual, expected)
 			}
 			continue
 		}
@@ -643,16 +661,25 @@ func checkService(check Check) (bool, string) {
 		cmd := powershellCommand(fmt.Sprintf(`(Get-Service -Name '%s').StartType`, svc))
 		output, err := cmd.CombinedOutput()
 		if err != nil {
-			return false, "Nie można odczytać usługi: " + svc
+			return false, serviceUnreadable(svc)
 		}
 
 		actual := strings.TrimSpace(strings.ToLower(string(output)))
 
 		if !serviceStartTypeMatches(actual, expected) {
-			return false, fmt.Sprintf("Usługa %s: start=%s, oczekiwano %s", svc, actual, expected)
+			return false, serviceMismatch(svc, actual, expected)
 		}
 	}
-	return true, "Usługi zgodne"
+	return true, uimsg.New("msg_tws_services_match", "Usługi zgodne")
+}
+
+func serviceUnreadable(svc string) uimsg.Msg {
+	return uimsg.New("msg_tws_service_unreadable", "Nie można odczytać usługi: "+svc, "service", svc)
+}
+
+func serviceMismatch(svc, actual, expected string) uimsg.Msg {
+	return uimsg.New("msg_tws_service_mismatch", fmt.Sprintf("Usługa %s: start=%s, oczekiwano %s", svc, actual, expected),
+		"service", svc, "actual", actual, "expected", expected)
 }
 
 func serviceStartTypeMatches(actual, expected string) bool {
@@ -668,9 +695,9 @@ func serviceStartTypeMatches(actual, expected string) bool {
 }
 
 // checkCommand runs a command and checks output for expected string.
-func checkCommand(check Check) (bool, string) {
+func checkCommand(check Check) (bool, uimsg.Msg) {
 	if check.Command == "" {
-		return false, "Brak komendy sprawdzającej"
+		return false, uimsg.New("msg_tws_no_command", "Brak komendy sprawdzającej")
 	}
 
 	var output []byte
@@ -694,21 +721,25 @@ func checkCommand(check Check) (bool, string) {
 	}
 
 	if err != nil {
-		return false, "Komenda sprawdzająca nie powiodła się: " + err.Error()
+		return false, uimsg.New("msg_tws_command_failed", "Komenda sprawdzająca nie powiodła się: "+err.Error(), "error", err.Error())
 	}
 	out := strings.ToLower(string(output))
 
 	if check.Contains != "" {
 		if !strings.Contains(out, strings.ToLower(check.Contains)) {
-			return false, fmt.Sprintf("Wynik nie zawiera '%s', output: %s", check.Contains, strings.TrimSpace(string(output)))
+			got := strings.TrimSpace(string(output))
+			return false, uimsg.New("msg_tws_output_missing", fmt.Sprintf("Wynik nie zawiera '%s', output: %s", check.Contains, got),
+				"expected", check.Contains, "output", got)
 		}
 	}
 	if check.Equals != "" {
 		if strings.TrimSpace(out) != strings.ToLower(strings.TrimSpace(check.Equals)) {
-			return false, fmt.Sprintf("Wynik '%s' != '%s'", strings.TrimSpace(string(output)), check.Equals)
+			got := strings.TrimSpace(string(output))
+			return false, uimsg.New("msg_tws_output_mismatch", fmt.Sprintf("Wynik '%s' != '%s'", got, check.Equals),
+				"actual", got, "expected", check.Equals)
 		}
 	}
-	return true, "Zgodny"
+	return true, uimsg.New("msg_tws_matches", "Zgodny")
 }
 
 type TweakProgress struct {
@@ -729,12 +760,7 @@ func ApplyTweaks(tweaks []Tweak, progressCb func(TweakProgress), cancelCheck fun
 
 		state := CheckTweakState(t)
 		if state.Known && state.Active {
-			results = append(results, TweakResult{
-				ID:      t.ID,
-				Name:    t.Name,
-				Success: true,
-				Message: "Już aktywny — pominięto",
-			})
+			results = append(results, newResult(t.ID, t.Name, true, uimsg.New("msg_tw_already_active", "Już aktywny — pominięto")))
 		} else {
 			result := ApplyTweak(t)
 			results = append(results, result)
@@ -785,17 +811,17 @@ func ApplyTweak(t Tweak) TweakResult {
 			}
 		}
 		if len(errors) > 0 {
-			return TweakResult{ID: t.ID, Name: t.Name, Success: false, Message: addAdminHint(strings.Join(errors, "; "))}
+			return newResult(t.ID, t.Name, false, failureMessage(strings.Join(errors, "; ")))
 		}
-		return TweakResult{ID: t.ID, Name: t.Name, Success: true, Message: "Zastosowano"}
+		return newResult(t.ID, t.Name, true, applied)
 
 	case "powershell":
 		cmd := powershellCommand(t.Command)
 		output, err := cmd.CombinedOutput()
 		if err != nil {
-			return TweakResult{ID: t.ID, Name: t.Name, Success: false, Message: addAdminHint(err.Error() + ": " + strings.TrimSpace(string(output)))}
+			return newResult(t.ID, t.Name, false, failureMessage(err.Error()+": "+strings.TrimSpace(string(output))))
 		}
-		return TweakResult{ID: t.ID, Name: t.Name, Success: true, Message: "Zastosowano"}
+		return newResult(t.ID, t.Name, true, applied)
 
 	case "powercfg":
 		commands := splitCommands(t.Command)
@@ -811,9 +837,9 @@ func ApplyTweak(t Tweak) TweakResult {
 			}
 		}
 		if len(errors) > 0 {
-			return TweakResult{ID: t.ID, Name: t.Name, Success: false, Message: addAdminHint(strings.Join(errors, "; "))}
+			return newResult(t.ID, t.Name, false, failureMessage(strings.Join(errors, "; ")))
 		}
-		return TweakResult{ID: t.ID, Name: t.Name, Success: true, Message: "Zastosowano"}
+		return newResult(t.ID, t.Name, true, applied)
 
 	case "service":
 		commands := splitCommands(t.Command)
@@ -829,9 +855,9 @@ func ApplyTweak(t Tweak) TweakResult {
 			}
 		}
 		if len(errors) > 0 {
-			return TweakResult{ID: t.ID, Name: t.Name, Success: false, Message: addAdminHint(strings.Join(errors, "; "))}
+			return newResult(t.ID, t.Name, false, failureMessage(strings.Join(errors, "; ")))
 		}
-		return TweakResult{ID: t.ID, Name: t.Name, Success: true, Message: "Zastosowano"}
+		return newResult(t.ID, t.Name, true, applied)
 
 	case "appx":
 		var errs []string
@@ -847,21 +873,25 @@ func ApplyTweak(t Tweak) TweakResult {
 			}
 		}
 		if len(errs) > 0 {
-			return TweakResult{ID: t.ID, Name: t.Name, Success: false, Message: addAdminHint(strings.Join(errs, "; "))}
+			return newResult(t.ID, t.Name, false, failureMessage(strings.Join(errs, "; ")))
 		}
-		return TweakResult{ID: t.ID, Name: t.Name, Success: true, Message: "Usunięto"}
+		return newResult(t.ID, t.Name, true, uimsg.New("msg_tw_removed", "Usunięto"))
 
 	default:
-		return TweakResult{ID: t.ID, Name: t.Name, Success: false, Message: "Nieznany typ: " + t.Type}
+		return newResult(t.ID, t.Name, false, uimsg.New("msg_tw_unknown_type", "Nieznany typ: "+t.Type, "type", t.Type))
 	}
 }
 
-func addAdminHint(message string) string {
-	lower := strings.ToLower(message)
+var applied = uimsg.New("msg_tw_applied", "Zastosowano")
+
+// failureMessage wraps the raw command errors; access errors get a hint to
+// run CoreDeck as administrator.
+func failureMessage(details string) uimsg.Msg {
+	lower := strings.ToLower(details)
 	if strings.Contains(lower, "access is denied") || strings.Contains(lower, "odmowa dostępu") || strings.Contains(lower, "denied") {
-		return message + " — uruchom launcher jako administrator"
+		return uimsg.New("msg_tw_failed_admin", details+" — uruchom launcher jako administrator", "error", details)
 	}
-	return message
+	return uimsg.New("msg_tw_failed", details, "error", details)
 }
 
 // psExe returns the PowerShell executable to use, preferring Windows PowerShell

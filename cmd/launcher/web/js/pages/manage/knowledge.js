@@ -52,7 +52,7 @@ function renderKnowledgeList() {
 
     if (activeKnowledgeCategoryIndex >= 0 && !search) {
         const cat = allKnowledge[activeKnowledgeCategoryIndex];
-        html += `<div class="knowledge-detail-head"><button type="button" class="knowledge-detail-back" onclick="showKnowledgeCategories()">← Wszystkie kategorie</button><div class="knowledge-detail-title">${escapeHtml(cat?.icon || '📂')} ${escapeHtml(cat?.name || '')} <span class="knowledge-detail-count">${(cat?.links || []).length} linków</span></div></div>`;
+        html += `<div class="knowledge-detail-head"><button type="button" class="knowledge-detail-back" onclick="showKnowledgeCategories()">← ${t('filter_all_cats')}</button><div class="knowledge-detail-title">${escapeHtml(cat?.icon || '📂')} ${escapeHtml(cat?.name || '')} <span class="knowledge-detail-count">${tn('count_kb_links', (cat?.links || []).length)}</span></div></div>`;
     }
 
     categoriesToRender.forEach(({ cat, catIdx }) => {
@@ -87,8 +87,8 @@ function renderKnowledgeList() {
         Object.entries(sections).forEach(([sectionName, sectionLinks]) => {
             html += `<div style="padding:6px 24px 2px 36px;font-size:var(--fs-2xs);font-weight:500;color:var(--accent-primary);display:flex;align-items:center;gap:8px;">`;
             html += `📁 ${escapeHtml(sectionName)} <span style="color:var(--text-muted)">(${sectionLinks.length})</span>`;
-            html += `<button class="row-action" style="width:20px;height:20px;" onclick="renameKnowledgeSection(${catIdx},'${escapeHtml(sectionName)}')" title="Zmień nazwę sekcji">${ICON.edit}</button>`;
-            html += `<button class="row-action danger" style="width:20px;height:20px;" onclick="deleteKnowledgeSection(${catIdx},'${escapeHtml(sectionName)}')" title="Usuń sekcję (linki zostaną bez sekcji)">${ICON.trash}</button>`;
+            html += `<button class="row-action" style="width:20px;height:20px;" onclick="renameKnowledgeSection(${catIdx},'${escapeHtml(sectionName)}')" title="${escapeHtml(t('kb_rename_section_title'))}">${ICON.edit}</button>`;
+            html += `<button class="row-action danger" style="width:20px;height:20px;" onclick="deleteKnowledgeSection(${catIdx},'${escapeHtml(sectionName)}')" title="${escapeHtml(t('kb_delete_section_title'))}">${ICON.trash}</button>`;
             html += `</div>`;
             sectionLinks.forEach(l => {
                 const globalLinkIdx = (cat.links || []).indexOf(l);
@@ -99,7 +99,7 @@ function renderKnowledgeList() {
         // Render links without section
         if (noSection.length) {
             if (Object.keys(sections).length) {
-                html += `<div style="padding:6px 24px 2px 36px;font-size:var(--fs-2xs);font-weight:500;color:var(--text-muted);">Inne</div>`;
+                html += `<div style="padding:6px 24px 2px 36px;font-size:var(--fs-2xs);font-weight:500;color:var(--text-muted);">${t('kb_other')}</div>`;
             }
             noSection.forEach(l => {
                 const globalLinkIdx = (cat.links || []).indexOf(l);
@@ -122,16 +122,16 @@ function renderKnowledgeCategories(list) {
         .filter(item => item.category.groupId === activeKnowledgeGroupId)
         .sort((a, b) => (a.category.order || 0) - (b.category.order || 0));
     if (!categories.length) {
-        list.innerHTML = `<div class="knowledge-detail-head"><button type="button" class="knowledge-detail-back" onclick="showKnowledgeGroups()">← Wszystkie grupy</button><div class="knowledge-detail-title">${escapeHtml(group?.icon || '🗂️')} ${escapeHtml(group?.name || 'Grupa')}</div></div><div class="list-empty"><div class="list-empty-title">Ta grupa nie ma jeszcze kategorii</div><p style="font-size:var(--fs-xs);margin-top:4px;">Użyj przycisku „+ Kategoria”, aby dodać ją do tej grupy.</p></div>`;
+        list.innerHTML = `<div class="knowledge-detail-head"><button type="button" class="knowledge-detail-back" onclick="showKnowledgeGroups()">← ${t('kb_all_groups')}</button><div class="knowledge-detail-title">${escapeHtml(group?.icon || '🗂️')} ${escapeHtml(group?.name || t('kb_group'))}</div></div><div class="list-empty"><div class="list-empty-title">${t('kb_group_no_categories')}</div><p style="font-size:var(--fs-xs);margin-top:4px;">${t('kb_group_no_categories_hint')}</p></div>`;
         return;
     }
-    list.innerHTML = `<div class="knowledge-detail-head"><button type="button" class="knowledge-detail-back" onclick="showKnowledgeGroups()">← Wszystkie grupy</button><div class="knowledge-detail-title">${escapeHtml(group?.icon || '🗂️')} ${escapeHtml(group?.name || 'Grupa')} <span class="knowledge-detail-count">${categories.length} kategorii</span></div></div><div class="knowledge-category-grid">${categories.map(({ category, index }) => {
+    list.innerHTML = `<div class="knowledge-detail-head"><button type="button" class="knowledge-detail-back" onclick="showKnowledgeGroups()">← ${t('kb_all_groups')}</button><div class="knowledge-detail-title">${escapeHtml(group?.icon || '🗂️')} ${escapeHtml(group?.name || t('kb_group'))} <span class="knowledge-detail-count">${tn('count_kb_categories', categories.length)}</span></div></div><div class="knowledge-category-grid">${categories.map(({ category, index }) => {
         const links = category.links || [];
         const sections = new Set(links.map(link => link.section).filter(Boolean));
-        const details = `${links.length} linków${sections.size ? ` · ${sections.size} sekcji` : ''}`;
+        const details = tn('count_kb_links', links.length) + (sections.size ? ` · ${tn('count_kb_sections', sections.size)}` : '');
         return `<button type="button" class="knowledge-category-card" onclick="showKnowledgeCategory(${index})">
             <span class="knowledge-category-icon">${escapeHtml(category.icon || '📂')}</span>
-            <span><span class="knowledge-category-name">${escapeHtml(category.name || 'Bez nazwy')}</span><span class="knowledge-category-meta">${details}</span></span>
+            <span><span class="knowledge-category-name">${escapeHtml(category.name || t('kb_unnamed'))}</span><span class="knowledge-category-meta">${details}</span></span>
             <span class="knowledge-category-arrow">→</span>
         </button>`;
     }).join('')}</div>`;
@@ -139,7 +139,7 @@ function renderKnowledgeCategories(list) {
 
 function renderKnowledgeGroups(list) {
     if (!allKnowledgeGroups.length) {
-        list.innerHTML = `<div class="list-empty"><div class="list-empty-title">Brak grup Bazy Wiedzy</div><p style="font-size:var(--fs-xs);margin-top:4px;">Dodaj grupy w danych Bazy Wiedzy.</p></div>`;
+        list.innerHTML = `<div class="list-empty"><div class="list-empty-title">${t('kb_no_groups')}</div><p style="font-size:var(--fs-xs);margin-top:4px;">${t('kb_no_groups_hint')}</p></div>`;
         return;
     }
     const groups = [...allKnowledgeGroups].sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -148,7 +148,7 @@ function renderKnowledgeGroups(list) {
         const linkCount = categories.reduce((total, category) => total + (category.links || []).length, 0);
         return `<button type="button" class="knowledge-category-card" onclick="showKnowledgeGroup('${escapeHtml(group.id)}')">
             <span class="knowledge-category-icon">${escapeHtml(group.icon || '🗂️')}</span>
-            <span><span class="knowledge-category-name">${escapeHtml(group.name || 'Bez nazwy')}</span><span class="knowledge-category-meta">${categories.length} kategorii · ${linkCount} linków</span></span>
+            <span><span class="knowledge-category-name">${escapeHtml(group.name || t('kb_unnamed'))}</span><span class="knowledge-category-meta">${tn('count_kb_categories', categories.length)} · ${tn('count_kb_links', linkCount)}</span></span>
             <span class="knowledge-category-arrow">→</span>
         </button>`;
     }).join('')}</div>`;
@@ -215,7 +215,7 @@ function openAddKnowledgeLink() {
     populateKnowledgeCategorySelect(activeKnowledgeCategoryIndex >= 0 ? activeKnowledgeCategoryIndex : undefined);
     const overlay = document.getElementById('knowledge-editor-overlay');
     if (!overlay) return;
-    document.getElementById('knowledge-editor-title').textContent = 'Dodaj link';
+    document.getElementById('knowledge-editor-title').textContent = t('editor_add_link');
     document.getElementById('kn-name').value = '';
     document.getElementById('kn-url').value = '';
     document.getElementById('kn-tag').value = '';
@@ -234,7 +234,7 @@ function editKnowledgeLink(catIdx, linkIdx) {
     populateKnowledgeCategorySelect(catIdx);
     const overlay = document.getElementById('knowledge-editor-overlay');
     if (!overlay) return;
-    document.getElementById('knowledge-editor-title').textContent = 'Edytuj link';
+    document.getElementById('knowledge-editor-title').textContent = t('knowledge_edit_link');
     document.getElementById('kn-name').value = l.name || '';
     document.getElementById('kn-url').value = l.url || '';
     document.getElementById('kn-tag').value = l.tag || '';
@@ -326,7 +326,7 @@ async function deleteKnowledgeLink(catIdx, linkIdx) {
     const cat = allKnowledge[catIdx];
     if (!cat || !cat.links || !cat.links[linkIdx]) return;
     const l = cat.links[linkIdx];
-    if (!(await uiConfirm(`Usunąć "${l.name}"?`, { danger: true }))) return;
+    if (!(await uiConfirm(t('kb_delete_link_confirm', { name: l.name }), { danger: true }))) return;
     cat.links.splice(linkIdx, 1);
     await persistKnowledge();
     renderKnowledgeList();
@@ -334,13 +334,13 @@ async function deleteKnowledgeLink(catIdx, linkIdx) {
 
 function openAddKnowledgeCategory() {
     if (!activeKnowledgeGroupId) {
-        showToast('Najpierw otwórz grupę, do której chcesz dodać kategorię.', true);
+        showToast(t('kb_open_group_first'), true);
         return;
     }
     const group = allKnowledgeGroups.find(item => item.id === activeKnowledgeGroupId);
     document.getElementById('kn-cat-name').value = '';
     const context = document.getElementById('kn-cat-group-context');
-    if (context) context.textContent = `Nowa kategoria trafi do grupy: ${group?.icon || '🗂️'} ${group?.name || activeKnowledgeGroupId}`;
+    if (context) context.textContent = t('kb_new_category_group', { group: `${group?.icon || '🗂️'} ${group?.name || activeKnowledgeGroupId}` });
     document.getElementById('knowledge-cat-editor-overlay')?.classList.add('active');
 }
 
@@ -352,7 +352,7 @@ async function saveKnowledgeCategory() {
     const name = document.getElementById('kn-cat-name').value.trim();
     if (!name) { showToast(t('val_cat_name'), true); return; }
     const group = allKnowledgeGroups.find(item => item.id === activeKnowledgeGroupId);
-    if (!group) { showToast('Nie znaleziono wybranej grupy.', true); return; }
+    if (!group) { showToast(t('kb_group_not_found'), true); return; }
     const usedIDs = new Set(allKnowledge.map(category => category.id));
     const baseID = slugify(name).replace(/_/g, '-') || 'kategoria';
     let id = baseID;
@@ -374,13 +374,13 @@ async function persistKnowledge() {
             categories: allKnowledge
         }));
         if (result && result.error) {
-            showToast(t('err_save_prefix') + result.error, true);
+            showToast(t('kb_save_error', { error: tErr(result) }), true);
         } else {
             showToast(t('toast_saved'));
             updateKnowledgeCount();
         }
     } catch (e) {
-        showToast(t('err_save_prefix') + e, true);
+        showToast(t('kb_save_error', { error: String(e) }), true);
     }
 }
 
@@ -399,7 +399,7 @@ async function renameKnowledgeSection(catIdx, oldName) {
 async function deleteKnowledgeSection(catIdx, sectionName) {
     const cat = allKnowledge[catIdx];
     if (!cat) return;
-    if (!(await uiConfirm(`Usunąć sekcję "${sectionName}"? Linki zostaną ale bez sekcji.`, { danger: true }))) return;
+    if (!(await uiConfirm(t('kb_delete_section_confirm', { name: sectionName }), { danger: true }))) return;
     (cat.links || []).forEach(l => {
         if (l.section === sectionName) l.section = '';
     });

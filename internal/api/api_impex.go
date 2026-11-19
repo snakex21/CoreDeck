@@ -8,6 +8,7 @@ import (
 	"launcher/internal/drivers"
 	"launcher/internal/impex"
 	"launcher/internal/programs"
+	"launcher/internal/uimsg"
 )
 
 // ValidateExport sprawdza czy foldery istnieją i szacuje rozmiar przed eksportem.
@@ -72,29 +73,18 @@ func (a *API) RemoveExportHistory(idJSON string) string {
 		ID string `json:"id"`
 	}
 	if err := json.Unmarshal([]byte(idJSON), &payload); err != nil || payload.ID == "" {
-		return `{"success":false,"message":"Brak ID wpisu"}`
+		return jsonResult(false, uimsg.New("msg_history_no_id", "Brak ID wpisu"))
 	}
-	removed := impex.RemoveHistoryEntry(a.ExeDir, payload.ID)
-	result := struct {
-		Success bool   `json:"success"`
-		Message string `json:"message"`
-	}{
-		Success: removed,
-		Message: func() string {
-			if removed {
-				return "Wpis usunięty z historii"
-			}
-			return "Nie znaleziono wpisu"
-		}(),
+	if impex.RemoveHistoryEntry(a.ExeDir, payload.ID) {
+		return jsonResult(true, uimsg.New("msg_history_removed", "Wpis usunięty z historii"))
 	}
-	data, _ := json.Marshal(result)
-	return string(data)
+	return jsonResult(false, uimsg.New("msg_history_not_found", "Nie znaleziono wpisu"))
 }
 
 // ClearExportHistory czyści całą historię eksportów.
 func (a *API) ClearExportHistory() string {
 	impex.ClearHistory(a.ExeDir)
-	return `{"success":true,"message":"Historia wyczyszczona"}`
+	return jsonResult(true, uimsg.New("msg_history_cleared", "Historia wyczyszczona"))
 }
 
 // ImportPack imports a folder or ZIP package into programs.json/drivers.json.
@@ -115,13 +105,13 @@ func (a *API) ImportPack(requestJSON string) string {
 	if result.ProgramCount > 0 && a.ProgramsData != nil {
 		if err := programs.SavePrograms(a.WebDir, a.ProgramsData); err != nil {
 			result.Success = false
-			result.Errors = append(result.Errors, "Zapis programs.json: "+err.Error())
+			result.Errors = append(result.Errors, impex.LineOf(uimsg.New("msg_impex_save_programs_failed", "Zapis programs.json: "+err.Error(), "error", err.Error())))
 		}
 	}
 	if result.DriverCount > 0 && a.DriversData != nil {
 		if err := drivers.SaveDrivers(a.WebDir, a.DriversData); err != nil {
 			result.Success = false
-			result.Errors = append(result.Errors, "Zapis drivers.json: "+err.Error())
+			result.Errors = append(result.Errors, impex.LineOf(uimsg.New("msg_impex_save_drivers_failed", "Zapis drivers.json: "+err.Error(), "error", err.Error())))
 		}
 	}
 

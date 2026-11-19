@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"launcher/internal/uimsg"
 )
 
 var stateDir = "."
@@ -230,7 +232,7 @@ func RevertTweak(id string) TweakResult {
 	store := loadBackups()
 	b, ok := store[id]
 	if !ok {
-		return TweakResult{ID: id, Success: false, Message: "Brak kopii zapasowej — tweak nie był zastosowany przez program"}
+		return newResult(id, "", false, uimsg.New("msg_tw_no_backup", "Brak kopii zapasowej — tweak nie był zastosowany przez program"))
 	}
 
 	var errs []string
@@ -268,14 +270,14 @@ func RevertTweak(id string) TweakResult {
 			}
 		}
 	default:
-		return TweakResult{ID: id, Success: false, Message: "Tego typu nie można cofnąć automatycznie"}
+		return newResult(id, "", false, uimsg.New("msg_tw_cannot_revert", "Tego typu nie można cofnąć automatycznie"))
 	}
 
 	if len(errs) > 0 {
-		return TweakResult{ID: id, Success: false, Message: addAdminHint(strings.Join(errs, "; "))}
+		return newResult(id, "", false, failureMessage(strings.Join(errs, "; ")))
 	}
 
 	delete(store, id)
 	saveBackups(store)
-	return TweakResult{ID: id, Success: true, Message: "Cofnięto"}
+	return newResult(id, "", true, uimsg.New("msg_tw_reverted", "Cofnięto"))
 }

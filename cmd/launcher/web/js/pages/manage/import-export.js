@@ -66,32 +66,32 @@ function renderExportPane() {
 
     pane.innerHTML = `
         <div class="impex-section">
-            <div class="impex-section-title">Wybierz dane do eksportu</div>
+            <div class="impex-section-title">${t('export_title')}</div>
             <div class="impex-section-body">
                 <div class="impex-checkbox-group">
                     <label class="impex-checkbox-label">
                         <input type="checkbox" id="export-programs-check" checked>
-                        <span>Programy</span>
+                        <span>${t('export_programs')}</span>
                     </label>
                     <label class="impex-checkbox-label">
                         <input type="checkbox" id="export-drivers-check" checked>
-                        <span>Sterowniki</span>
+                        <span>${t('export_drivers')}</span>
                     </label>
                 </div>
             </div>
         </div>
 
         <div class="impex-section" id="export-programs-section">
-            <div class="impex-section-title">Programy (${allPrograms.length} dostępnych)</div>
+            <div class="impex-section-title">${tn('count_mng_export_programs_available', allPrograms.length)}</div>
             <div class="impex-section-body">
                 <div class="impex-field">
-                    <label class="impex-label">Szukaj</label>
-                    <input type="text" class="impex-input" id="export-programs-search" placeholder="Filtruj programy...">
+                    <label class="impex-label">${t('label_search')}</label>
+                    <input type="text" class="impex-input" id="export-programs-search" placeholder="${escapeHtml(t('ph_filter_programs'))}">
                 </div>
                 <div class="impex-checkbox-group">
                     <label class="impex-checkbox-label">
                         <input type="checkbox" id="export-programs-select-all">
-                        <span style="font-weight:600;">Zaznacz wszystkie</span>
+                        <span style="font-weight:600;">${t('btn_select_all')}</span>
                     </label>
                 </div>
                 <div class="impex-checkbox-group" id="export-programs-list"></div>
@@ -99,12 +99,12 @@ function renderExportPane() {
         </div>
 
         <div class="impex-section" id="export-drivers-section">
-            <div class="impex-section-title">Sterowniki</div>
+            <div class="impex-section-title">${t('export_drivers')}</div>
             <div class="impex-section-body">
                 <div class="impex-checkbox-group">
                     <label class="impex-checkbox-label">
                         <input type="checkbox" id="export-drivers-select-all">
-                        <span style="font-weight:600;">Zaznacz wszystkie typy</span>
+                        <span style="font-weight:600;">${t('btn_select_all_types')}</span>
                     </label>
                 </div>
                 <div class="impex-checkbox-group" id="export-drivers-list"></div>
@@ -112,14 +112,14 @@ function renderExportPane() {
         </div>
 
         <div class="impex-section">
-            <div class="impex-section-title">Opcje eksportu</div>
+            <div class="impex-section-title">${t('export_options')}</div>
             <div class="impex-section-body">
                 <div class="impex-field">
-                    <label class="impex-label">Format</label>
+                    <label class="impex-label">${t('label_format')}</label>
                     <div style="display:flex;gap:16px;">
                         <label class="impex-checkbox-label" style="cursor:pointer;">
                             <input type="radio" name="export-format" value="folder" checked>
-                            <span>Folder</span>
+                            <span>${t('format_folder')}</span>
                         </label>
                         <label class="impex-checkbox-label" style="cursor:pointer;">
                             <input type="radio" name="export-format" value="zip">
@@ -130,31 +130,31 @@ function renderExportPane() {
                 <div class="impex-checkbox-group">
                     <label class="impex-checkbox-label">
                         <input type="checkbox" id="export-include-files" checked>
-                        <span>Kopiuj fizyczne foldery/pliki (jeśli odznaczone: tylko JSON z metadanymi)</span>
+                        <span>${t('export_option_files')}</span>
                     </label>
                 </div>
                 <div class="impex-field">
-                    <label class="impex-label">Folder/plik docelowy</label>
+                    <label class="impex-label">${t('label_target_folder')}</label>
                     <div style="display:flex;gap:8px;">
                         <input type="text" class="impex-input" id="export-target" value="" style="flex:1;">
-                        <button class="btn btn-secondary" onclick="selectExportTarget()">📂 Wybierz</button>
+                        <button class="btn btn-secondary" onclick="selectExportTarget()">${t('btn_browse')}</button>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="impex-section">
-            <div class="impex-section-title">Podsumowanie</div>
+            <div class="impex-section-title">${t('summary_title')}</div>
             <div class="impex-summary" id="export-summary">
-                <div class="impex-summary-line"><span>Programy:</span><span id="export-summary-programs">0 zaznaczonych</span></div>
-                <div class="impex-summary-line"><span>Sterowniki:</span><span id="export-summary-drivers">0 zaznaczonych</span></div>
-                <div class="impex-summary-line"><span>Rozmiar (szacowany):</span><span id="export-summary-size">—</span></div>
+                <div class="impex-summary-line"><span>${t('summary_programs')}</span><span id="export-summary-programs">${tn('count_mng_selected', 0)}</span></div>
+                <div class="impex-summary-line"><span>${t('summary_drivers')}</span><span id="export-summary-drivers">${tn('count_mng_selected', 0)}</span></div>
+                <div class="impex-summary-line"><span>${t('summary_size')}</span><span id="export-summary-size">—</span></div>
                 <div id="export-summary-warnings"></div>
             </div>
         </div>
 
         <div class="impex-actions">
-            <button class="btn btn-primary" onclick="startExport()">Eksportuj</button>
+            <button class="btn btn-primary" onclick="startExport()">${t('btn_export')}</button>
         </div>
     `;
 
@@ -186,7 +186,7 @@ function renderExportProgramsList() {
 
     list.innerHTML = filtered.map(p => {
         const isPage = p.type === 'link';
-        const typeLabel = isPage ? '📄 Strona' : escapeHtml(p.installType || 'other');
+        const typeLabel = isPage ? escapeHtml(t('chip_page_label')) : escapeHtml(p.installType || 'other');
         const tagClass = badgeClass(isPage ? 'page' : (p.installType || 'other'));
         return `
         <label class="impex-checkbox-label impex-program-row">
@@ -319,8 +319,8 @@ function updateExportSummary() {
     const typeChecked = document.querySelectorAll('.export-driver-type-cb:checked').length;
     // Jeśli jest granular — liczymy serie; jeśli stare — typy
     const drvCount = seriesChecked > 0 ? seriesChecked : (brandChecked > 0 ? brandChecked : typeChecked);
-    setText('export-summary-programs', progCount + ' zaznaczonych');
-    setText('export-summary-drivers', drvCount + ' zaznaczonych');
+    setText('export-summary-programs', tn('count_mng_selected', progCount));
+    setText('export-summary-drivers', tn('count_mng_selected', drvCount));
 
     // Debounced walidacja — sprawdź foldery i szacuj rozmiar
     clearTimeout(updateExportSummary._timer);
@@ -377,7 +377,7 @@ async function runExportValidation() {
         if (warnEl) {
             if (result.warnings && result.warnings.length > 0) {
                 warnEl.innerHTML = result.warnings.map(w =>
-                    `<div class="impex-warning">⚠ ${escapeHtml(w.item)} — brak folderu: <code>${escapeHtml(w.path)}</code></div>`
+                    `<div class="impex-warning">⚠ ${t('mng_export_warn_missing_folder', { item: escapeHtml(w.item), path: '<code>' + escapeHtml(w.path) + '</code>' })}</div>`
                 ).join('');
             } else {
                 warnEl.innerHTML = '';
@@ -386,6 +386,12 @@ async function runExportValidation() {
     } catch (e) {
         if (sizeEl) sizeEl.textContent = '—';
     }
+}
+
+// Log/error line of an export or import (impex.Line: message + code + params).
+function impexLineText(line) {
+    if (typeof line === 'string') return line;
+    return line ? tMsg(line.code, line.params, line.message) : '';
 }
 
 function humanSizeBytes(b) {
@@ -405,7 +411,7 @@ function selectExportTarget() {
             picked = await window.api.pick_save_file(
                 t('save_zip_dialog'),
                 getParentDir(current),
-                'Paczka ZIP (*.zip)|*.zip|Wszystkie pliki (*.*)|*.*',
+                t('file_filter_zip'),
                 current.toLowerCase().endsWith('.zip') ? getBaseName(current) : getBaseName(current) + '.zip'
             );
         } else {
@@ -481,7 +487,11 @@ async function startExport() {
         hideProgress();
 
         if (result.success) {
-            showToast(`${t('export_success')} ${result.programCount} ${t('unit_programs')}, ${result.driverCount} ${t('unit_drivers')} → ${result.exportedPath}`, false);
+            showToast(t('mng_export_done', {
+                programs: tn('count_programs', result.programCount || 0),
+                drivers: tn('count_mng_drivers', result.driverCount || 0),
+                path: result.exportedPath || '',
+            }), false);
             // Pokaż log eksportu
             if (result.log && result.log.length > 0) {
                 showExportLog(result);
@@ -492,16 +502,16 @@ async function startExport() {
                 renderBackupsPane();
             }
         } else {
-            showToast(`${t('export_error')} ${result.message}`, true);
+            showToast(t('mng_export_failed', { error: tErr(result) }), true);
         }
 
         if (result.errors && result.errors.length > 0) {
             console.error('Export errors:', result.errors);
-            result.errors.forEach(e => showToast(e, true));
+            result.errors.forEach(e => showToast(impexLineText(e), true));
         }
     } catch (e) {
         hideProgress();
-        showToast(t('export_error') + ' ' + String(e), true);
+        showToast(t('mng_export_failed', { error: String(e) }), true);
     }
 }
 
@@ -514,7 +524,7 @@ function showExportLog(result) {
     const logHtml = `
         <div id="export-log-box" class="impex-log-box">
             <div class="impex-log-title">${t('export_log')}</div>
-            ${(result.log || []).map(line => `<div class="impex-log-line">✓ ${escapeHtml(line)}</div>`).join('')}
+            ${(result.log || []).map(line => `<div class="impex-log-line">✓ ${escapeHtml(impexLineText(line))}</div>`).join('')}
             ${result.exportedPath ? `<div class="impex-log-line" style="color:var(--accent-primary);">→ ${escapeHtml(result.exportedPath)}</div>` : ''}
         </div>
     `;
@@ -527,74 +537,74 @@ function renderImportPane() {
 
     pane.innerHTML = `
         <div class="impex-section">
-            <div class="impex-section-title">Wybierz paczkę do importu</div>
+            <div class="impex-section-title">${t('import_title')}</div>
             <div class="impex-section-body">
                 <div class="impex-field">
-                    <label class="impex-label">Paczka (folder lub ZIP)</label>
+                    <label class="impex-label">${t('label_pack')}</label>
                     <div style="display:flex;gap:8px;">
                         <input type="text" class="impex-input" id="import-pack-path" placeholder="" style="flex:1;">
                         <button class="btn btn-secondary" onclick="selectImportZip()">ZIP</button>
-                        <button class="btn btn-secondary" onclick="selectImportFolder()">Folder</button>
-                        <button class="btn btn-secondary" onclick="previewImportPack()">🔍 Sprawdź</button>
+                        <button class="btn btn-secondary" onclick="selectImportFolder()">${t('format_folder')}</button>
+                        <button class="btn btn-secondary" onclick="previewImportPack()">${t('btn_check')}</button>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="impex-section" id="import-content-section" style="display:none;">
-            <div class="impex-section-title">Zawartość paczki</div>
+            <div class="impex-section-title">${t('import_content')}</div>
             <div class="impex-section-body" id="import-content"></div>
         </div>
 
         <div class="impex-section">
-            <div class="impex-section-title">Strategia kolizji</div>
+            <div class="impex-section-title">${t('import_strategy')}</div>
             <div class="impex-section-body">
                 <div style="display:flex;flex-direction:column;gap:8px;">
                     <label class="impex-checkbox-label" style="cursor:pointer;">
                         <input type="radio" name="import-strategy" value="skip">
-                        <span>Pomiń (zostaw stary)</span>
+                        <span>${t('strategy_skip')}</span>
                     </label>
                     <label class="impex-checkbox-label" style="cursor:pointer;">
                         <input type="radio" name="import-strategy" value="overwrite" checked>
-                        <span>Nadpisz (użyj z paczki)</span>
+                        <span>${t('strategy_overwrite')}</span>
                     </label>
                     <label class="impex-checkbox-label" style="cursor:pointer;">
                         <input type="radio" name="import-strategy" value="duplicate">
-                        <span>Dodaj jako duplikat z sufiksem "_imported"</span>
+                        <span>${escapeHtml(t('strategy_duplicate'))}</span>
                     </label>
                 </div>
             </div>
         </div>
 
         <div class="impex-section">
-            <div class="impex-section-title">Foldery docelowe</div>
+            <div class="impex-section-title">${t('import_target')}</div>
             <div class="impex-section-body">
                 <div class="impex-field">
-                    <label class="impex-label">Programy</label>
+                    <label class="impex-label">${t('import_target_programs')}</label>
                     <div style="display:flex;gap:8px;">
                         <input type="text" class="impex-input" id="import-programs-target" value="" style="flex:1;">
-                        <button class="btn btn-secondary" onclick="selectImportProgramsTarget()">📂 Wybierz</button>
+                        <button class="btn btn-secondary" onclick="selectImportProgramsTarget()">${t('btn_browse')}</button>
                     </div>
                 </div>
                 <div class="impex-field">
-                    <label class="impex-label">Sterowniki</label>
+                    <label class="impex-label">${t('import_target_drivers')}</label>
                     <div style="display:flex;gap:8px;">
                         <input type="text" class="impex-input" id="import-drivers-target" value="" style="flex:1;">
-                        <button class="btn btn-secondary" onclick="selectImportDriversTarget()">📂 Wybierz</button>
+                        <button class="btn btn-secondary" onclick="selectImportDriversTarget()">${t('btn_browse')}</button>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="impex-section">
-            <div class="impex-section-title">Podsumowanie</div>
+            <div class="impex-section-title">${t('summary_title')}</div>
             <div class="impex-summary" id="import-summary">
-                <div class="impex-summary-line"><span>Status:</span><span>Wybierz paczkę</span></div>
+                <div class="impex-summary-line"><span>${t('summary_status')}</span><span>${t('summary_select_pack')}</span></div>
             </div>
         </div>
 
         <div class="impex-actions">
-            <button class="btn btn-primary" onclick="startImport()">Importuj</button>
+            <button class="btn btn-primary" onclick="startImport()">${t('btn_import')}</button>
         </div>
     `;
     fillImpexDefaults([
@@ -608,20 +618,17 @@ function renderImportPane() {
 // BACKUPS — historia eksportów
 // ============================================
 
-const BK_MONTHS_PL = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
-
 function formatBackupDate(iso) {
     if (!iso) return '—';
     const d = new Date(iso);
     if (isNaN(d.getTime())) return iso;
-    const pad = n => String(n).padStart(2, '0');
-    return `${pad(d.getDate())} ${BK_MONTHS_PL[d.getMonth()]} ${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function plur(n, one, few, many) {
-    if (n === 1) return `${n} ${one}`;
-    if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return `${n} ${few}`;
-    return `${n} ${many}`;
+    const lang = typeof getCurrentLang === 'function' ? getCurrentLang() : undefined;
+    const opts = { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+    try {
+        return new Intl.DateTimeFormat((lang && LANGUAGE_TAGS[lang]) || lang, opts).format(d);
+    } catch (_) {
+        return new Intl.DateTimeFormat(undefined, opts).format(d);
+    }
 }
 
 async function renderBackupsPane() {
@@ -640,7 +647,7 @@ async function renderBackupsPane() {
             <div class="bk-header">
                 <div class="bk-header-main">
                     <h3>${t('backups_title')}</h3>
-                    <p class="bk-header-sub">Lista paczek wyeksportowanych przez ten launcher. Przechowywana lokalnie (do ${plur(50,'wpisu','wpisów','wpisów')}).</p>
+                    <p class="bk-header-sub">${tn('count_mng_backups_subtitle', 50)}</p>
                 </div>
                 ${records.length > 0 ? `<button class="btn btn-danger" onclick="clearBackupHistory()" title="${t('title_clear_history')}">${t('btn_clear_history')}</button>` : ''}
             </div>
@@ -670,12 +677,12 @@ async function renderBackupsPane() {
 function renderBackupRow(r) {
     const isZip = (r.format || '').toLowerCase() === 'zip';
     const icon = isZip ? '🗜️' : '📦';
-    const formatLabel = isZip ? 'ZIP' : 'Folder';
+    const formatLabel = isZip ? 'ZIP' : escapeHtml(t('format_folder'));
     const name = escapeHtml(getBaseName(r.targetPath));
     const path = escapeHtml(r.targetPath || '');
     const date = escapeHtml(formatBackupDate(r.createdAt));
     const progText = tn('count_programs', r.programCount || 0);
-    const drvText = plur(r.driverCount || 0, 'sterownik', 'sterowniki', 'sterowników');
+    const drvText = tn('count_mng_drivers', r.driverCount || 0);
     const filesNote = r.includeFiles === false ? t('backup_json_only') : t('backup_with_files');
     const id = escapeHtml(r.id || '');
 
@@ -750,10 +757,10 @@ async function onBackupRowClick(e) {
                     showToast(t('toast_removed_history'), false);
                     renderBackupsPane();
                 } else {
-                    showToast(res.message || t('err_cannot_delete'), true);
+                    showToast(tErr(res) || t('err_cannot_delete'), true);
                 }
             } catch (err) {
-                showToast(t('err_delete_prefix') + String(err), true);
+                showToast(t('mng_err_delete', { error: String(err) }), true);
             }
             break;
         }
@@ -761,17 +768,17 @@ async function onBackupRowClick(e) {
 }
 
 async function clearBackupHistory() {
-    if (!(await uiConfirm(t('confirm_clear_history'), { danger: true, confirmLabel: 'Wyczyść' }))) return;
+    if (!(await uiConfirm(t('confirm_clear_history'), { danger: true, confirmLabel: t('btn_clear') }))) return;
     try {
         const res = await window.api.clear_export_history();
         if (res.success) {
             showToast(t('toast_history_cleared'), false);
             renderBackupsPane();
         } else {
-            showToast(res.message || t('err_clearing'), true);
+            showToast(tErr(res) || t('err_clearing'), true);
         }
     } catch (err) {
-        showToast(t('err_clearing_failed') + String(err), true);
+        showToast(t('mng_err_clearing', { error: String(err) }), true);
     }
 }
 
@@ -780,7 +787,7 @@ async function selectImportZip() {
     const picked = await window.api.pick_open_file(
         t('pick_zip'),
         getParentDir(input?.value || impexDefault('export')),
-        'Paczka ZIP (*.zip)|*.zip|Wszystkie pliki (*.*)|*.*'
+        t('file_filter_zip')
     );
     if (picked && input) {
         input.value = picked;
@@ -810,39 +817,39 @@ async function previewImportPack() {
         const summary = document.getElementById('import-summary');
         if (section) section.style.display = 'block';
         if (!preview.success) {
-            if (content) content.innerHTML = `<div style="color:var(--danger);">${escapeHtml(preview.message || t('error_no_pack'))}</div>`;
-            if (summary) summary.innerHTML = `<div class="impex-summary-line"><span>Status:</span><span>${escapeHtml(preview.message || 'Błąd')}</span></div>`;
+            if (content) content.innerHTML = `<div style="color:var(--danger);">${escapeHtml(tErr(preview) || t('error_no_pack'))}</div>`;
+            if (summary) summary.innerHTML = `<div class="impex-summary-line"><span>${t('preview_status')}</span><span>${escapeHtml(tErr(preview) || t('error_generic'))}</span></div>`;
             return;
         }
         if (content) {
             const programs = (preview.programs || []).map(p => `
                 <label class="impex-checkbox-label">
                     <input type="checkbox" class="import-program-cb" data-name="${escapeHtml(p.name)}" checked>
-                    <span>${escapeHtml(p.name)} <span style="color:var(--text-muted);font-size:var(--fs-xs);">${escapeHtml(p.installType || 'other')}${p.variants ? ', ' + p.variants + ' warianty' : ''}</span></span>
+                    <span>${escapeHtml(p.name)} <span style="color:var(--text-muted);font-size:var(--fs-xs);">${escapeHtml(p.installType || 'other')}${p.variants ? ', ' + tn('count_mng_variants', p.variants) : ''}</span></span>
                 </label>
             `).join('') || `<div style="color:var(--text-muted);">${t('empty_no_programs')}</div>`;
             const drivers = (preview.drivers || []).map(d => `
                 <label class="impex-checkbox-label">
                     <input type="checkbox" class="import-driver-cb" data-type="${escapeHtml(d.key)}" checked>
-                    <span>${escapeHtml(d.title || d.key)} <span style="color:var(--text-muted);font-size:var(--fs-xs);">${d.brands} ${t('unit_brands')}, ${d.series} ${t('unit_series')}</span></span>
+                    <span>${escapeHtml(d.title || d.key)} <span style="color:var(--text-muted);font-size:var(--fs-xs);">${tn('count_mng_brands', d.brands || 0)}, ${tn('count_mng_series', d.series || 0)}</span></span>
                 </label>
             `).join('') || `<div style="color:var(--text-muted);">${t('empty_no_driver_types')}</div>`;
             content.innerHTML = `
-                <div class="impex-section-title" style="font-size:var(--fs-sm2);margin:0;">Programy (${preview.programCount || 0})</div>
+                <div class="impex-section-title" style="font-size:var(--fs-sm2);margin:0;">${t('mng_heading_programs_count', { count: preview.programCount || 0 })}</div>
                 <div class="impex-checkbox-group">${programs}</div>
-                <div class="impex-section-title" style="font-size:var(--fs-sm2);margin:12px 0 0;">Sterowniki (${preview.driverCount || 0})</div>
+                <div class="impex-section-title" style="font-size:var(--fs-sm2);margin:12px 0 0;">${t('mng_heading_drivers_count', { count: preview.driverCount || 0 })}</div>
                 <div class="impex-checkbox-group">${drivers}</div>
             `;
         }
         if (summary) {
             summary.innerHTML = `
-                <div class="impex-summary-line"><span>Status:</span><span>${escapeHtml(preview.message)}</span></div>
-                <div class="impex-summary-line"><span>Programy:</span><span>${preview.programCount || 0}</span></div>
-                <div class="impex-summary-line"><span>Sterowniki:</span><span>${preview.driverCount || 0}</span></div>
+                <div class="impex-summary-line"><span>${t('preview_status')}</span><span>${escapeHtml(tErr(preview))}</span></div>
+                <div class="impex-summary-line"><span>${t('summary_programs')}</span><span>${preview.programCount || 0}</span></div>
+                <div class="impex-summary-line"><span>${t('summary_drivers')}</span><span>${preview.driverCount || 0}</span></div>
             `;
         }
     } catch (e) {
-        showToast(t('err_prefix') + ' ' + String(e), true);
+        showToast(t('mng_err_generic', { error: String(e) }), true);
     }
 }
 
@@ -883,7 +890,7 @@ async function startImport() {
     // Pokaż progress overlay
     const isZip = packPath.toLowerCase().endsWith('.zip');
     showProgress(t('progress_importing'), [
-        isZip ? t('progress_unzipping') : 'Odczytuję paczkę...',
+        isZip ? t('progress_unzipping') : t('mng_progress_reading_pack'),
         t('progress_import_programs'),
         t('progress_import_drivers'),
         t('progress_saving'),
@@ -895,22 +902,25 @@ async function startImport() {
         hideProgress();
 
         if (result.success) {
-            showToast(`${t('import_success')} ${result.programCount} ${t('unit_programs')}, ${result.driverCount} typów sterowników`, false);
+            showToast(t('mng_import_done', {
+                programs: tn('count_programs', result.programCount || 0),
+                types: tn('count_mng_driver_types', result.driverCount || 0),
+            }), false);
             // Pokaż log importu
             showImportLog(result);
             await loadPrograms();
             await loadDrivers();
             renderImportExportPane();
         } else {
-            showToast(`${t('import_error')} ${result.message || result.error}`, true);
+            showToast(t('mng_import_failed', { error: tErr(result) }), true);
             if (result.errors) {
-                result.errors.forEach(e => showToast(e, true));
+                result.errors.forEach(e => showToast(impexLineText(e), true));
                 console.error('Import errors:', result.errors);
             }
         }
     } catch (e) {
         hideProgress();
-        showToast(t('import_error') + ' ' + String(e), true);
+        showToast(t('mng_import_failed', { error: String(e) }), true);
     }
 }
 
@@ -922,10 +932,10 @@ function showImportLog(result) {
     const logHtml = `
         <div id="import-log-box" class="impex-log-box">
             <div class="impex-log-title">${t('import_log')}</div>
-            ${(result.log || []).map(line => `<div class="impex-log-line">✓ ${escapeHtml(line)}</div>`).join('')}
-            ${(result.skipped || []).map(name => `<div class="impex-log-line" style="color:var(--warn);">\u2298 ${t('log_skipped')} ${escapeHtml(name)}</div>`).join('')}
-            ${(result.overwritten || []).map(name => `<div class="impex-log-line" style="color:var(--info);">\u21bb ${t('log_overwritten')} ${escapeHtml(name)}</div>`).join('')}
-            ${(result.errors || []).map(e => `<div class="impex-log-line" style="color:var(--danger);">✗ ${escapeHtml(e)}</div>`).join('')}
+            ${(result.log || []).map(line => `<div class="impex-log-line">✓ ${escapeHtml(impexLineText(line))}</div>`).join('')}
+            ${(result.skipped || []).map(name => `<div class="impex-log-line" style="color:var(--warn);">\u2298 ${escapeHtml(t('mng_log_skipped', { name }))}</div>`).join('')}
+            ${(result.overwritten || []).map(name => `<div class="impex-log-line" style="color:var(--info);">\u21bb ${escapeHtml(t('mng_log_overwritten', { name }))}</div>`).join('')}
+            ${(result.errors || []).map(e => `<div class="impex-log-line" style="color:var(--danger);">✗ ${escapeHtml(impexLineText(e))}</div>`).join('')}
         </div>
     `;
     summary.insertAdjacentHTML('afterend', logHtml);

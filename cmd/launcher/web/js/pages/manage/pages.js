@@ -102,22 +102,22 @@ async function savePage() {
     try {
         const result = await window.api.create_page(JSON.stringify({ name, description, category, icon }));
         if (result && result.error) {
-            showToast(t('err_prefix') + result.error, true);
+            showToast(t('upv_create_error', { error: tErr(result) }), true);
             return;
         }
-        showToast(t('toast_page_created') + name);
+        showToast(t('upv_page_created', { name }));
         closePageEditor();
         await loadPrograms();
         renderPagesList();
     } catch (e) {
-        showToast(t('err_page_create') + e, true);
+        showToast(t('upv_create_error', { error: String(e) }), true);
     }
 }
 
 async function confirmDeletePage(pageListIndex) {
     const page = getPages()[pageListIndex];
     if (!page) return;
-    if (!(await uiConfirm(`Usunąć stronę "${page.name}"?\n\nTo usunie wpis z launchera oraz plik HTML, jeśli leży w folderze pages/.`, { danger: true }))) return;
+    if (!(await uiConfirm(t('upv_delete_confirm', { name: page.name }), { danger: true }))) return;
     deletePage(page);
 }
 
@@ -125,14 +125,14 @@ async function deletePage(page) {
     try {
         const result = await window.api.delete_page(JSON.stringify({ name: page.name, localPath: page.localPath || '' }));
         if (result && result.error) {
-            showToast(t('err_prefix') + result.error, true);
+            showToast(t('upv_delete_error', { error: tErr(result) }), true);
             return;
         }
         showToast(t('toast_page_deleted'));
         await loadPrograms();
         renderPagesList();
     } catch (e) {
-        showToast(t('err_delete_prefix') + e, true);
+        showToast(t('upv_delete_error', { error: String(e) }), true);
     }
 }
 
@@ -154,7 +154,7 @@ function previewPage(localPath, encoded = false, externalUrl = '') {
         // Nie ma pliku do pokazania w iframe — otwieramy je w przeglądarce systemowej,
         // żeby przycisk podglądu nie był martwy.
         if (externalUrl) { window.api.open_url(externalUrl); return; }
-        showToast(t('title_preview_page') + ': ' + t('err_no_copy'), true);
+        showToast(t('upv_preview_no_target'), true);
         return;
     }
     const overlay = document.getElementById('page-preview-overlay');

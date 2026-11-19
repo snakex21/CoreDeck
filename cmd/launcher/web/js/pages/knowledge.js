@@ -32,7 +32,7 @@ function renderStats() {
     knowledgeData.categories.forEach(c => total += (c.links || []).length);
     const groupCount = (knowledgeData.groups || []).length;
     stats.innerHTML = `
-        <div class="kb-stat"><div class="kb-stat-num">${groupCount}</div><div class="kb-stat-label">Grup</div></div>
+        <div class="kb-stat"><div class="kb-stat-num">${groupCount}</div><div class="kb-stat-label">${t('kb_stat_groups')}</div></div>
         <div class="kb-stat"><div class="kb-stat-num">${knowledgeData.categories.length}</div><div class="kb-stat-label">${t('kb_stat_categories')}</div></div>
         <div class="kb-stat"><div class="kb-stat-num">${total}</div><div class="kb-stat-label">${t('kb_stat_links')}</div></div>
     `;
@@ -76,7 +76,7 @@ function renderCategories() {
             <button type="button" class="kb-cat-card" data-group-id="${escapeHtml(group.id)}" onclick="showGroup(this.dataset.groupId)">
                 <div class="kb-cat-icon">${escapeHtml(group.icon)}</div>
                 <div class="kb-cat-name">${escapeHtml(group.name)}</div>
-                <div class="kb-cat-count">${group.categories.length} kategorii • ${group.links} ${t('kb_links_count')}</div>
+                <div class="kb-cat-count">${tn('count_kb_categories', group.categories.length)} • ${tn('count_kb_links', group.links)}</div>
             </button>`;
         }).join('');
         return;
@@ -90,7 +90,7 @@ function renderCategories() {
     }
     grid.classList.add('group-category-grid');
     groupHeader.className = 'kb-group-header';
-    groupHeader.innerHTML = `<button class="kb-group-back" onclick="showCategories()">← Wszystkie grupy</button><div class="kb-group-icon">${escapeHtml(selectedGroup.icon)}</div><div class="kb-group-copy"><div class="kb-group-kicker">Grupa</div><h3>${escapeHtml(selectedGroup.name)}</h3><span>${selectedGroup.categories.length} kategorii • ${selectedGroup.links} ${t('kb_links_count')}</span></div>`;
+    groupHeader.innerHTML = `<button class="kb-group-back" onclick="showCategories()">← ${t('kb_all_groups')}</button><div class="kb-group-icon">${escapeHtml(selectedGroup.icon)}</div><div class="kb-group-copy"><div class="kb-group-kicker">${t('kb_group')}</div><h3>${escapeHtml(selectedGroup.name)}</h3><span>${tn('count_kb_categories', selectedGroup.categories.length)} • ${tn('count_kb_links', selectedGroup.links)}</span></div>`;
     grid.innerHTML = selectedGroup.categories.map(({ category: cat, index: i }) => {
         const count = (cat.links || []).length;
         const icon = getCatIcon(cat);
@@ -98,7 +98,7 @@ function renderCategories() {
             <button type="button" class="kb-cat-card" onclick="showCategory(${i})">
                 <div class="kb-cat-icon">${icon}</div>
                 <div class="kb-cat-name">${escapeHtml(cat.name)}</div>
-                <div class="kb-cat-count">${count} ${t('kb_links_count')}</div>
+                <div class="kb-cat-count">${tn('count_kb_links', count)}</div>
             </button>
         `;
     }).join('');
@@ -146,7 +146,7 @@ function showCategory(idx) {
     // Featured/starred links at top (always full-width list)
     if (starred.length) {
         linksHtml += `<div class="kb-featured-section">`;
-        linksHtml += `<div class="kb-featured-title">⭐ ${t('kb_featured')}</div>`;
+        linksHtml += `<div class="kb-featured-title">${t('kb_featured')}</div>`;
         linksHtml += `<div class="kb-links list-mode">${starred.map(l => renderLinkCard(l)).join('')}</div>`;
         linksHtml += `</div>`;
     }
@@ -222,7 +222,7 @@ function treeKey(path) {
 function renderSectionTree(root) {
     let html = '';
     if (root.links.length) {
-        html += `<section class="kb-section-panel"><div class="kb-section-panel-head"><h2 class="kb-section-panel-title">${t('kb_other')}</h2><span class="kb-section-count">${root.links.length} ${t('kb_links_count')}</span></div>${renderCompactLinkList(root.links, treeKey(['root']))}</section>`;
+        html += `<section class="kb-section-panel"><div class="kb-section-panel-head"><h2 class="kb-section-panel-title">${t('kb_other')}</h2><span class="kb-section-count">${tn('count_kb_links', root.links.length)}</span></div>${renderCompactLinkList(root.links, treeKey(['root']))}</section>`;
     }
     html += root.children.map(node => renderSectionNode(node, [node.name], 1)).join('');
     return html;
@@ -248,7 +248,7 @@ function renderSectionNode(node, path, depth) {
     }
     return `<details class="${panelClass}" ${open ? 'open' : ''}>
         <summary class="${summaryClass}" data-tree-key="${escapeHtml(key)}" onclick="toggleSectionNode(event, this)">
-            ${title}<span class="kb-section-count">${count} ${topLevel ? t('kb_links_count') : ''}</span>
+            ${title}<span class="kb-section-count">${topLevel ? tn('count_kb_links', count) : count}</span>
         </summary>${content}</details>`;
 }
 
@@ -353,17 +353,17 @@ async function startCategoryReview() {
     const category = knowledgeData.categories[currentCategoryIndex];
     if (!category) return;
     if (!window.api || !window.api.start_knowledge_link_check) {
-        uiToast('Moduł weryfikacji linków wymaga ponownego uruchomienia launchera.', { kind: 'error' });
+        uiToast(t('kb_review_needs_restart'), { kind: 'error' });
         return;
     }
     clearTimeout(linkReviewTimer);
     linkReviewCategory = category.name;
     const panel = document.getElementById('kb-review-panel');
     panel.classList.add('active');
-    panel.innerHTML = `<div class="kb-review-head"><h3>🩺 Weryfikacja: ${escapeHtml(category.name)}</h3><span class="kb-review-progress">Przygotowywanie kolejki…</span></div><p class="kb-review-note">Przygotowywana jest stała kolejka do 50 adresów. Wynik techniczny nie usuwa żadnego linku — decyzję podejmujesz przyciskiem ✓, ⚠ lub ✕.</p>`;
+    panel.innerHTML = `<div class="kb-review-head"><h3>🩺 ${escapeHtml(t('kb_review_title_category', { category: category.name }))}</h3><span class="kb-review-progress">${t('kb_review_preparing')}</span></div><p class="kb-review-note">${t('kb_review_intro_note')}</p>`;
     const started = await window.api.start_knowledge_link_check(category.name, 50);
     if (!started || started.error) {
-        panel.innerHTML = `<div class="kb-review-head"><h3>🩺 Weryfikacja linków</h3></div><p class="kb-review-note">${escapeHtml(started?.error || 'Nie udało się uruchomić sprawdzania.')}</p>`;
+        panel.innerHTML = `<div class="kb-review-head"><h3>🩺 ${t('kb_review_title')}</h3></div><p class="kb-review-note">${escapeHtml(tErr(started) || t('kb_review_start_failed'))}</p>`;
         return;
     }
     linkReviewSessionId = started.sessionId;
@@ -378,7 +378,7 @@ async function refreshLinkReview() {
     if (!activeCategory || activeCategory.name !== linkReviewCategory) return;
     const data = await window.api.get_knowledge_link_check(linkReviewSessionId);
     if (!data || data.error) {
-        document.getElementById('kb-review-panel').innerHTML = `<p class="kb-review-note">${escapeHtml(data?.error || 'Weryfikacja została przerwana.')}</p>`;
+        document.getElementById('kb-review-panel').innerHTML = `<p class="kb-review-note">${escapeHtml(tErr(data) || t('kb_review_aborted'))}</p>`;
         return;
     }
     linkReviewData = data;
@@ -392,7 +392,7 @@ function renderLinkReview() {
     const panel = document.getElementById('kb-review-panel');
     if (!linkReviewData) return;
     const results = linkReviewData.results || [];
-    const progress = `${linkReviewData.checked || 0} / ${linkReviewData.total || 0}${linkReviewData.done ? ' • gotowe' : ' • sprawdzanie…'}`;
+    const progress = t(linkReviewData.done ? 'kb_review_progress_done' : 'kb_review_progress_running', { checked: linkReviewData.checked || 0, total: linkReviewData.total || 0 });
     const pageCount = Math.max(1, Math.ceil(results.length / REVIEW_PAGE_SIZE));
     if (linkReviewPage >= pageCount) linkReviewPage = pageCount - 1;
     const pageStart = linkReviewPage * REVIEW_PAGE_SIZE;
@@ -405,35 +405,35 @@ function renderLinkReview() {
         const decision = linkReviewDecisions.get(reviewKey(result));
         const status = result.statusCode ? `HTTP ${result.statusCode} · ` : '';
         const actions = decision
-            ? `<span class="kb-review-decision">${decision}</span>`
+            ? `<span class="kb-review-decision">${escapeHtml(reviewDecisionText(decision))}</span>`
             : result.state === 'pending'
-                ? `<span class="kb-review-progress">⏳ w kolejce</span>`
-            : `<button class="kb-review-action" title="Otwórz w oknie kontroli" data-category="${escapeHtml(result.category)}" data-url="${escapeHtml(result.url)}" onclick="openLinkReview(this.dataset.category, this.dataset.url)">↗</button>
-               <button class="kb-review-action" title="Zostaw link" onclick="reviewLink(${index}, 'keep')">✓</button>
-               <button class="kb-review-action" title="Oznacz do późniejszej kontroli" onclick="reviewLink(${index}, 'flag')">⚠</button>
-               <button class="kb-review-action remove" title="Usuń link" onclick="reviewLink(${index}, 'remove')">✕</button>`;
+                ? `<span class="kb-review-progress">⏳ ${t('kb_review_queued')}</span>`
+            : `<button class="kb-review-action" title="${escapeHtml(t('kb_review_open_title'))}" data-category="${escapeHtml(result.category)}" data-url="${escapeHtml(result.url)}" onclick="openLinkReview(this.dataset.category, this.dataset.url)">↗</button>
+               <button class="kb-review-action" title="${escapeHtml(t('kb_review_keep_title'))}" onclick="reviewLink(${index}, 'keep')">✓</button>
+               <button class="kb-review-action" title="${escapeHtml(t('kb_review_flag_title'))}" onclick="reviewLink(${index}, 'flag')">⚠</button>
+               <button class="kb-review-action remove" title="${escapeHtml(t('kb_review_remove_title'))}" onclick="reviewLink(${index}, 'remove')">✕</button>`;
         return `<article class="kb-review-item">
             <span class="kb-review-state">${reviewStateIcon(result.state)}</span>
             <div style="min-width:0">
                 <div class="kb-review-name">${escapeHtml(result.name)}${result.starred ? ' ⭐' : ''}</div>
                 <div class="kb-review-url">${escapeHtml(result.url)}</div>
-                <div class="kb-review-detail">${escapeHtml(status + (result.detail || ''))}</div>
+                <div class="kb-review-detail">${escapeHtml(status + tMsg(result.detailCode, result.detailParams, result.detail || ''))}</div>
             </div>
             <div class="kb-review-actions">${actions}</div>
         </article>`;
     }).join('');
     panel.classList.add('active');
-    panel.innerHTML = `<div class="kb-review-head"><h3>🩺 Weryfikacja linków</h3><span class="kb-review-progress">${progress}</span></div>
-        <p class="kb-review-note">Kolejka ma stały porządek: skaner zmienia tylko stan ⏳ na wynik, więc żadna pozycja nie przeskoczy na inną stronę. ✓ zostawia link, ⚠ oznacza go, a ✕ usuwa po potwierdzeniu.</p>
+    panel.innerHTML = `<div class="kb-review-head"><h3>🩺 ${t('kb_review_title')}</h3><span class="kb-review-progress">${escapeHtml(progress)}</span></div>
+        <p class="kb-review-note">${t('kb_review_order_note')}</p>
         <div class="kb-review-bulk">
-            <button class="kb-review-bulk-btn" onclick="bulkKeepGreen('page')" ${pageGreen ? '' : 'disabled'}>✓ Zatwierdź zielone na tej stronie (${pageGreen})</button>
-            <button class="kb-review-bulk-btn" onclick="bulkKeepGreen('all')" ${allGreen ? '' : 'disabled'}>✓ Zatwierdź wszystkie zielone (${allGreen})</button>
+            <button class="kb-review-bulk-btn" onclick="bulkKeepGreen('page')" ${pageGreen ? '' : 'disabled'}>✓ ${t('kb_review_approve_page', { count: pageGreen })}</button>
+            <button class="kb-review-bulk-btn" onclick="bulkKeepGreen('all')" ${allGreen ? '' : 'disabled'}>✓ ${t('kb_review_approve_all', { count: allGreen })}</button>
         </div>
-        <div class="kb-review-list">${items || '<div class="kb-review-note">Czekam na kolejkę…</div>'}</div>
+        <div class="kb-review-list">${items || `<div class="kb-review-note">${t('kb_review_waiting')}</div>`}</div>
         <div class="kb-review-pagination">
-            <button class="kb-review-page-btn" onclick="setLinkReviewPage(${linkReviewPage - 1})" ${linkReviewPage === 0 ? 'disabled' : ''}>← Poprzednie</button>
-            <span class="kb-review-page-info">Strona ${linkReviewPage + 1} z ${pageCount} • pozycje ${results.length ? pageStart + 1 : 0}–${Math.min(pageStart + REVIEW_PAGE_SIZE, results.length)}</span>
-            <button class="kb-review-page-btn" onclick="setLinkReviewPage(${linkReviewPage + 1})" ${linkReviewPage + 1 >= pageCount ? 'disabled' : ''}>Następne →</button>
+            <button class="kb-review-page-btn" onclick="setLinkReviewPage(${linkReviewPage - 1})" ${linkReviewPage === 0 ? 'disabled' : ''}>← ${t('kb_review_prev')}</button>
+            <span class="kb-review-page-info">${t('kb_review_page_info', { page: linkReviewPage + 1, pages: pageCount, from: results.length ? pageStart + 1 : 0, to: Math.min(pageStart + REVIEW_PAGE_SIZE, results.length) })}</span>
+            <button class="kb-review-page-btn" onclick="setLinkReviewPage(${linkReviewPage + 1})" ${linkReviewPage + 1 >= pageCount ? 'disabled' : ''}>${t('kb_review_next')} →</button>
         </div>`;
 }
 
@@ -450,18 +450,18 @@ async function bulkKeepGreen(scope) {
     const pool = scope === 'page' ? results.slice(pageStart, pageStart + REVIEW_PAGE_SIZE) : results;
     const candidates = pool.filter(result => result.state === 'ok' && !linkReviewDecisions.has(reviewKey(result)));
     if (!candidates.length) return;
-    const label = scope === 'page' ? 'na tej stronie' : 'w całej obecnie zeskanowanej kolejce';
-    if (!(await uiConfirm(`Zatwierdzić ${candidates.length} technicznie działających linków ${label}?\n\nNie obejrzysz ich ręcznie, ale decyzja ✓ zostanie zapisana.`, { confirmLabel: 'Zatwierdź' }))) return;
+    const question = tn(scope === 'page' ? 'count_kb_review_bulk_confirm_page' : 'count_kb_review_bulk_confirm_all', candidates.length);
+    if (!(await uiConfirm(question, { confirmLabel: t('kb_review_approve_btn') }))) return;
     const response = await window.api.bulk_keep_knowledge_links(JSON.stringify({
         category: candidates[0].category,
         urls: candidates.map(result => result.url),
         confirmed: true,
     }));
     if (!response || response.error) {
-        uiToast(response?.error || 'Nie udało się zatwierdzić linków.', { kind: 'error' });
+        uiToast(tErr(response) || t('kb_review_bulk_failed'), { kind: 'error' });
         return;
     }
-    candidates.forEach(result => linkReviewDecisions.set(reviewKey(result), '✓ zatwierdzono zbiorczo'));
+    candidates.forEach(result => linkReviewDecisions.set(reviewKey(result), 'bulk'));
     renderLinkReview();
 }
 
@@ -470,18 +470,18 @@ async function reviewLink(index, action) {
     if (!result) return;
     let confirmed = false;
     if (action === 'remove') {
-        const protection = result.starred ? '\n\nTo jest wyróżniony link — czy na pewno chcesz go usunąć?' : '';
-        confirmed = await uiConfirm(`Usunąć „${result.name}” z kategorii „${result.category}”?${protection}`, { danger: true });
+        const confirmKey = result.starred ? 'kb_review_remove_confirm_starred' : 'kb_review_remove_confirm';
+        confirmed = await uiConfirm(t(confirmKey, { name: result.name, category: result.category }), { danger: true });
         if (!confirmed) return;
     }
     const response = await window.api.review_knowledge_link(JSON.stringify({
         action, category: result.category, url: result.url, confirmed,
     }));
     if (!response || response.error) {
-        uiToast(response?.error || 'Nie udało się zapisać decyzji.', { kind: 'error' });
+        uiToast(tErr(response) || t('kb_review_save_failed'), { kind: 'error' });
         return;
     }
-    linkReviewDecisions.set(reviewKey(result), action === 'keep' ? '✓ zostawiono' : action === 'flag' ? '⚠ do sprawdzenia' : '✕ usunięto');
+    linkReviewDecisions.set(reviewKey(result), action);
     if (action === 'remove') {
         await loadKnowledge();
     }
@@ -495,14 +495,18 @@ async function openLinkReview(category, url) {
     }
     const response = await window.api.open_knowledge_link_review(category, url);
     if (!response || response.error) {
-        uiToast(response?.error || 'Nie udało się otworzyć okna kontroli.', { kind: 'error' });
+        uiToast(tErr(response) || t('kb_review_open_failed'), { kind: 'error' });
         return;
     }
     watchExternalLinkReview(category, url, response.openedAt);
 }
 
+// Decisions are stored as codes (bulk/keep/flag/remove) and translated when rendered.
 function reviewDecisionText(action) {
-    return action === 'keep' ? '✓ zostawiono' : action === 'flag' ? '⚠ do sprawdzenia' : '✕ usunięto';
+    if (action === 'bulk') return `✓ ${t('kb_review_decision_bulk')}`;
+    if (action === 'keep') return `✓ ${t('kb_review_decision_kept')}`;
+    if (action === 'flag') return `⚠ ${t('kb_review_decision_flagged')}`;
+    return `✕ ${t('kb_review_decision_removed')}`;
 }
 
 async function watchExternalLinkReview(category, url, openedAt) {
@@ -520,7 +524,7 @@ async function watchExternalLinkReview(category, url, openedAt) {
             const decisionAtMs = Date.parse(decision?.updatedAt || '');
             if (!response?.found || !decision?.action || !Number.isFinite(decisionAtMs) || decisionAtMs < openedAtMs) continue;
 
-            linkReviewDecisions.set(key, reviewDecisionText(decision.action));
+            linkReviewDecisions.set(key, decision.action);
             if (decision.action === 'remove') {
                 await loadKnowledge();
                 if (currentCategoryIndex >= 0) showCategory(currentCategoryIndex);
@@ -591,7 +595,7 @@ function renderSearch() {
     document.getElementById('kb-detail-view').classList.remove('active');
 
     if (!results.length) {
-        content.innerHTML = `<div class="kb-empty"><div class="kb-empty-icon">🔍</div><div class="kb-empty-title">${t('no_ai_results')} "${escapeHtml(searchQuery)}"</div></div>`;
+        content.innerHTML = `<div class="kb-empty"><div class="kb-empty-icon">🔍</div><div class="kb-empty-title">${escapeHtml(t('kb_search_no_results', { query: searchQuery }))}</div></div>`;
         return;
     }
 
@@ -602,8 +606,8 @@ function renderSearch() {
         grouped[r.categoryId].links.push(r);
     });
 
-    const limitNote = totalMatches > results.length ? ` • pokazuję pierwsze ${results.length}; doprecyzuj wyszukiwanie` : '';
-    content.innerHTML = `<div class="kb-search-section-title">${totalMatches} ${t('kb_results_count')} "${escapeHtml(searchQuery)}"${limitNote}</div>` +
+    const limitNote = totalMatches > results.length ? ` • ${t('kb_search_limit_note', { count: results.length })}` : '';
+    content.innerHTML = `<div class="kb-search-section-title">${escapeHtml(tn('count_kb_search_results', totalMatches, { query: searchQuery }) + limitNote)}</div>` +
         Object.values(grouped).map(category => {
             const linksHtml = category.links.map(l => {
                 const tag = l.tag ? `<span class="kb-link-tag">${escapeHtml(l.tag)}</span>` : '';
@@ -630,6 +634,14 @@ function renderSearch() {
 function renderAll() {
     renderStats();
     renderCategories();
+}
+
+// Re-renders the dynamic parts after a language change.
+function rerenderKnowledgeView() {
+    renderAll();
+    if (currentCategoryIndex >= 0) showCategory(currentCategoryIndex);
+    if (searchQuery.trim()) renderSearch();
+    if (linkReviewData) renderLinkReview();
 }
 
 // Search
@@ -675,5 +687,6 @@ if (langSelect && typeof getCurrentLang === 'function') {
     langSelect.value = (typeof getLanguageChoice === "function" ? getLanguageChoice() : getCurrentLang());
     langSelect.addEventListener('change', (e) => {
         if (typeof setLanguage === 'function') setLanguage(e.target.value);
+        rerenderKnowledgeView();
     });
 }

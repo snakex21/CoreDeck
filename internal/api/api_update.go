@@ -68,7 +68,7 @@ func (a *API) updater() *launcherupdate.Manager {
 func toJSON(v any) string {
 	data, err := json.Marshal(v)
 	if err != nil {
-		return jsonError(err.Error())
+		return jsonErr(err)
 	}
 	return string(data)
 }
@@ -94,7 +94,7 @@ func (a *API) GetUpdateSettings() string {
 // SetUpdateSettings(json) → {success} or {error}.
 func (a *API) SetUpdateSettings(raw string) string {
 	if err := a.updater().SetSettings(raw); err != nil {
-		return jsonError(err.Error())
+		return jsonErr(err)
 	}
 	return toJSON(successResp{Success: true})
 }
@@ -109,7 +109,7 @@ func (a *API) CheckForUpdates(mode string) string {
 // SkipUpdateVersion(version) → {success} or {error}.
 func (a *API) SkipUpdateVersion(v string) string {
 	if err := a.updater().Skip(v); err != nil {
-		return jsonError(err.Error())
+		return jsonErr(err)
 	}
 	return toJSON(successResp{Success: true})
 }

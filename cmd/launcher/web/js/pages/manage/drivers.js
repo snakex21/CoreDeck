@@ -27,10 +27,10 @@ async function loadDrivers() {
 function saveDrivers() {
     return window.api.save_drivers_data(JSON.stringify(driversData))
         .then((r) => {
-            if (r && r.error) { uiToast(t('err_save_prefix') + r.error, { kind: 'error' }); return false; }
+            if (r && r.error) { uiToast(t('mng_err_save', { error: tErr(r) }), { kind: 'error' }); return false; }
             return true;
         })
-        .catch((e) => { uiToast(t('err_save_prefix') + String(e), { kind: 'error' }); return false; });
+        .catch((e) => { uiToast(t('mng_err_save', { error: String(e) }), { kind: 'error' }); return false; });
 }
 
 function sortedTypeEntries() {
@@ -74,7 +74,7 @@ function renderDriversPane() {
         detail.innerHTML = `
             <div class="drv-empty-detail">
                 ${ICON.chip}
-                <div class="drv-empty-detail-title">${term ? 'Brak wyników' : t('empty_select_type')}</div>
+                <div class="drv-empty-detail-title">${term ? t('mng_empty_no_results') : t('empty_select_type')}</div>
                 <div>${term ? t('empty_try_other_drivers') : t('empty_add_first_type')}</div>
             </div>
         `;
@@ -132,22 +132,22 @@ function renderDriverDetail(typeKey) {
         <div class="drv-head">
             <div class="drv-head-main">
                 <h2>${escapeHtml(typeData.title || typeKey)}</h2>
-                <p>${brands.length} producent${brands.length === 1 ? '' : 'ów'} · ${totalSeries} ${t('unit_series')}</p>
+                <p>${tn('count_mng_brands', brands.length)} · ${tn('count_mng_series', totalSeries)}</p>
             </div>
             <!-- btn-sm: four secondary actions hung off a section heading is
                  the densest cluster on the page; the same pattern in
                  configurator.html uses the compact size too. -->
             <div class="drv-head-actions">
-                <button class="btn btn-secondary btn-sm" data-act="add-brand" title="${t('title_add_brand')}">${ICON.plus} Producent</button>
-                <button class="btn btn-secondary btn-sm" data-act="add-series" title="${t('title_add_series')}">${ICON.plus} Seria</button>
-                <button class="btn btn-secondary btn-sm" data-act="edit-type" title="${t('title_edit_type')}">${ICON.edit} Edytuj</button>
-                <button class="btn btn-danger btn-sm" data-act="del-type" title="${t('title_delete_type')}">${ICON.trash} Usuń</button>
+                <button class="btn btn-secondary btn-sm" data-act="add-brand" title="${t('title_add_brand')}">${ICON.plus} ${t('btn_brand')}</button>
+                <button class="btn btn-secondary btn-sm" data-act="add-series" title="${t('title_add_series')}">${ICON.plus} ${t('mng_btn_series')}</button>
+                <button class="btn btn-secondary btn-sm" data-act="edit-type" title="${t('title_edit_type')}">${ICON.edit} ${t('title_edit')}</button>
+                <button class="btn btn-danger btn-sm" data-act="del-type" title="${t('title_delete_type')}">${ICON.trash} ${t('title_delete')}</button>
             </div>
         </div>
         ${brands.length === 0 ? `
             <div class="drv-empty-detail" style="height:auto;padding:60px 20px;">
                 ${ICON.package}
-                <div class="drv-empty-detail-title">Brak producentów</div>
+                <div class="drv-empty-detail-title">${t('mng_empty_no_brands')}</div>
                 <div>${t('empty_add_first_brand')}</div>
             </div>
         ` : brands.map(([brandKey, brandTitle]) => {
@@ -156,7 +156,7 @@ function renderDriverDetail(typeKey) {
             return `
                 <div class="drv-brand-group">
                     <div class="drv-brand-head">
-                        <div class="drv-brand-title">${escapeHtml(brandTitle)} <small>${series.length} ${t('unit_series')}</small></div>
+                        <div class="drv-brand-title">${escapeHtml(brandTitle)} <small>${tn('count_mng_series', series.length)}</small></div>
                         <div class="drv-brand-actions">
                             <button data-act="add-series" data-brand="${escapeHtml(brandKey)}" title="${t('title_add_series_short')}">+</button>
                             <button data-act="edit-brand" data-brand="${escapeHtml(brandKey)}" title="${t('title_edit_brand')}">${ICON.edit}</button>
@@ -244,11 +244,12 @@ function refreshDriverSelects(seriesTypeSel, seriesBrandSel, brandTypeSel) {
     const typeOpts = sortedTypeEntries()
         .map(([k, t]) => `<option value="${escapeHtml(k)}">${escapeHtml(t)}</option>`)
         .join('');
-    if (seriesTypeSel) seriesTypeSel.innerHTML = '<option value="">— wybierz —</option>' + typeOpts;
-    if (brandTypeSel) brandTypeSel.innerHTML = '<option value="">— wybierz —</option>' + typeOpts;
+    const chooseOpt = `<option value="">${escapeHtml(t('mng_opt_choose'))}</option>`;
+    if (seriesTypeSel) seriesTypeSel.innerHTML = chooseOpt + typeOpts;
+    if (brandTypeSel) brandTypeSel.innerHTML = chooseOpt + typeOpts;
 
     function fillBrandsFor(typeKey, brandSel, currentBrandKey) {
-        brandSel.innerHTML = '<option value="">— wybierz —</option>';
+        brandSel.innerHTML = chooseOpt;
         if (!typeKey || !driversData.types[typeKey]) return;
         const opts = sortedBrandEntries(typeKey)
             .map(([k, t]) => {
@@ -361,7 +362,7 @@ async function saveDriverEditor() {
         const brandKey = document.getElementById('drv-series-brand').value.trim();
         const name = document.getElementById('drv-series-name').value.trim();
         const folderPath = document.getElementById('drv-series-folder').value.trim();
-        if (!typeKey || !brandKey) { uiToast('Wybierz typ i producenta.', { kind: 'warn' }); return; }
+        if (!typeKey || !brandKey) { uiToast(t('val_select_type_brand'), { kind: 'warn' }); return; }
         if (!name) { uiToast(t('val_series_name'), { kind: 'warn' }); return; }
         if (!folderPath) { uiToast(t('val_folder_path'), { kind: 'warn' }); return; }
         if (!driversData.types[typeKey]) { uiToast(t('err_type_not_exists'), { kind: 'error' }); return; }
@@ -389,7 +390,7 @@ async function saveDriverEditor() {
         if (driverEditContext) {
             const oldKey = driverEditContext.typeKey;
             if (oldKey !== key && driversData.types[key]) {
-                uiToast('Typ o ID "' + key + '" ' + (typeof t === 'function' ? t('err_already_exists') : 'już istnieje.'), { kind: 'error' }); return;
+                uiToast(t('mng_err_type_id_exists', { id: key }), { kind: 'error' }); return;
             }
             const oldVal = driversData.types[oldKey];
             delete driversData.types[oldKey];
@@ -397,7 +398,7 @@ async function saveDriverEditor() {
             driversData.types[key].title = title;
             if (selectedDriverType === oldKey) selectedDriverType = key;
         } else {
-            if (driversData.types[key]) { uiToast('Typ o ID "' + key + '" ' + (typeof t === 'function' ? t('err_already_exists') : 'już istnieje.'), { kind: 'error' }); return; }
+            if (driversData.types[key]) { uiToast(t('mng_err_type_id_exists', { id: key }), { kind: 'error' }); return; }
             driversData.types[key] = { title, brands: {} };
             selectedDriverType = key;
         }
@@ -405,7 +406,7 @@ async function saveDriverEditor() {
         const typeKey = document.getElementById('drv-brand-type').value.trim();
         let key = document.getElementById('drv-brand-key').value.trim();
         const title = document.getElementById('drv-brand-title').value.trim();
-        if (!typeKey) { uiToast(typeof t === 'function' ? t('val_select_type') : 'Wybierz typ.', { kind: 'warn' }); return; }
+        if (!typeKey) { uiToast(t('val_select_type'), { kind: 'warn' }); return; }
         if (!title) { uiToast(t('val_name_required'), { kind: 'warn' }); return; }
         if (!driversData.types[typeKey]) { uiToast(t('err_type_not_exists'), { kind: 'error' }); return; }
         if (!driversData.types[typeKey].brands) driversData.types[typeKey].brands = {};
@@ -415,10 +416,10 @@ async function saveDriverEditor() {
             const oldBrands = driversData.types[ctx.typeKey].brands;
             const sameType = ctx.typeKey === typeKey;
             if (!sameType && driversData.types[typeKey].brands[key]) {
-                uiToast('Producent o ID "' + key + '" ' + (typeof t === 'function' ? t('err_brand_exists_in_type') : 'już istnieje w tym typie.'), { kind: 'error' }); return;
+                uiToast(t('mng_err_brand_id_exists', { id: key }), { kind: 'error' }); return;
             }
             if (sameType && ctx.brandKey !== key && driversData.types[typeKey].brands[key]) {
-                uiToast('Producent o ID "' + key + '" ' + (typeof t === 'function' ? t('err_brand_exists_in_type') : 'już istnieje w tym typie.'), { kind: 'error' }); return;
+                uiToast(t('mng_err_brand_id_exists', { id: key }), { kind: 'error' }); return;
             }
             const oldVal = oldBrands[ctx.brandKey];
             if (ctx.typeKey !== typeKey) delete oldBrands[ctx.brandKey];
@@ -426,7 +427,7 @@ async function saveDriverEditor() {
             driversData.types[typeKey].brands[key] = { title, series: oldVal.series || [] };
         } else {
             if (driversData.types[typeKey].brands[key]) {
-                uiToast('Producent o ID "' + key + '" ' + (typeof t === 'function' ? t('err_brand_exists_in_type') : 'już istnieje w tym typie.'), { kind: 'error' }); return;
+                uiToast(t('mng_err_brand_id_exists', { id: key }), { kind: 'error' }); return;
             }
             driversData.types[typeKey].brands[key] = { title, series: [] };
         }
@@ -437,10 +438,15 @@ async function saveDriverEditor() {
 }
 
 async function deleteDriverType(typeKey) {
-    const t = driversData.types[typeKey];
-    if (!t) return;
-    const seriesCount = Object.values(t.brands || {}).reduce((sum, b) => sum + (b.series || []).length, 0);
-    const msg = `Usunąć typ „${t.title}” wraz z ${Object.keys(t.brands || {}).length} producentami i ${seriesCount} seriami?`;
+    // Nie `t` — przysłoniłoby globalną funkcję tłumaczeń t().
+    const typeData = driversData.types[typeKey];
+    if (!typeData) return;
+    const seriesCount = Object.values(typeData.brands || {}).reduce((sum, b) => sum + (b.series || []).length, 0);
+    const brandCount = Object.keys(typeData.brands || {}).length;
+    const msg = tn('count_mng_confirm_delete_type', brandCount, {
+        name: typeData.title || typeKey,
+        series: tn('count_mng_series_with', seriesCount),
+    });
     if (!(await uiConfirm(msg, { danger: true }))) return;
     delete driversData.types[typeKey];
     if (selectedDriverType === typeKey) selectedDriverType = null;
@@ -451,7 +457,7 @@ async function deleteDriverBrand(typeKey, brandKey) {
     const b = driversData.types[typeKey]?.brands?.[brandKey];
     if (!b) return;
     const seriesCount = (b.series || []).length;
-    if (!(await uiConfirm(`Usunąć producenta „${b.title}” wraz z ${seriesCount} seriami?`, { danger: true }))) return;
+    if (!(await uiConfirm(tn('count_mng_confirm_delete_brand', seriesCount, { name: b.title || brandKey }), { danger: true }))) return;
     delete driversData.types[typeKey].brands[brandKey];
     if (await saveDrivers()) renderDriversPane();
 }
@@ -460,7 +466,7 @@ async function deleteDriverSeries(typeKey, brandKey, seriesIndex) {
     const list = driversData.types[typeKey]?.brands?.[brandKey]?.series;
     if (!list || !list[seriesIndex]) return;
     const name = list[seriesIndex].name;
-    if (!(await uiConfirm(`Usunąć serię „${name}”?`, { danger: true }))) return;
+    if (!(await uiConfirm(t('mng_confirm_delete_series', { name }), { danger: true }))) return;
     list.splice(seriesIndex, 1);
     if (await saveDrivers()) renderDriversPane();
 }

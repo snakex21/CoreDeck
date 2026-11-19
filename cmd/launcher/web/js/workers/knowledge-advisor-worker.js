@@ -76,7 +76,9 @@ function parseModelResponse(content, candidates) {
 async function advise(question, requestId) {
   const candidates = rankLinks(question);
   if (!candidates.length) {
-    postMessage({ type: 'result', requestId, answer: 'Nie znalazłem dobrego dopasowania w Twojej Bazie Wiedzy. Spróbuj opisać zastosowanie innymi słowami.', results: [], fallback: true });
+    // Workers have no t(): fallback texts are sent as i18n keys (answerKey/reasonKey)
+    // and translated by knowledge-advisor.js. Model output is passed as answer/reason.
+    postMessage({ type: 'result', requestId, answerKey: 'kb_adv_no_match', results: [], fallback: true });
     return;
   }
 
@@ -88,7 +90,7 @@ Kandydaci: ${JSON.stringify(catalog)}`;
 
   try {
     postMessage({ type: 'status', requestId, status: 'thinking' });
-    if (!llmServer) throw new Error('Lokalny serwer AI nie został uruchomiony');
+    if (!llmServer) throw new Error('Local AI server is not running');
     const response = await fetch(`${llmServer}/v1/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -99,13 +101,14 @@ Kandydaci: ${JSON.stringify(catalog)}`;
         stream: false,
       }),
     });
-    if (!response.ok) throw new Error(`Serwer modelu: ${response.status}`);
+    if (!response.ok) throw new Error(`Model server: ${response.status}`);
     const data = await response.json();
     const parsed = parseModelResponse(data.choices?.[0]?.message?.content, candidates);
-    const results = parsed.results.length ? parsed.results : candidates.slice(0, 5).map(link => ({ link, reason: 'Dopasowanie z Twojej Bazy Wiedzy.' }));
-    postMessage({ type: 'result', requestId, answer: parsed.answer || 'Oto najbliższe dopasowania z Twojej Bazy Wiedzy:', results, fallback: false });
+    const results = parsed.results.length ? parsed.results : candidates.slice(0, 5).map(link => ({ link, reasonKey: 'kb_adv_reason_match' }));
+    if (parsed.answer) postMessage({ type: 'result', requestId, answer: parsed.answer, results, fallback: false });
+    else postMessage({ type: 'result', requestId, answerKey: 'kb_adv_default_answer', results, fallback: false });
   } catch (_) {
-    postMessage({ type: 'result', requestId, answer: 'Model jest chwilowo niedostępny, więc pokazuję najbliższe dopasowania z Bazy Wiedzy.', results: candidates.slice(0, 5).map(link => ({ link, reason: 'Dopasowanie po nazwie, tagu i kategorii.' })), fallback: true });
+    postMessage({ type: 'result', requestId, answerKey: 'kb_adv_model_unavailable', results: candidates.slice(0, 5).map(link => ({ link, reasonKey: 'kb_adv_reason_keyword' })), fallback: true });
   }
 }
 

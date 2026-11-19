@@ -42,7 +42,7 @@ function renderProfiles() {
                 </div>
                 <div class="name">${displayName}</div>
                 <div class="desc">${displayDesc}</div>
-                <div class="count">${tn('count_programs', count)}${isOverridden ? ' ' + t('cfg_profile_modified') : ''}</div>
+                <div class="count">${tn('count_programs', count)}${isOverridden ? ` <span class="profile-modified-tag">${t('cfg_profile_modified')}</span>` : ''}</div>
             </div>
         `;
     }
@@ -260,7 +260,7 @@ function openProfileTweakEditor(mode) {
     }));
 
     const title = document.getElementById('tweak-profile-editor-title');
-    if (title) title.textContent = `${t(tweakEditorMode === 'debloat' ? 'cfg_edit_profile_debloat' : 'cfg_edit_profile_tweaks')}: ${profileName}`;
+    if (title) title.textContent = t(tweakEditorMode === 'debloat' ? 'cfg_debloat_editor_title' : 'cfg_tweak_editor_title', { name: profileName });
     const hint = document.getElementById('tweak-profile-editor-hint');
     if (hint) hint.textContent = t(tweakEditorMode === 'debloat' ? 'cfg_debloat_profile_editor_hint' : 'cfg_tweak_profile_editor_hint');
     const search = document.getElementById('tweak-profile-search');
@@ -337,7 +337,7 @@ function renderTweakProfileEditorList() {
     container.innerHTML = html || `<p style="color:var(--text-muted);text-align:center;padding:12px;">${t('no_ai_results')}</p>`;
 
     const count = document.getElementById('tweak-profile-count');
-    if (count) count.textContent = `${tweakEditorSelectedTweaks.length} ${t('cfg_selected')}`;
+    if (count) count.textContent = tn('count_cfg_selected', tweakEditorSelectedTweaks.length);
 }
 
 function toggleTweakProfileEditor(id, checked) {
@@ -390,7 +390,7 @@ async function saveTweakProfileEditor() {
     try {
         const result = await window.api.save_custom_profile(JSON.stringify(profile));
         if (result.error) {
-            uiToast(t('err_prefix') + result.error, { kind: 'error' });
+            uiToast(t('mng_err_generic', { error: tErr(result) }), { kind: 'error' });
             return;
         }
         await loadCustomProfiles();
@@ -399,7 +399,7 @@ async function saveTweakProfileEditor() {
         else await applyCustomProfile(profileKey);
         renderProfiles();
     } catch (e) {
-        uiToast(t('err_save_prefix') + String(e), { kind: 'error' });
+        uiToast(t('mng_err_save', { error: String(e) }), { kind: 'error' });
     }
 }
 
@@ -411,7 +411,7 @@ function editBuiltinProfile(profileKey) {
     const customOverride = customProfiles.find(cp => cp.id === profileKey);
 
     editingProfileId = profileKey;
-    document.getElementById('profile-editor-title').textContent = t('cfg_profile_editor') + ': ' + profile.name;
+    document.getElementById('profile-editor-title').textContent = t('cfg_profile_editor_named', { name: profile.name });
     document.getElementById('profile-id').value = profileKey;
     document.getElementById('profile-id').disabled = true;
     document.getElementById('profile-name').value = customOverride ? customOverride.name : profile.name;
@@ -552,13 +552,13 @@ async function saveProfile() {
     try {
         const result = await window.api.save_custom_profile(JSON.stringify(profile));
         if (result.error) {
-            uiToast(t('err_prefix') + result.error, { kind: 'error' });
+            uiToast(t('mng_err_generic', { error: tErr(result) }), { kind: 'error' });
             return;
         }
         await loadCustomProfiles();
         closeProfileEditor();
     } catch (e) {
-        uiToast(t('err_save_prefix') + String(e), { kind: 'error' });
+        uiToast(t('mng_err_save', { error: String(e) }), { kind: 'error' });
     }
 }
 
@@ -566,16 +566,16 @@ async function deleteProfile(profileId) {
     const cp = customProfiles.find(p => p.id === profileId);
     if (!cp) return;
 
-    if (!(await uiConfirm(t('confirm_delete_profile') + ` "${cp.name}"?`, { danger: true }))) return;
+    if (!(await uiConfirm(t('cfg_confirm_delete_profile', { name: cp.name }), { danger: true }))) return;
 
     try {
         const result = await window.api.delete_custom_profile(profileId);
         if (result.error) {
-            uiToast(t('err_prefix') + result.error, { kind: 'error' });
+            uiToast(t('mng_err_generic', { error: tErr(result) }), { kind: 'error' });
             return;
         }
         await loadCustomProfiles();
     } catch (e) {
-        uiToast(t('err_delete_prefix') + String(e), { kind: 'error' });
+        uiToast(t('mng_err_delete', { error: String(e) }), { kind: 'error' });
     }
 }

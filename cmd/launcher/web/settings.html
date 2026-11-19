@@ -7,15 +7,15 @@
     <link rel="stylesheet" href="css/app.css">
     <link rel="stylesheet" href="css/pages/configurator.css">
 </head>
-<body data-page-title="Ustawienia programów — CoreDeck">
+<body data-page-title-key="sys_settings_page_title">
     <header class="subpage-header">
         <div class="header-brand">
             <h1>CoreDeck</h1>
-            <span class="header-subtitle">Ustawienia programów</span>
+            <span class="header-subtitle" data-i18n="sys_settings_heading">Ustawienia programów</span>
         </div>
         <div class="header-controls">
-            <a href="index.html" class="subpage-back-btn">← Wróć do launchera</a>
-            <a href="drivers.html" class="subpage-back-btn">🧩 Sterowniki</a>
+            <a href="index.html" class="subpage-back-btn" data-i18n="back_to_launcher">← Wróć do launchera</a>
+            <a href="drivers.html" class="subpage-back-btn">🧩 <span data-i18n="drivers">Sterowniki</span></a>
             <select id="lang-select" class="btn lang-select" aria-label="Language">
                 <option value="pl">🇵🇱 PL</option>
                 <option value="en">🇬🇧 EN</option>
@@ -33,7 +33,7 @@
                 <option value="sv">🇸🇪 SV</option>
                 <option value="cs">🇨🇿 CS</option>
             </select>
-            <button id="theme-toggle-btn" class="btn theme-btn" title="Przełącz tryb ciemny/jasny">
+            <button id="theme-toggle-btn" class="btn theme-btn" title="Przełącz tryb ciemny/jasny" data-i18n-title="toggle_theme_title">
                 <span class="theme-icon">🌙</span>
             </button>
         </div>
@@ -43,38 +43,39 @@
         <div class="system-page-content system-tool-tab active">
             <div class="tool-tab-heading">
                 <div>
-                    <h2>Ustawienia programów</h2>
-                    <p>Otwieraj przygotowane konfiguracje i kopiuj ich ścieżki bez szukania ich na dysku.</p>
+                    <h2 data-i18n="sys_settings_heading">Ustawienia programów</h2>
+                    <p data-i18n="sys_settings_desc">Otwieraj przygotowane konfiguracje i kopiuj ich ścieżki bez szukania ich na dysku.</p>
                 </div>
-                <span class="tool-tab-status" id="settings-data-status">Ładowanie bazy…</span>
+                <span class="tool-tab-status" id="settings-data-status" data-i18n="sys_loading_db">Ładowanie bazy…</span>
             </div>
 
             <div class="settings-workspace">
                 <section class="settings-browser">
-                    <label class="system-tool-search-label" for="config-settings-search">Wyszukaj ustawienia</label>
+                    <label class="system-tool-search-label" for="config-settings-search" data-i18n="sys_settings_search_label">Wyszukaj ustawienia</label>
                     <input
                         type="search"
                         id="config-settings-search"
                         class="system-tool-input"
                         placeholder="Np. Logitech, OBS, przeglądarka…"
+                        data-i18n-placeholder="sys_settings_search_ph"
                         autocomplete="off">
                     <ul id="config-settings-list" class="config-settings-list"></ul>
-                    <p id="config-settings-empty" class="system-tool-empty hidden">Nie znaleziono pasujących ustawień.</p>
+                    <p id="config-settings-empty" class="system-tool-empty hidden" data-i18n="sys_settings_empty">Nie znaleziono pasujących ustawień.</p>
                 </section>
 
                 <aside class="settings-inspector" id="config-settings-inspector">
                     <div class="settings-inspector-empty" id="config-settings-placeholder">
                         <span aria-hidden="true">⚙</span>
-                        <h3>Wybierz ustawienia z listy</h3>
-                        <p>Tutaj zobaczysz ich lokalizację oraz dostępne działania.</p>
+                        <h3 data-i18n="sys_settings_pick_title">Wybierz ustawienia z listy</h3>
+                        <p data-i18n="sys_settings_pick_desc">Tutaj zobaczysz ich lokalizację oraz dostępne działania.</p>
                     </div>
                     <div id="config-settings-selection" class="hidden">
-                        <span class="settings-inspector-label">Wybrane ustawienia</span>
+                        <span class="settings-inspector-label" data-i18n="sys_settings_selected">Wybrane ustawienia</span>
                         <h3 id="config-settings-name"></h3>
                         <div id="config-settings-path" class="settings-inspector-path"></div>
                         <div class="system-tool-actions">
-                            <button id="config-settings-open" class="btn-primary">📂 Otwórz folder</button>
-                            <button id="config-settings-copy" class="btn-secondary">Skopiuj ścieżkę</button>
+                            <button id="config-settings-open" class="btn-primary">📂 <span data-i18n="open_folder">Otwórz folder</span></button>
+                            <button id="config-settings-copy" class="btn-secondary" data-i18n="copy_path">Skopiuj ścieżkę</button>
                         </div>
                     </div>
                 </aside>

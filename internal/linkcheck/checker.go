@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"launcher/internal/uimsg"
 )
 
 const requestTimeout = 12 * time.Second
@@ -20,7 +22,15 @@ type Result struct {
 	StatusCode int    `json:"statusCode,omitempty"`
 	FinalURL   string `json:"finalUrl,omitempty"`
 	Detail     string `json:"detail"`
-	CheckedAt  string `json:"checkedAt"`
+	// DetailCode is the UI message key of Detail (translations.js), with
+	// DetailParams as its placeholders; Detail is the Polish fallback.
+	DetailCode   string            `json:"detailCode,omitempty"`
+	DetailParams map[string]string `json:"detailParams,omitempty"`
+	CheckedAt    string            `json:"checkedAt"`
+}
+
+func (r *Result) setDetail(m uimsg.Msg) {
+	r.Detail, r.DetailCode, r.DetailParams = m.Text, m.Code, m.Params
 }
 
 // Check verifies one URL without downloading its body. HEAD is used first;
@@ -30,7 +40,7 @@ func Check(rawURL string) Result {
 	parsed, err := url.Parse(rawURL)
 	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
 		result.State = "failed"
-		result.Detail = "Nieprawidłowy adres HTTP/HTTPS"
+		result.setDetail(uimsg.New("msg_link_invalid_url", "Nieprawidłowy adres HTTP/HTTPS"))
 		return result
 	}
 
@@ -40,7 +50,7 @@ func Check(rawURL string) Result {
 		Timeout: requestTimeout,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if len(via) >= 5 {
-				return fmt.Errorf("zbyt wiele przekierowań")
+				return fmt.Errorf("too many redirects")
 			}
 			return nil
 		},
@@ -53,7 +63,8 @@ func Check(rawURL string) Result {
 	}
 	if err != nil {
 		result.State = "failed"
-		result.Detail = shortError(err)
+		short := shortError(err)
+		result.setDetail(uimsg.New("msg_link_request_failed", short, "error", short))
 		return result
 	}
 	defer response.Body.Close()
@@ -64,16 +75,18 @@ func Check(rawURL string) Result {
 	case response.StatusCode >= 200 && response.StatusCode < 400:
 		result.State = "ok"
 		if result.FinalURL != rawURL {
-			result.Detail = "Działa po przekierowaniu"
+			result.setDetail(uimsg.New("msg_link_ok_redirect", "Działa po przekierowaniu"))
 		} else {
-			result.Detail = "Strona odpowiada poprawnie"
+			result.setDetail(uimsg.New("msg_link_ok", "Strona odpowiada poprawnie"))
 		}
 	case response.StatusCode >= 400 && response.StatusCode < 500:
 		result.State = "warning"
-		result.Detail = fmt.Sprintf("Serwer zwrócił HTTP %d — warto otworzyć ręcznie", response.StatusCode)
+		status := fmt.Sprintf("%d", response.StatusCode)
+		result.setDetail(uimsg.New("msg_link_http_warning", "Serwer zwrócił HTTP "+status+" — warto otworzyć ręcznie", "status", status))
 	default:
 		result.State = "failed"
-		result.Detail = fmt.Sprintf("Serwer zwrócił HTTP %d", response.StatusCode)
+		status := fmt.Sprintf("%d", response.StatusCode)
+		result.setDetail(uimsg.New("msg_link_http_failed", "Serwer zwrócił HTTP "+status, "status", status))
 	}
 	return result
 }

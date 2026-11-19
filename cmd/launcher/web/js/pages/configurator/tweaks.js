@@ -114,13 +114,13 @@ function tweakRowHtml(tweak, idx, opts) {
         presetBadge = `<span class="badge badge-info" title="${t('hint_preset_member')}">☑ ${t('badge_in_preset')}</span>`;
     }
 
-    const stateMessage = translateStateMessage(tweak.stateMessage);
+    const stateMessage = tweak.stateMsg ? tMsg(tweak.stateMsg.code, tweak.stateMsg.params, tweak.stateMsg.message) : '';
     const stateSuffix = stateMessage && stateMessage.toLowerCase() !== String(liveBadge).toLowerCase()
         ? ' — ' + stateMessage
         : '';
 
     const revertBtn = tweak.revertible
-        ? `<button class="btn-secondary btn-sm" onclick="revertTweak(${idx})" style="margin-left:8px;" title="Cofnij ten tweak (przywróć z kopii zapasowej)">${t('btn_revert')}</button>`
+        ? `<button class="btn-secondary btn-sm" onclick="revertTweak(${idx})" style="margin-left:8px;" title="${t('cfg_revert_title')}">${t('btn_revert')}</button>`
         : '';
 
     const badgesRow = `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">${liveBadge}${presetBadge}${stateSuffix ? `<span style="color:var(--text-muted);font-size:var(--fs-xs);">${stateSuffix}</span>` : ''}</div>`;
@@ -182,7 +182,13 @@ function renderDebloat() {
         });
     };
 
-    groupOrder.forEach(g => renderGroup(g, groups[g]));
+    // Group ids come from tweaks.json; brand names (Xbox, Bing) stay as they are.
+    const groupLabels = {
+        Multimedia: t('cfg_debloat_group_multimedia'),
+        Komunikacja: t('cfg_debloat_group_communication'),
+        'Narzędzia i inne': t('cfg_debloat_group_tools_other')
+    };
+    groupOrder.forEach(g => renderGroup(groupLabels[g] || g, groups[g]));
     renderGroup(t('cat_other'), otherGroup);
 
     list.innerHTML = html;
@@ -191,9 +197,13 @@ function renderDebloat() {
 
 function toggleRemovedDebloat() {
     hideRemovedDebloat = !hideRemovedDebloat;
-    const btn = document.getElementById('toggle-removed-debloat');
-    if (btn) btn.textContent = hideRemovedDebloat ? t('btn_show_removed_deb') : t('btn_hide_removed_deb');
+    updateRemovedDebloatButton();
     renderDebloat();
+}
+
+function updateRemovedDebloatButton() {
+    const btn = document.getElementById('toggle-removed-debloat');
+    if (btn) btn.textContent = '👁 ' + (hideRemovedDebloat ? t('btn_show_removed_deb') : t('btn_hide_removed_deb'));
 }
 
 function updateDebloatCounts() {
@@ -204,9 +214,9 @@ function updateDebloatCounts() {
     const countEl = document.getElementById('debloat-count');
     const activeEl = document.getElementById('debloat-active-count');
     const applyEl = document.getElementById('debloat-apply-count');
-    if (countEl) countEl.textContent = `${selected} ${typeof t === 'function' ? t('cfg_selected') : 'wybranych'}`;
-    if (activeEl) activeEl.textContent = `${active} ${typeof t === 'function' ? t('cfg_active_removed') : 'już usuniętych'}`;
-    if (applyEl) applyEl.textContent = toApply;
+    if (countEl) countEl.textContent = tn('count_cfg_selected', selected);
+    if (activeEl) activeEl.textContent = tn('count_cfg_already_removed', active);
+    if (applyEl) applyEl.textContent = tn('count_cfg_debloat_to_remove', toApply);
 }
 
 // --- Script review --------------------------------------------------------
@@ -218,12 +228,12 @@ async function reviewTweakScripts(list, plainConfirmMessage) {
     const ids = list.map(tw => tw.id);
     const preview = await window.api.preview_tweaks(JSON.stringify(ids));
     if (!preview || preview.error) {
-        uiToast((preview && preview.error) || 'preview_tweaks', { kind: 'error' });
+        uiToast(tErr(preview) || t('cfg_err_preview_tweaks'), { kind: 'error' });
         return null;
     }
     const pending = (preview.tweaks || []).filter(p => !p.approved);
     if (pending.length === 0) {
-        return (await uiConfirm(plainConfirmMessage, { confirmLabel: 'Uruchom' })) ? { ids, approve: [] } : null;
+        return (await uiConfirm(plainConfirmMessage, { confirmLabel: t('run_program') })) ? { ids, approve: [] } : null;
     }
 
     const overlay = document.getElementById('tweak-review-overlay');
@@ -274,7 +284,7 @@ async function applyDebloat() {
         return;
     }
 
-    const request = await reviewTweakScripts(toApply, `${t('confirm_debloat_start')} ${toApply.length} ${t('confirm_debloat_mid')}?\n\n${t('confirm_debloat_warn')}`);
+    const request = await reviewTweakScripts(toApply, tn('count_cfg_confirm_debloat', toApply.length) + '\n\n' + t('confirm_debloat_warn'));
     if (!request) return;
 
     const overlay = document.getElementById('progress-overlay');
@@ -293,7 +303,7 @@ async function applyDebloat() {
         const startResult = await window.api.apply_tweaks(JSON.stringify(request));
 
         if (startResult.error) {
-            log.innerHTML = `<div class="err">❌ ${startResult.error}</div>`;
+            log.innerHTML = `<div class="err">❌ ${escapeHtml(tErr(startResult))}</div>`;
             closeBtn.style.display = 'block';
             return;
         }
@@ -324,7 +334,7 @@ async function scanTweakStates(force) {
             typeof window.api.check_tweak_state_scan === 'function') {
             const started = await window.api.start_tweak_state_scan(!!force);
             if (started.error || !started.sessionId) {
-                throw new Error(started.error || 'Nie udało się rozpocząć skanowania');
+                throw new Error(tErr(started) || t('cfg_err_scan_start'));
             }
 
             for (let attempt = 0; attempt < 1200; attempt++) {
@@ -334,7 +344,7 @@ async function scanTweakStates(force) {
                     throw new Error(progress.error);
                 }
                 if (status && progress.total) {
-                    status.textContent = `${t('scan_checking')} ${progress.completed || 0}/${progress.total}`;
+                    status.textContent = t('cfg_scan_progress', { done: progress.completed || 0, total: progress.total });
                 }
                 if (progress.done) {
                     states = progress.states || [];
@@ -342,7 +352,7 @@ async function scanTweakStates(force) {
                 }
             }
             if (!states) {
-                throw new Error('Przekroczono czas skanowania');
+                throw new Error(t('cfg_err_scan_timeout'));
             }
         } else {
             // Compatibility fallback for older backends and standalone UI tests.
@@ -362,7 +372,8 @@ async function scanTweakStates(force) {
             t.stateKnown = !!state.known;
             t.removed = !!state.removed;
             t.revertible = !!state.revertible;
-            t.stateMessage = state.message || '';
+            // Backend message code + Polish fallback, translated at render time.
+            t.stateMsg = { code: state.code || '', params: state.params || null, message: state.message || '' };
             // Checkbox oznacza WYBÓR do zastosowania / część profilu,
             // a nie aktywność w systemie. Skan nie powinien sam zaznaczać
             // aktywnych tweaków, bo to myliło stan z wyborem użytkownika.
@@ -372,13 +383,13 @@ async function scanTweakStates(force) {
         tweakStatesScanned = true;
         const activeCount = allTweaks.filter(t => t.stateKnown && t.active).length;
         const removedCount = allTweaks.filter(t => t.removed).length;
-        if (status) status.textContent = `${t('scan_done')}, ${typeof t === 'function' ? t('cfg_active_label') : 'aktywne'} ${activeCount}/${allTweaks.length}, ${typeof t === 'function' ? t('cfg_removed_label') : 'wycięte'} ${removedCount}`;
+        if (status) status.textContent = t('cfg_scan_summary', { active: activeCount, total: allTweaks.length, removed: removedCount });
         renderTweaks();
         renderDebloat();
         updateRemovedButton();
     } catch (e) {
         console.error('Failed to scan tweak states:', e);
-        if (status) status.textContent = t('scan_error') + String(e);
+        if (status) status.textContent = t('cfg_scan_error', { error: String(e) });
     } finally {
         tweakStatesScanning = false;
     }
@@ -394,9 +405,9 @@ function updateTweakCounts() {
     const selected = visibleTweaks.filter(t => t.selected).length;
     const active = allTweaks.filter(t => t.stateKnown && t.active).length;
     const toApply = visibleTweaks.filter(t => t.selected && !(t.stateKnown && t.active) && !t.removed).length;
-    document.getElementById('tweaks-count').textContent = `${selected} ${typeof t === 'function' ? t('cfg_selected') : 'wybranych'}`;
-    document.getElementById('tweaks-active-count').textContent = `${active} ${typeof t === 'function' ? t('cfg_active_zero') : 'już aktywnych'}`;
-    document.getElementById('tweaks-apply-count').textContent = toApply;
+    document.getElementById('tweaks-count').textContent = tn('count_cfg_selected', selected);
+    document.getElementById('tweaks-active-count').textContent = tn('count_cfg_already_active', active);
+    document.getElementById('tweaks-apply-count').textContent = tn('count_cfg_tweaks_to_apply', toApply);
 }
 
 function toggleRemoved() {
@@ -407,9 +418,13 @@ function toggleRemoved() {
 
 function toggleActive() {
     hideActiveTweaks = !hideActiveTweaks;
-    const btn = document.getElementById('toggle-active-btn');
-    if (btn) btn.textContent = hideActiveTweaks ? '👁 ' + t('btn_show_active_tweaks') : '👁 ' + t('btn_hide_active_tweaks');
+    updateActiveButton();
     renderTweaks();
+}
+
+function updateActiveButton() {
+    const btn = document.getElementById('toggle-active-btn');
+    if (btn) btn.textContent = '👁 ' + (hideActiveTweaks ? t('btn_show_active_tweaks') : t('btn_hide_active_tweaks'));
 }
 
 function updateRemovedButton() {
@@ -417,7 +432,7 @@ function updateRemovedButton() {
     const removedCount = allTweaks.filter(t => t.removed).length;
     if (removedCount > 0) {
         btn.style.display = 'inline-block';
-        btn.textContent = showRemovedTweaks ? `👁 ${t('btn_hide_cut')} (${removedCount})` : `👁 ${t('btn_show_cut')} (${removedCount})`;
+        btn.textContent = '👁 ' + t(showRemovedTweaks ? 'cfg_btn_hide_cut_count' : 'cfg_btn_show_cut_count', { count: removedCount });
     } else {
         btn.style.display = 'none';
     }
@@ -434,13 +449,14 @@ async function applyTweaks() {
     const alreadyActive = selected.filter(t => t.stateKnown && t.active);
 
     if (toApply.length === 0) {
-        uiToast(`${t('all_tweaks_active')} ${tn('count_programs', alreadyActive.length)}.`, { kind: 'info' });
+        uiToast(tn('count_cfg_all_tweaks_active', alreadyActive.length), { kind: 'info' });
         return;
     }
 
+    const question = tn('count_cfg_confirm_apply', toApply.length);
     const msg = alreadyActive.length > 0
-        ? `${t('confirm_apply_start')} ${toApply.length} ${t('confirm_apply_mid')}?\n(${alreadyActive.length} ${t('already_active_skip')})\n\n${t('confirm_apply_restart')}`
-        : `${t('confirm_apply_start')} ${toApply.length} ${t('confirm_apply_mid')}?\n\n${t('confirm_apply_restart')}`;
+        ? `${question}\n${tn('count_cfg_already_active_skipped', alreadyActive.length)}\n\n${t('confirm_apply_restart')}`
+        : `${question}\n\n${t('confirm_apply_restart')}`;
 
     const request = await reviewTweakScripts(toApply, msg);
     if (!request) return;
@@ -461,7 +477,7 @@ async function applyTweaks() {
         const startResult = await window.api.apply_tweaks(JSON.stringify(request));
 
         if (startResult.error) {
-            log.innerHTML = `<div class="err">❌ ${startResult.error}</div>`;
+            log.innerHTML = `<div class="err">❌ ${escapeHtml(tErr(startResult))}</div>`;
             closeBtn.style.display = 'block';
             return;
         }
@@ -481,7 +497,7 @@ async function revertTweak(idx) {
     const tweak = allTweaks[idx];
     if (!tweak) return;
 
-    if (!(await uiConfirm(`${t('confirm_revert')} "${tweak.name}"?\n\n${t('confirm_revert_mid')}`, { confirmLabel: 'Cofnij' }))) {
+    if (!(await uiConfirm(t('cfg_confirm_revert', { name: tweakText(tweak, 'name') }) + '\n\n' + t('cfg_revert_backup_note'), { confirmLabel: t('cfg_btn_revert') }))) {
         return;
     }
 
@@ -501,7 +517,7 @@ async function revertTweak(idx) {
         const result = JSON.parse(await window.api.revert_tweak(tweak.id));
         const cls = result.success ? 'ok' : 'err';
         const icon = result.success ? '✅' : '❌';
-        log.innerHTML += `<div class="${cls}">${icon} ${tweak.name} — ${result.message}</div>`;
+        log.innerHTML += `<div class="${cls}">${icon} ${escapeHtml(tweakText(tweak, 'name'))} — ${escapeHtml(tMsg(result.code, result.params, result.message))}</div>`;
         bar.style.width = '100%';
         status.textContent = result.success ? t('revert_ok') : t('revert_fail');
 
@@ -512,7 +528,7 @@ async function revertTweak(idx) {
 
         closeBtn.style.display = 'block';
     } catch (e) {
-        log.innerHTML = `<div class="err">${t('err_prefix')}${e}</div>`;
+        log.innerHTML = `<div class="err">${escapeHtml(t('mng_err_generic', { error: String(e) }))}</div>`;
         closeBtn.style.display = 'block';
     }
 }

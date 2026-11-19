@@ -25,7 +25,26 @@
         clearAISearch: document.getElementById('clear-ai-search'),
     };
 
+    // Tooltip on the warning icon so the user can see why AI search failed.
+    function setErrorDetail(message) {
+        if (!elements.statusError) return;
+        if (message) {
+            elements.statusError.title = message;
+            elements.statusError.setAttribute('aria-label', message);
+        } else {
+            elements.statusError.removeAttribute('title');
+            elements.statusError.removeAttribute('aria-label');
+        }
+    }
+
+    // Worker messages carry translation keys; the worker has no t().
+    function workerErrorText(msg) {
+        if (msg.errorKey) return t(msg.errorKey, { error: msg.error || '' });
+        return t('ai_err_search_failed', { error: msg.error || '' });
+    }
+
     function showStatus(status) {
+        if (status !== 'error') setErrorDetail('');
         elements.statusLoading?.classList.add('hidden');
         elements.statusReady?.classList.add('hidden');
         elements.statusError?.classList.add('hidden');
@@ -60,10 +79,11 @@
                 displayResults(msg.results || [], msg.query || pendingQuery);
             } else if (msg.type === 'error') {
                 if (msg.requestId && msg.requestId !== lastRequestId) return;
-                console.error('[LLM ERROR]', msg.error);
+                console.error('[LLM ERROR]', msg.errorKey || '', msg.error);
                 isAIReady = false;
                 isLoading = false;
                 showStatus('error');
+                setErrorDetail(workerErrorText(msg));
             }
         };
 
@@ -72,6 +92,7 @@
             isAIReady = false;
             isLoading = false;
             showStatus('error');
+            setErrorDetail(t('ai_err_worker_crashed'));
         };
 
         return worker;
@@ -88,11 +109,11 @@
 
         try {
             if (!window.api?.ensure_llm_started) {
-                throw new Error('Uruchom ponownie launcher po aktualizacji.');
+                throw new Error(t('ai_err_restart_after_update'));
             }
             const server = await window.api.ensure_llm_started();
             if (!server?.ready || !server.baseUrl) {
-                throw new Error(server?.error || 'Nie udało się uruchomić lokalnego AI.');
+                throw new Error(tErr(server) || t('ai_err_start_failed'));
             }
             ensureWorker().postMessage({
                 type: 'init',
@@ -104,6 +125,7 @@
             isLoading = false;
             isAIReady = false;
             showStatus('error');
+            setErrorDetail(error?.message || String(error));
         }
     }
 
@@ -133,12 +155,12 @@
 
         if (!elements.aiResultsContainer) return;
         elements.aiResultsCount.textContent = results.length
-            ? `${typeof t === 'function' ? t('results_for') : 'Znaleziono'} ${results.length} dla: "${query}"`
-            : `${typeof t === 'function' ? t('no_ai_results') : 'Brak wyników dla:'} "${query}"`;
+            ? tn('count_ai_results_for', results.length, { query })
+            : t('ai_no_results_for', { query });
 
         elements.aiResultsContainer.innerHTML = '';
         if (!results.length) {
-            elements.aiResultsContainer.innerHTML = `<p style="padding:20px;text-align:center;color:var(--text-muted)">${typeof t === 'function' ? t('no_ai_results') : 'Brak wyników.'}</p>`;
+            elements.aiResultsContainer.innerHTML = `<p style="padding:20px;text-align:center;color:var(--text-muted)">${t('no_ai_results')}</p>`;
         }
 
         results.forEach(({ program, similarity, reason }) => {
@@ -146,8 +168,8 @@
             const div = document.createElement('div');
             div.className = 'program-card';
             const path = esc(program.folderPath || program.localPath || '');
-            const openLabel = esc(typeof t === 'function' ? t('open_folder') : 'Otwórz folder');
-            const copyLabel = esc(typeof t === 'function' ? t('copy_path') : 'Skopiuj ścieżkę');
+            const openLabel = esc(t('open_folder'));
+            const copyLabel = esc(t('copy_path'));
             div.innerHTML = `
                 <div class="program-card-head">
                     <span class="program-icon-wrap"><img alt="" class="program-icon" decoding="async"></span>

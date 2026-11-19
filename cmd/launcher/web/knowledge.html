@@ -59,15 +59,15 @@
             <div class="kb-advisor-head">
                 <div class="kb-advisor-mark">✦</div>
                 <div class="kb-advisor-copy">
-                    <strong id="kb-advisor-title">Doradca stron</strong>
-                    <span>Poleca wyłącznie linki, które są już w Twojej Bazie Wiedzy.</span>
+                    <strong id="kb-advisor-title" data-i18n="kb_adv_title">Doradca stron</strong>
+                    <span data-i18n="kb_adv_subtitle">Poleca wyłącznie linki, które są już w Twojej Bazie Wiedzy.</span>
                 </div>
-                <button type="button" class="kb-advisor-toggle" id="kb-advisor-toggle" aria-expanded="false">Zapytaj doradcę</button>
+                <button type="button" class="kb-advisor-toggle" id="kb-advisor-toggle" aria-expanded="false" data-i18n="kb_adv_toggle_ask">Zapytaj doradcę</button>
             </div>
             <div class="kb-advisor-panel" id="kb-advisor-panel">
                 <form class="kb-advisor-form" id="kb-advisor-form">
-                    <input class="kb-advisor-input" id="kb-advisor-input" type="text" maxlength="500" placeholder="Np. szukam strony do darmowej nauki Pythona" autocomplete="off">
-                    <button class="kb-advisor-submit" id="kb-advisor-submit" type="submit">Zapytaj</button>
+                    <input class="kb-advisor-input" id="kb-advisor-input" type="text" maxlength="500" placeholder="Np. szukam strony do darmowej nauki Pythona" data-i18n-placeholder="kb_adv_input_ph" autocomplete="off">
+                    <button class="kb-advisor-submit" id="kb-advisor-submit" type="submit" data-i18n="kb_adv_submit">Zapytaj</button>
                 </form>
                 <div class="kb-advisor-results" id="kb-advisor-results" aria-live="polite"></div>
             </div>
@@ -87,7 +87,7 @@
                 <button class="kb-back-btn" onclick="backFromCategory()" data-i18n="kb_back_categories">← Wróć do kategorii</button>
                 <div class="kb-detail-title" id="kb-detail-title"></div>
                 <div style="flex:1"></div>
-                <button class="kb-review-btn" onclick="startCategoryReview()" title="Sprawdź do 50 linków z tej kategorii w stałej kolejce">🩺 Sprawdź linki</button>
+                <button class="kb-review-btn" onclick="startCategoryReview()" title="Sprawdź do 50 linków z tej kategorii w stałej kolejce" data-i18n-title="kb_review_btn_title">🩺 <span data-i18n="kb_review_btn">Sprawdź linki</span></button>
                 <div class="kb-view-toggle">
                     <button class="kb-view-btn active" id="kb-view-list" onclick="setView('list')" data-i18n="kb_view_list">📋 Lista</button>
                     <button class="kb-view-btn" id="kb-view-grid" onclick="setView('grid')" data-i18n="kb_view_grid">🔲 Kafelki</button>
@@ -106,9 +106,7 @@
         <div id="kb-empty" class="kb-empty" style="display:none;">
             <div class="kb-empty-icon">📚</div>
             <div class="kb-empty-title" data-i18n="kb_empty_title">Baza jest pusta</div>
-            <div class="kb-empty-text">
-                Dodaj linki w <a href="manage.html">Zarządzaniu</a> → Baza Wiedzy
-            </div>
+            <div class="kb-empty-text" data-i18n="kb_empty_add_hint">Dodaj linki w <a href="manage.html">Zarządzaniu</a> → Baza Wiedzy</div>
         </div>
     </div>
 

@@ -4,6 +4,8 @@
     let selectedDriverPath = '';
     let selectedSettingPath = '';
     let loadingPromise = null;
+    // Status line renderers, re-run after a language change.
+    const statusRenderers = new Map();
 
     function debounceSystemTool(fn, delay = 160) {
         let timer = null;
@@ -78,22 +80,29 @@
         const resolved = await resolveSystemPath(path);
         const copied = await copyText(resolved);
         const original = button.textContent;
-        button.textContent = copied ? 'Skopiowano' : 'Nie udało się skopiować';
+        button.textContent = copied ? t('copied') : t('err_copy_failed');
         setTimeout(() => {
             if (button) button.textContent = original;
         }, 1500);
     }
 
-    function resetSelect(select, label) {
+    // Empty first option of a select; data-i18n lets applyTranslations() relabel it.
+    function placeholderOption(key) {
+        const option = new Option(t(key), '');
+        option.dataset.i18n = key;
+        return option;
+    }
+
+    function resetSelect(select, key) {
         select.innerHTML = '';
-        select.add(new Option(label, ''));
+        select.add(placeholderOption(key));
         select.disabled = true;
     }
 
     function populateDriverTypes() {
         const typeSelect = document.getElementById('config-driver-type');
         typeSelect.innerHTML = '';
-        typeSelect.add(new Option('Wybierz typ…', ''));
+        typeSelect.add(placeholderOption('driver_select_type'));
         Object.entries(driversData.types || {}).forEach(([key, type]) => {
             typeSelect.add(new Option(type.title || key, key));
         });
@@ -140,12 +149,12 @@
 
         section.classList.remove('hidden');
         if (results.length === 0) {
-            heading.textContent = `Brak wyników dla „${searchTerm}”`;
-            list.innerHTML = '<p class="system-tool-empty">Spróbuj użyć nazwy producenta, modelu albo typu urządzenia.</p>';
+            heading.textContent = t('sys_drivers_no_results', { query: searchTerm });
+            list.innerHTML = `<p class="system-tool-empty">${systemEscapeHtml(t('sys_drivers_no_results_hint'))}</p>`;
             return;
         }
 
-        heading.textContent = `Znaleziono: ${results.length}`;
+        heading.textContent = tn('count_sys_drivers_found', results.length);
         list.innerHTML = results.map(result => `
             <article class="config-driver-result">
                 <div>
@@ -153,8 +162,8 @@
                     <small>${systemEscapeHtml(result.type)} · ${systemEscapeHtml(result.brand)}</small>
                 </div>
                 <div class="config-driver-result-actions">
-                    <button class="btn-primary config-driver-result-open" data-path="${systemEscapeHtml(result.path)}">📂 Otwórz</button>
-                    <button class="btn-secondary config-driver-result-copy" data-path="${systemEscapeHtml(result.path)}">Kopiuj</button>
+                    <button class="btn-primary config-driver-result-open" data-path="${systemEscapeHtml(result.path)}">📂 ${systemEscapeHtml(t('open_link'))}</button>
+                    <button class="btn-secondary config-driver-result-copy" data-path="${systemEscapeHtml(result.path)}">${systemEscapeHtml(t('sys_copy'))}</button>
                 </div>
             </article>
         `).join('');
@@ -175,8 +184,8 @@
         populateDriverTypes();
 
         typeSelect.addEventListener('change', () => {
-            resetSelect(brandSelect, 'Wybierz producenta…');
-            resetSelect(seriesSelect, 'Wybierz serię/model…');
+            resetSelect(brandSelect, 'driver_select_brand');
+            resetSelect(seriesSelect, 'driver_select_series');
             selection.classList.add('hidden');
             selectedDriverPath = '';
 
@@ -189,7 +198,7 @@
         });
 
         brandSelect.addEventListener('change', () => {
-            resetSelect(seriesSelect, 'Wybierz serię/model…');
+            resetSelect(seriesSelect, 'driver_select_series');
             selection.classList.add('hidden');
             selectedDriverPath = '';
 
@@ -289,9 +298,28 @@
         copyButton.addEventListener('click', () => copySystemPath(copyButton, selectedSettingPath));
     }
 
+    function setStatus(element, render) {
+        if (!element) return;
+        statusRenderers.set(element, render);
+        element.removeAttribute('data-i18n'); // the initial "loading" label; JS owns the text from now on
+        element.textContent = render();
+    }
+
+    // Re-renders the texts built in JS after the language picker changes.
+    function refreshSystemToolTexts() {
+        statusRenderers.forEach((render, element) => { element.textContent = render(); });
+        const searchInput = document.getElementById('config-driver-search');
+        if (searchInput && driversData.types) {
+            renderDriverResults(collectDriverResults(searchInput.value), searchInput.value.trim());
+        }
+    }
+
     async function loadSystemTools() {
         const driversStatus = document.getElementById('drivers-data-status');
         const settingsStatus = document.getElementById('settings-data-status');
+        setStatus(driversStatus, () => t('sys_loading_db'));
+        setStatus(settingsStatus, () => t('sys_loading_db'));
+        document.getElementById('lang-select')?.addEventListener('change', () => setTimeout(refreshSystemToolTexts, 0));
         const hasDriversPage = Boolean(document.getElementById('config-driver-type'));
         const hasSettingsPage = Boolean(document.getElementById('config-settings-list'));
         try {
@@ -303,22 +331,22 @@
             if (hasDriversPage && driversResult.status === 'fulfilled' && driversResult.value?.types) {
                 driversData = driversResult.value;
                 initDriverControls();
-                driversStatus.textContent = `${countDriverSets()} zestawów w bazie`;
+                setStatus(driversStatus, () => tn('count_sys_drivers_sets', countDriverSets()));
             } else if (hasDriversPage) {
-                driversStatus.textContent = 'Nie udało się załadować bazy';
+                setStatus(driversStatus, () => t('sys_db_load_failed'));
             }
 
             if (hasSettingsPage && settingsResult.status === 'fulfilled' && Array.isArray(settingsResult.value?.categories)) {
                 settingsData = settingsResult.value;
                 initSettingsControls();
-                settingsStatus.textContent = `${settingsData.categories.length} zestawów ustawień`;
+                setStatus(settingsStatus, () => tn('count_sys_settings_sets', settingsData.categories.length));
             } else if (hasSettingsPage) {
-                settingsStatus.textContent = 'Nie udało się załadować ustawień';
+                setStatus(settingsStatus, () => t('sys_settings_load_failed'));
             }
         } catch (error) {
             console.error('Nie udało się załadować narzędzi systemowych:', error);
-            if (driversStatus) driversStatus.textContent = 'Błąd ładowania';
-            if (settingsStatus) settingsStatus.textContent = 'Błąd ładowania';
+            setStatus(driversStatus, () => t('sys_load_error'));
+            setStatus(settingsStatus, () => t('sys_load_error'));
         }
     }
 

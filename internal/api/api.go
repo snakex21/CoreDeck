@@ -22,6 +22,7 @@ import (
 	"launcher/internal/settings"
 	"launcher/internal/system"
 	"launcher/internal/tweaks"
+	"launcher/internal/uimsg"
 )
 
 type API struct {
@@ -83,11 +84,46 @@ type errResp struct {
 	Error   string `json:"error,omitempty"`
 	Success bool   `json:"success,omitempty"`
 	Message string `json:"message,omitempty"`
+	// Code is the UI message key (translations.js) of Error/Message, Params
+	// its placeholders; the text stays as the Polish fallback (internal/uimsg).
+	Code   string            `json:"code,omitempty"`
+	Params map[string]string `json:"params,omitempty"`
 }
 
-// jsonError builds a safe `{"error": "..."}` string from any message.
+// jsonError builds a safe `{"error": "..."}` string from a technical message
+// (shown as it is). User-facing messages go through jsonMsg / jsonErr.
 func jsonError(msg string) string {
 	b, _ := json.Marshal(errResp{Error: msg})
+	return string(b)
+}
+
+// jsonMsg builds `{"error": text, "code": ..., "params": ...}`.
+func jsonMsg(m uimsg.Msg) string {
+	b, _ := json.Marshal(errResp{Error: m.Text, Code: m.Code, Params: m.Params})
+	return string(b)
+}
+
+// jsonErr builds the error response of err, with its UI code when it has one.
+func jsonErr(err error) string {
+	return jsonMsg(uimsg.From(err))
+}
+
+// jsonMsgExtra is jsonMsg with additional top-level fields.
+func jsonMsgExtra(m uimsg.Msg, extra map[string]any) string {
+	out := map[string]any{"error": m.Text, "code": m.Code}
+	if len(m.Params) > 0 {
+		out["params"] = m.Params
+	}
+	for k, v := range extra {
+		out[k] = v
+	}
+	b, _ := json.Marshal(out)
+	return string(b)
+}
+
+// jsonResult builds `{"success": ok, "message": text, "code": ...}`.
+func jsonResult(ok bool, m uimsg.Msg) string {
+	b, _ := json.Marshal(errResp{Success: ok, Message: m.Text, Code: m.Code, Params: m.Params})
 	return string(b)
 }
 

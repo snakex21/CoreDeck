@@ -3,6 +3,13 @@ const coreDeckLoadingGate = (() => {
     const status = document.getElementById('coredeck-loading-status');
     if (!overlay) return { setStatus() {}, finish() {} };
 
+    // The overlay shows before the page calls applyTranslations().
+    if (typeof t === 'function') {
+        overlay.querySelectorAll('[data-i18n]').forEach(node => {
+            node.textContent = t(node.getAttribute('data-i18n'));
+        });
+    }
+
     const brandMark = overlay.querySelector('.coredeck-loading-mark img');
     const brandMarkReady = !brandMark || (brandMark.complete && brandMark.naturalWidth > 0)
         ? Promise.resolve(true)

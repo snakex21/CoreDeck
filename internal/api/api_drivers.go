@@ -38,7 +38,7 @@ func (a *API) SaveDriversData(driversJSON string) string {
 	}
 
 	if err := drivers.SaveDrivers(a.WebDir, &dd); err != nil {
-		return jsonError(err.Error())
+		return jsonErr(err)
 	}
 	a.DriversData = &dd
 	return `{"success": true}`

@@ -13,8 +13,8 @@ func TestDescribeInstallerExitCancelled(t *testing.T) {
 		if got.Outcome != OutcomeCancelled || got.Success() {
 			t.Fatalf("code %d: outcome %q, success %v; want cancelled", code, got.Outcome, got.Success())
 		}
-		if got.Message != "Instalacja anulowana" {
-			t.Fatalf("code %d: message %q", code, got.Message)
+		if got.Msg.Text != "Instalacja anulowana" {
+			t.Fatalf("code %d: message %q", code, got.Msg.Text)
 		}
 	}
 }
@@ -37,22 +37,22 @@ func TestDescribeInstallerExitKnownCodes(t *testing.T) {
 	}
 	for _, c := range cases {
 		got := DescribeInstallerExit(c.code)
-		if got.Outcome != c.outcome || !strings.Contains(got.Message, c.want) {
-			t.Errorf("code %d: got (%q, %q); want outcome %q containing %q", c.code, got.Outcome, got.Message, c.outcome, c.want)
+		if got.Outcome != c.outcome || !strings.Contains(got.Msg.Text, c.want) {
+			t.Errorf("code %d: got (%q, %q); want outcome %q containing %q", c.code, got.Outcome, got.Msg.Text, c.outcome, c.want)
 		}
 	}
 }
 
 func TestDescribeInstallerExitUnknownCodeIsReadable(t *testing.T) {
 	got := DescribeInstallerExit(42)
-	if got.Outcome != OutcomeError || got.Message != "Instalator zakończył się błędem (kod 42)." {
+	if got.Outcome != OutcomeError || got.Msg.Text != "Instalator zakończył się błędem (kod 42)." {
 		t.Fatalf("got %+v", got)
 	}
-	if strings.Contains(got.Message, "exit status") {
-		t.Fatalf("raw Go error leaked into message: %q", got.Message)
+	if strings.Contains(got.Msg.Text, "exit status") {
+		t.Fatalf("raw Go error leaked into message: %q", got.Msg.Text)
 	}
 	// NTSTATUS crash codes read better in hex.
-	if got := DescribeInstallerExit(int(int32(-1073741819))); !strings.Contains(got.Message, "0xC0000005") {
-		t.Fatalf("crash code: %q", got.Message)
+	if got := DescribeInstallerExit(int(int32(-1073741819))); !strings.Contains(got.Msg.Text, "0xC0000005") {
+		t.Fatalf("crash code: %q", got.Msg.Text)
 	}
 }

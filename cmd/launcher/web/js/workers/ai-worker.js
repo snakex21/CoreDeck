@@ -155,7 +155,11 @@ ${JSON.stringify(catalog, null, 0)}`;
   postMessage({ type: 'status', status: 'loading_model', model: 'llm', modelName: 'lfm2.5-350m' });
 
   try {
-    if (!llmServer) throw new Error('Lokalny serwer AI nie został uruchomiony');
+    if (!llmServer) {
+      const err = new Error('local AI server not started');
+      err.key = 'ai_err_server_not_started';
+      throw err;
+    }
     const resp = await fetch(`${llmServer}/v1/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -205,7 +209,7 @@ ${JSON.stringify(catalog, null, 0)}`;
     if (!results.length) {
       const fallback = (candidates.length ? candidates : allPrograms)
         .slice(0, maxResults)
-        .map(program => ({ program, similarity: 0.5, reason: 'Dopasowanie lokalne' }));
+        .map(program => ({ program, similarity: 0.5, reason: '', reasonKey: 'ai_reason_local_match' }));
       postMessage({ type: 'result', requestId, query, results: fallback });
       return;
     }
@@ -213,11 +217,12 @@ ${JSON.stringify(catalog, null, 0)}`;
     postMessage({ type: 'result', requestId, query, results });
   } catch (error) {
     const fallback = rankCandidates(query, allPrograms, maxResults)
-      .map(program => ({ program, similarity: 0.4, reason: 'Fallback lokalny po błędzie LLM' }));
+      .map(program => ({ program, similarity: 0.4, reason: '', reasonKey: 'ai_reason_llm_fallback' }));
     if (fallback.length) {
       postMessage({ type: 'result', requestId, query, results: fallback });
     } else {
-      postMessage({ type: 'error', requestId, error: `LLM: ${error.message}` });
+      // User-visible text is translated on the main thread (no t() here).
+      postMessage({ type: 'error', requestId, errorKey: error.key || 'ai_err_search_failed', error: error.message });
     }
   }
 }
@@ -236,6 +241,6 @@ self.onmessage = async (event) => {
       await llmSearch(msg.query || '', programs, msg.maxResults || 10, msg.requestId || 0);
     }
   } catch (error) {
-    postMessage({ type: 'error', error: error?.message || String(error) });
+    postMessage({ type: 'error', errorKey: 'ai_err_search_failed', error: error?.message || String(error) });
   }
 };

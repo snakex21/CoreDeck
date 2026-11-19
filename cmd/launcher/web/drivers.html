@@ -7,15 +7,15 @@
     <link rel="stylesheet" href="css/app.css">
     <link rel="stylesheet" href="css/pages/configurator.css">
 </head>
-<body data-page-title="Sterowniki — CoreDeck">
+<body data-page-title-key="sys_drivers_page_title">
     <header class="subpage-header">
         <div class="header-brand">
             <h1>CoreDeck</h1>
-            <span class="header-subtitle">Sterowniki</span>
+            <span class="header-subtitle" data-i18n="drivers">Sterowniki</span>
         </div>
         <div class="header-controls">
-            <a href="index.html" class="subpage-back-btn">← Wróć do launchera</a>
-            <a href="settings.html" class="subpage-back-btn">⚙ Ustawienia</a>
+            <a href="index.html" class="subpage-back-btn" data-i18n="back_to_launcher">← Wróć do launchera</a>
+            <a href="settings.html" class="subpage-back-btn">⚙ <span data-i18n="settings">Ustawienia</span></a>
             <select id="lang-select" class="btn lang-select" aria-label="Language">
                 <option value="pl">🇵🇱 PL</option>
                 <option value="en">🇬🇧 EN</option>
@@ -33,7 +33,7 @@
                 <option value="sv">🇸🇪 SV</option>
                 <option value="cs">🇨🇿 CS</option>
             </select>
-            <button id="theme-toggle-btn" class="btn theme-btn" title="Przełącz tryb ciemny/jasny">
+            <button id="theme-toggle-btn" class="btn theme-btn" title="Przełącz tryb ciemny/jasny" data-i18n-title="toggle_theme_title">
                 <span class="theme-icon">🌙</span>
             </button>
         </div>
@@ -43,10 +43,10 @@
         <div class="system-page-content system-tool-tab active">
             <div class="tool-tab-heading">
                 <div>
-                    <h2>Sterowniki</h2>
-                    <p>Znajdź przygotowany zestaw po nazwie urządzenia albo wybierz sprzęt z katalogu.</p>
+                    <h2 data-i18n="drivers">Sterowniki</h2>
+                    <p data-i18n="sys_drivers_desc">Znajdź przygotowany zestaw sterowników po nazwie urządzenia albo wybierz sprzęt z katalogu.</p>
                 </div>
-                <span class="tool-tab-status" id="drivers-data-status">Ładowanie bazy…</span>
+                <span class="tool-tab-status" id="drivers-data-status" data-i18n="sys_loading_db">Ładowanie bazy…</span>
             </div>
 
             <div class="system-tool-grid">
@@ -54,8 +54,8 @@
                     <div class="system-tool-section-heading">
                         <span class="system-tool-step">01</span>
                         <div>
-                            <h3>Szybkie wyszukiwanie</h3>
-                            <p>Wpisz producenta, serię albo typ urządzenia.</p>
+                            <h3 data-i18n="sys_drivers_quick_search">Szybkie wyszukiwanie</h3>
+                            <p data-i18n="sys_drivers_quick_search_desc">Wpisz producenta, serię albo typ urządzenia.</p>
                         </div>
                     </div>
                     <input
@@ -63,6 +63,7 @@
                         id="config-driver-search"
                         class="system-tool-input"
                         placeholder="Np. HP Victus 15, NVIDIA, chipset…"
+                        data-i18n-placeholder="sys_drivers_search_ph"
                         autocomplete="off">
                     <div id="config-driver-search-section" class="config-driver-results hidden">
                         <div class="config-driver-results-heading" id="config-driver-results-heading"></div>
@@ -74,39 +75,39 @@
                     <div class="system-tool-section-heading">
                         <span class="system-tool-step">02</span>
                         <div>
-                            <h3>Przeglądaj katalog</h3>
-                            <p>Wybierz kolejno typ, producenta i model.</p>
+                            <h3 data-i18n="sys_drivers_catalog">Przeglądaj katalog</h3>
+                            <p data-i18n="sys_drivers_catalog_desc">Wybierz kolejno typ, producenta i model.</p>
                         </div>
                     </div>
                     <div class="driver-catalog-fields">
                         <label>
-                            <span>Typ urządzenia</span>
+                            <span data-i18n="sys_drivers_device_type">Typ urządzenia</span>
                             <select id="config-driver-type" class="system-tool-select">
-                                <option value="">Wybierz typ…</option>
+                                <option value="" data-i18n="driver_select_type">Wybierz typ…</option>
                             </select>
                         </label>
                         <label>
-                            <span>Producent</span>
+                            <span data-i18n="sys_drivers_brand">Producent</span>
                             <select id="config-driver-brand" class="system-tool-select" disabled>
-                                <option value="">Wybierz producenta…</option>
+                                <option value="" data-i18n="driver_select_brand">Wybierz producenta…</option>
                             </select>
                         </label>
                         <label>
-                            <span>Seria lub model</span>
+                            <span data-i18n="sys_drivers_series">Seria lub model</span>
                             <select id="config-driver-series" class="system-tool-select" disabled>
-                                <option value="">Wybierz serię/model…</option>
+                                <option value="" data-i18n="driver_select_series">Wybierz serię/model…</option>
                             </select>
                         </label>
                     </div>
                     <div id="config-driver-selection" class="system-tool-selection hidden">
                         <div>
-                            <span>Wybrany zestaw</span>
+                            <span data-i18n="sys_drivers_selected">Wybrany zestaw</span>
                             <strong id="config-driver-selection-name"></strong>
                             <small id="config-driver-selection-path"></small>
                         </div>
                         <div class="system-tool-actions">
-                            <button id="config-driver-open" class="btn-primary">📂 Otwórz folder</button>
-                            <button id="config-driver-copy" class="btn-secondary">Skopiuj ścieżkę</button>
+                            <button id="config-driver-open" class="btn-primary">📂 <span data-i18n="open_folder">Otwórz folder</span></button>
+                            <button id="config-driver-copy" class="btn-secondary" data-i18n="copy_path">Skopiuj ścieżkę</button>
                         </div>
                     </div>
                 </section>

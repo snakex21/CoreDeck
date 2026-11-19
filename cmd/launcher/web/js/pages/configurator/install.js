@@ -21,7 +21,8 @@ async function startInstall() {
 
     const targetDir = document.getElementById('target-dir').value || 'C:\\Tools';
 
-    if (!(await uiConfirm(`${t('confirm_install_start')} ${selected.length} ${t('confirm_install_mid')}?\n\nPortable/tool/addon: kopiowanie do:\n${targetDir}\nInstalator: uruchomienie instalatora i czekanie na zamknięcie\nSkrypt: uruchomienie skryptu\n\nKontynuować?`, { confirmLabel: 'Rozpocznij' }))) {
+    const confirmMsg = tn('count_cfg_confirm_install', selected.length) + '\n\n' + t('cfg_confirm_install_details', { path: targetDir });
+    if (!(await uiConfirm(confirmMsg, { confirmLabel: t('cfg_btn_start') }))) {
         return;
     }
 
@@ -45,14 +46,14 @@ async function startInstall() {
         );
 
         if (startResult.error) {
-            log.innerHTML = `<div class="err">❌ ${startResult.error}</div>`;
+            log.innerHTML = `<div class="err">❌ ${escapeHtml(tErr(startResult))}</div>`;
             closeBtn.style.display = 'block';
             return;
         }
 
         const sessionId = startResult.sessionId;
         if (!sessionId) {
-            log.innerHTML = `<div class="err">❌ No session ID</div>`;
+            log.innerHTML = `<div class="err">❌ ${t('cfg_err_no_session')}</div>`;
             closeBtn.style.display = 'block';
             return;
         }
@@ -103,7 +104,7 @@ function pollLiveProgress(checkFnName, sessionId, title, onComplete) {
             const s = await window.api[checkFnName](sessionId);
 
             if (s.error && !s.done) {
-                log.innerHTML += `<div class="err">❌ ${s.error}</div>`;
+                log.innerHTML += `<div class="err">❌ ${escapeHtml(tErr(s))}</div>`;
             }
 
             if (s.total > 0) {
@@ -138,9 +139,9 @@ function pollLiveProgress(checkFnName, sessionId, title, onComplete) {
                 const ok = s.results ? s.results.filter(r => r.success).length : 0;
                 const total = s.results ? s.results.length : 0;
                 if (s.cancelled) {
-                    status.textContent = `${t('cfg_cancelled')} ${ok}/${total}`;
+                    status.textContent = t('cfg_progress_cancelled', { ok, total });
                 } else {
-                    status.textContent = `${t('progress_finished')} ${ok}/${total} ${t('progress_success')}`;
+                    status.textContent = t('cfg_progress_finished', { ok, total });
                 }
                 closeBtn.style.display = 'block';
                 _currentPollSession = null;

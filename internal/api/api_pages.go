@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"launcher/internal/uimsg"
 )
 
 // PageRequest jest wysyłany z Manage → "Własne Strony".
@@ -33,7 +35,7 @@ func (a *API) CreatePage(requestJSON string) string {
 		return `{"error": "Invalid request JSON"}`
 	}
 	if strings.TrimSpace(req.Name) == "" {
-		return `{"error": "Nazwa strony jest wymagana"}`
+		return jsonMsg(uimsg.New("msg_page_name_required", "Nazwa strony jest wymagana"))
 	}
 	if req.Category == "" {
 		req.Category = "Własne Strony"
@@ -49,7 +51,7 @@ func (a *API) CreatePage(requestJSON string) string {
 
 	pagesDir := filepath.Join(a.WebDir, "data", "user_pages", "pages")
 	if err := os.MkdirAll(pagesDir, 0755); err != nil {
-		return jsonError("Nie można utworzyć folderu pages: " + err.Error())
+		return jsonMsg(uimsg.New("msg_page_mkdir_failed", "Nie można utworzyć folderu pages: "+err.Error(), "error", err.Error()))
 	}
 
 	fileName := slug + ".html"
@@ -62,7 +64,7 @@ func (a *API) CreatePage(requestJSON string) string {
 
 	html := pageTemplate(req.Name, req.Description)
 	if err := os.WriteFile(fullPath, []byte(html), 0644); err != nil {
-		return jsonError("Nie można zapisać pliku HTML: " + err.Error())
+		return jsonMsg(uimsg.New("msg_page_write_failed", "Nie można zapisać pliku HTML: "+err.Error(), "error", err.Error()))
 	}
 
 	// Zbuduj wpis programu type:link.
@@ -84,7 +86,7 @@ func (a *API) CreatePage(requestJSON string) string {
 	if err := json.Unmarshal([]byte(res), &addResp); err == nil {
 		if msg, ok := addResp["error"].(string); ok && msg != "" {
 			_ = os.Remove(fullPath)
-			return jsonError("Nie można dodać wpisu programu: " + msg)
+			return jsonMsg(uimsg.New("msg_page_add_entry_failed", "Nie można dodać wpisu programu: "+msg, "error", msg))
 		}
 	}
 
@@ -102,14 +104,14 @@ func (a *API) DeletePage(requestJSON string) string {
 		return `{"error": "Invalid request JSON"}`
 	}
 	if payload.Name == "" {
-		return `{"error": "Brak nazwy strony"}`
+		return jsonMsg(uimsg.New("msg_page_name_missing", "Brak nazwy strony"))
 	}
 
 	// Usuń plik HTML jeśli wskazano lokalPath.
 	if payload.LocalPath != "" {
 		htmlPath, err := userPageDeletePath(a.WebDir, payload.LocalPath)
 		if err != nil {
-			return jsonError(err.Error())
+			return jsonErr(err)
 		}
 		if err := os.Remove(htmlPath); err != nil && !os.IsNotExist(err) {
 			slog.Warn("delete_page html", "path", htmlPath, "error", err)
@@ -122,20 +124,22 @@ func (a *API) DeletePage(requestJSON string) string {
 	return `{"success": true}`
 }
 
+var errBadPagePath = uimsg.Errorf("msg_page_bad_path", "Nieprawidłowa ścieżka strony")
+
 func userPageDeletePath(webDir, localPath string) (string, error) {
 	clean := strings.TrimPrefix(localPath, "user_pages/pages/")
 	clean = strings.TrimPrefix(clean, "pages/") // legacy support
 	if filepath.IsAbs(clean) || filepath.VolumeName(clean) != "" {
-		return "", fmt.Errorf("nieprawidłowa ścieżka strony")
+		return "", errBadPagePath
 	}
 	pagesDir := filepath.Join(webDir, "data", "user_pages", "pages")
 	htmlPath := filepath.Join(pagesDir, clean)
 	rel, err := filepath.Rel(pagesDir, htmlPath)
 	if err != nil || rel == "." || filepath.IsAbs(rel) || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
-		return "", fmt.Errorf("nieprawidłowa ścieżka strony")
+		return "", errBadPagePath
 	}
 	if !strings.EqualFold(filepath.Ext(htmlPath), ".html") {
-		return "", fmt.Errorf("można usuwać tylko pliki HTML własnych stron")
+		return "", uimsg.Errorf("msg_page_only_html", "Można usuwać tylko pliki HTML własnych stron")
 	}
 	return htmlPath, nil
 }

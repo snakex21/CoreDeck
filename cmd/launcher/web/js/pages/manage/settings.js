@@ -62,7 +62,7 @@ function renderSettingsList() {
 function openAddSetting() {
     const overlay = document.getElementById('setting-editor-overlay');
     if (!overlay) return;
-    document.getElementById('setting-editor-title').textContent = 'Dodaj ustawienie';
+    document.getElementById('setting-editor-title').textContent = t('setting_editor_add');
     document.getElementById('set-name').value = '';
     document.getElementById('set-folder').value = '';
     overlay.classList.add('active');
@@ -73,7 +73,7 @@ function editSetting(idx) {
     if (!s) return;
     const overlay = document.getElementById('setting-editor-overlay');
     if (!overlay) return;
-    document.getElementById('setting-editor-title').textContent = 'Edytuj ustawienie';
+    document.getElementById('setting-editor-title').textContent = t('setting_editor_edit');
     document.getElementById('set-name').value = s.name || '';
     document.getElementById('set-folder').value = s.folderPath || '';
     overlay.dataset.editIdx = idx;
@@ -123,7 +123,7 @@ async function saveSetting() {
 async function deleteSetting(idx) {
     const s = allSettings[idx];
     if (!s) return;
-    if (!(await uiConfirm(`Usunąć "${s.name}"?`, { danger: true }))) return;
+    if (!(await uiConfirm(t('mng_confirm_delete_setting', { name: s.name || '' }), { danger: true }))) return;
     allSettings.splice(idx, 1);
     await persistSettings();
     renderSettingsList();
@@ -136,13 +136,13 @@ async function persistSettings() {
             categories: allSettings
         }));
         if (result && result.error) {
-            showToast(t('err_save_prefix') + result.error, true);
+            showToast(t('mng_err_save', { error: tErr(result) }), true);
         } else {
             showToast(t('toast_saved'));
             const segCount = document.getElementById('seg-count-settings');
             if (segCount) segCount.textContent = allSettings.length;
         }
     } catch (e) {
-        showToast(t('err_save_prefix') + e, true);
+        showToast(t('mng_err_save', { error: String(e) }), true);
     }
 }

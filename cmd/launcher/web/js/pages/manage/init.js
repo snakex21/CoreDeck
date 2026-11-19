@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (typeSel && brandSel) {
         typeSel.addEventListener('change', () => {
             const typeKey = typeSel.value;
-            brandSel.innerHTML = '<option value="">— wybierz —</option>';
+            brandSel.innerHTML = `<option value="">${escapeHtml(t('mng_opt_choose'))}</option>`;
             if (!typeKey || !driversData.types[typeKey]) return;
             sortedBrandEntries(typeKey).forEach(([k, t]) => {
                 brandSel.innerHTML += `<option value="${escapeHtml(k)}">${escapeHtml(t)}</option>`;

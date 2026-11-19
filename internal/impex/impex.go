@@ -17,7 +17,32 @@ import (
 	"launcher/internal/drivers"
 	"launcher/internal/paths"
 	"launcher/internal/programs"
+	"launcher/internal/uimsg"
 )
+
+// Line is one log or error line shown in the UI. Code is its UI message key
+// (translations.js), Params its placeholders; Message is the Polish fallback
+// and log text (see internal/uimsg).
+type Line struct {
+	Message string            `json:"message"`
+	Code    string            `json:"code,omitempty"`
+	Params  map[string]string `json:"params,omitempty"`
+}
+
+func LineOf(m uimsg.Msg) Line {
+	return Line{Message: m.Text, Code: m.Code, Params: m.Params}
+}
+
+// errorLine reports a failed part of an export/import: the error's own
+// message when it has a code, otherwise "<part>: <error>".
+func errorLine(code, prefix string, err error) Line {
+	if m := uimsg.From(err); m.Code != "" {
+		return LineOf(m)
+	}
+	return LineOf(uimsg.New(code, prefix+err.Error(), "error", err.Error()))
+}
+
+func itoa(n int) string { return fmt.Sprintf("%d", n) }
 
 type ExportPackRequest struct {
 	ProgramNames     []string                   `json:"programNames"`
@@ -38,14 +63,21 @@ type BrandSelection struct {
 }
 
 type ExportPackResult struct {
-	Success       bool     `json:"success"`
-	Message       string   `json:"message"`
-	ExportedPath  string   `json:"exportedPath"`
-	ProgramCount  int      `json:"programCount"`
-	DriverCount   int      `json:"driverCount"`
-	EstimatedSize int64    `json:"estimatedSize"` // bajty
-	Log           []string `json:"log,omitempty"`
-	Errors        []string `json:"errors,omitempty"`
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	// Code / Params: UI message key and placeholders (see Line).
+	Code          string            `json:"code,omitempty"`
+	Params        map[string]string `json:"params,omitempty"`
+	ExportedPath  string            `json:"exportedPath"`
+	ProgramCount  int               `json:"programCount"`
+	DriverCount   int               `json:"driverCount"`
+	EstimatedSize int64             `json:"estimatedSize"` // bajty
+	Log           []Line            `json:"log,omitempty"`
+	Errors        []Line            `json:"errors,omitempty"`
+}
+
+func (r *ExportPackResult) setMsg(m uimsg.Msg) {
+	r.Message, r.Code, r.Params = m.Text, m.Code, m.Params
 }
 
 // ValidateExportRequest to samo co ExportPackRequest — sprawdza czy foldery istnieją.
@@ -59,10 +91,16 @@ type ValidateExportRequest struct {
 type ValidateExportResult struct {
 	Success       bool              `json:"success"`
 	Message       string            `json:"message"`
+	Code          string            `json:"code,omitempty"`
+	Params        map[string]string `json:"params,omitempty"`
 	EstimatedSize int64             `json:"estimatedSize"`
 	Warnings      []ValidateWarning `json:"warnings,omitempty"`
 	ProgramCount  int               `json:"programCount"`
 	DriverCount   int               `json:"driverCount"`
+}
+
+func (r *ValidateExportResult) setMsg(m uimsg.Msg) {
+	r.Message, r.Code, r.Params = m.Text, m.Code, m.Params
 }
 
 type ValidateWarning struct {
@@ -84,18 +122,28 @@ type ImportPackRequest struct {
 }
 
 type ImportPackResult struct {
-	Success      bool     `json:"success"`
-	Message      string   `json:"message"`
-	ProgramCount int      `json:"programCount"`
-	DriverCount  int      `json:"driverCount"`
-	Skipped      []string `json:"skipped,omitempty"`
-	Overwritten  []string `json:"overwritten,omitempty"`
-	Errors       []string `json:"errors,omitempty"`
+	Success      bool              `json:"success"`
+	Message      string            `json:"message"`
+	Code         string            `json:"code,omitempty"`
+	Params       map[string]string `json:"params,omitempty"`
+	ProgramCount int               `json:"programCount"`
+	DriverCount  int               `json:"driverCount"`
+	Skipped      []string          `json:"skipped,omitempty"`
+	Overwritten  []string          `json:"overwritten,omitempty"`
+	Errors       []Line            `json:"errors,omitempty"`
 }
+
+func (r *ImportPackResult) setMsg(m uimsg.Msg) {
+	r.Message, r.Code, r.Params = m.Text, m.Code, m.Params
+}
+
+func (p *PackPreview) setMsg(m uimsg.Msg) { p.Message, p.Code, p.Params = m.Text, m.Code, m.Params }
 
 type PackPreview struct {
 	Success      bool              `json:"success"`
 	Message      string            `json:"message"`
+	Code         string            `json:"code,omitempty"`
+	Params       map[string]string `json:"params,omitempty"`
 	ProgramCount int               `json:"programCount"`
 	DriverCount  int               `json:"driverCount"`
 	Programs     []PackProgramInfo `json:"programs,omitempty"`
@@ -204,14 +252,17 @@ func ValidateExport(exeDir string, programsData *programs.ProgramsData, driversD
 
 	if result.ProgramCount == 0 && result.DriverCount == 0 {
 		result.Success = false
-		result.Message = "Nie wybrano żadnych programów ani sterowników"
+		result.setMsg(uimsg.New("msg_impex_nothing_selected", "Nie wybrano żadnych programów ani sterowników"))
 		return result
 	}
 
 	if len(result.Warnings) > 0 {
-		result.Message = fmt.Sprintf("OK — %d zagrożeń (brakujące foldery). Rozmiar: %s", len(result.Warnings), humanSize(result.EstimatedSize))
+		size := humanSize(result.EstimatedSize)
+		result.setMsg(uimsg.New("count_msg_impex_validate_warnings", fmt.Sprintf("OK — %d zagrożeń (brakujące foldery). Rozmiar: %s", len(result.Warnings), size),
+			"n", itoa(len(result.Warnings)), "size", size))
 	} else {
-		result.Message = fmt.Sprintf("OK — rozmiar szacowany: %s", humanSize(result.EstimatedSize))
+		size := humanSize(result.EstimatedSize)
+		result.setMsg(uimsg.New("msg_impex_validate_ok", "OK — rozmiar szacowany: "+size, "size", size))
 	}
 	return result
 }
@@ -283,7 +334,7 @@ func ExportPack(exeDir string, programsData *programs.ProgramsData, driversData 
 	result := ExportPackResult{Success: false}
 
 	if req.TargetPath == "" {
-		result.Message = "Nie podano ścieżki docelowej"
+		result.setMsg(uimsg.New("msg_impex_no_target", "Nie podano ścieżki docelowej"))
 		return result
 	}
 
@@ -295,36 +346,38 @@ func ExportPack(exeDir string, programsData *programs.ProgramsData, driversData 
 	}
 
 	if err := os.MkdirAll(tmpDir, 0755); err != nil {
-		result.Message = "Nie można utworzyć folderu: " + err.Error()
+		result.setMsg(uimsg.New("msg_impex_mkdir_failed", "Nie można utworzyć folderu: "+err.Error(), "error", err.Error()))
 		return result
 	}
 
 	// 2. Eksportuj programy
 	if len(req.ProgramNames) > 0 && programsData != nil {
-		result.Log = append(result.Log, fmt.Sprintf("Eksportuję %d programów...", len(req.ProgramNames)))
+		n := len(req.ProgramNames)
+		result.Log = append(result.Log, LineOf(uimsg.New("count_msg_impex_exporting_programs", fmt.Sprintf("Eksportuję %d programów...", n), "n", itoa(n))))
 		if err := exportPrograms(exeDir, programsData, req.ProgramNames, tmpDir, req.IncludeFiles); err != nil {
-			result.Errors = append(result.Errors, "Programy: "+err.Error())
+			result.Errors = append(result.Errors, errorLine("msg_impex_programs_error", "Programy: ", err))
 		} else {
-			result.ProgramCount = len(req.ProgramNames)
-			result.Log = append(result.Log, fmt.Sprintf("OK — wyeksportowano %d programów", result.ProgramCount))
+			result.ProgramCount = n
+			result.Log = append(result.Log, LineOf(uimsg.New("count_msg_impex_exported_programs", fmt.Sprintf("OK — wyeksportowano %d programów", n), "n", itoa(n))))
 		}
 	}
 
 	// 3. Eksportuj sterowniki
 	if len(req.DriverTypes) > 0 && driversData != nil {
-		result.Log = append(result.Log, fmt.Sprintf("Eksportuję %d typów sterowników...", len(req.DriverTypes)))
+		n := len(req.DriverTypes)
+		result.Log = append(result.Log, LineOf(uimsg.New("count_msg_impex_exporting_drivers", fmt.Sprintf("Eksportuję %d typów sterowników...", n), "n", itoa(n))))
 		if err := exportDrivers(exeDir, driversData, req.DriverTypes, req.DriverSelections, tmpDir, req.IncludeFiles); err != nil {
-			result.Errors = append(result.Errors, "Sterowniki: "+err.Error())
+			result.Errors = append(result.Errors, errorLine("msg_impex_drivers_error", "Sterowniki: ", err))
 		} else {
-			result.DriverCount = len(req.DriverTypes)
-			result.Log = append(result.Log, fmt.Sprintf("OK — wyeksportowano %d typów sterowników", result.DriverCount))
+			result.DriverCount = n
+			result.Log = append(result.Log, LineOf(uimsg.New("count_msg_impex_exported_drivers", fmt.Sprintf("OK — wyeksportowano %d typów sterowników", n), "n", itoa(n))))
 		}
 	}
 
 	// 4. Generuj README.txt
 	if result.ProgramCount > 0 || result.DriverCount > 0 {
 		generateReadme(tmpDir, result.ProgramCount, result.DriverCount, req.Format)
-		result.Log = append(result.Log, "Wygenerowano README.txt")
+		result.Log = append(result.Log, LineOf(uimsg.New("msg_impex_readme_generated", "Wygenerowano README.txt")))
 	}
 
 	// 5. Jeśli format ZIP, spakuj
@@ -335,12 +388,12 @@ func ExportPack(exeDir string, programsData *programs.ProgramsData, driversData 
 			zipPath += ".zip"
 		}
 		if err := os.MkdirAll(filepath.Dir(zipPath), 0755); err != nil {
-			result.Message = "Nie można utworzyć folderu ZIP: " + err.Error()
+			result.setMsg(uimsg.New("msg_impex_zip_mkdir_failed", "Nie można utworzyć folderu ZIP: "+err.Error(), "error", err.Error()))
 			os.RemoveAll(tmpDir)
 			return result
 		}
 		if err := zipDirectory(tmpDir, zipPath); err != nil {
-			result.Message = "Błąd pakowania ZIP: " + err.Error()
+			result.setMsg(uimsg.New("msg_impex_zip_failed", "Błąd pakowania ZIP: "+err.Error(), "error", err.Error()))
 			os.RemoveAll(tmpDir)
 			return result
 		}
@@ -349,7 +402,9 @@ func ExportPack(exeDir string, programsData *programs.ProgramsData, driversData 
 	}
 
 	result.Success = true
-	result.Message = fmt.Sprintf("Eksport zakończony: %d programów, %d typów sterowników", result.ProgramCount, result.DriverCount)
+	result.setMsg(uimsg.New("msg_impex_export_done",
+		fmt.Sprintf("Eksport zakończony. Programy: %d, typy sterowników: %d.", result.ProgramCount, result.DriverCount),
+		"programs", itoa(result.ProgramCount), "drivers", itoa(result.DriverCount)))
 	result.ExportedPath = finalPath
 	return result
 }
@@ -359,7 +414,7 @@ func ExportPack(exeDir string, programsData *programs.ProgramsData, driversData 
 func ImportPack(exeDir string, programsData *programs.ProgramsData, driversData *drivers.DriversData, req ImportPackRequest) ImportPackResult {
 	result := ImportPackResult{Success: false}
 	if req.PackPath == "" {
-		result.Message = "Nie podano paczki do importu"
+		result.setMsg(uimsg.New("msg_impex_no_pack", "Nie podano paczki do importu"))
 		return result
 	}
 	if req.Strategy == "" {
@@ -370,12 +425,12 @@ func ImportPack(exeDir string, programsData *programs.ProgramsData, driversData 
 	if strings.HasSuffix(strings.ToLower(req.PackPath), ".zip") {
 		tmpDir, err := os.MkdirTemp("", "coredeck-import-*")
 		if err != nil {
-			result.Message = "Nie można utworzyć katalogu tymczasowego: " + err.Error()
+			result.setMsg(tempDirFailed(err))
 			return result
 		}
 		defer os.RemoveAll(tmpDir)
 		if err := unzip(req.PackPath, tmpDir); err != nil {
-			result.Message = "Nie można rozpakować ZIP: " + err.Error()
+			result.setMsg(unzipFailed(err))
 			return result
 		}
 		packDir = tmpDir
@@ -384,7 +439,7 @@ func ImportPack(exeDir string, programsData *programs.ProgramsData, driversData 
 	if req.ImportPrograms {
 		count, err := importPrograms(packDir, programsData, req)
 		if err != nil {
-			result.Errors = append(result.Errors, "Programy: "+err.Error())
+			result.Errors = append(result.Errors, errorLine("msg_impex_programs_error", "Programy: ", err))
 		} else {
 			result.ProgramCount = count
 		}
@@ -393,7 +448,7 @@ func ImportPack(exeDir string, programsData *programs.ProgramsData, driversData 
 	if req.ImportDrivers {
 		count, err := importDrivers(packDir, driversData, req)
 		if err != nil {
-			result.Errors = append(result.Errors, "Sterowniki: "+err.Error())
+			result.Errors = append(result.Errors, errorLine("msg_impex_drivers_error", "Sterowniki: ", err))
 		} else {
 			result.DriverCount = count
 		}
@@ -401,9 +456,11 @@ func ImportPack(exeDir string, programsData *programs.ProgramsData, driversData 
 
 	result.Success = len(result.Errors) == 0
 	if result.Success {
-		result.Message = fmt.Sprintf("Import zakończony: %d programów, %d typów sterowników", result.ProgramCount, result.DriverCount)
+		result.setMsg(uimsg.New("msg_impex_import_done",
+			fmt.Sprintf("Import zakończony. Programy: %d, typy sterowników: %d.", result.ProgramCount, result.DriverCount),
+			"programs", itoa(result.ProgramCount), "drivers", itoa(result.DriverCount)))
 	} else {
-		result.Message = "Import zakończony z błędami"
+		result.setMsg(uimsg.New("msg_impex_import_errors", "Import zakończony z błędami"))
 	}
 	return result
 }
@@ -411,7 +468,7 @@ func ImportPack(exeDir string, programsData *programs.ProgramsData, driversData 
 func PreviewPack(packPath string) PackPreview {
 	preview := PackPreview{Success: false}
 	if strings.TrimSpace(packPath) == "" {
-		preview.Message = "Nie podano ścieżki paczki"
+		preview.setMsg(uimsg.New("msg_impex_no_pack_path", "Nie podano ścieżki paczki"))
 		return preview
 	}
 
@@ -419,12 +476,12 @@ func PreviewPack(packPath string) PackPreview {
 	if strings.HasSuffix(strings.ToLower(packPath), ".zip") {
 		tmpDir, err := os.MkdirTemp("", "coredeck-preview-*")
 		if err != nil {
-			preview.Message = "Nie można utworzyć katalogu tymczasowego: " + err.Error()
+			preview.setMsg(tempDirFailed(err))
 			return preview
 		}
 		defer os.RemoveAll(tmpDir)
 		if err := unzip(packPath, tmpDir); err != nil {
-			preview.Message = "Nie można rozpakować ZIP: " + err.Error()
+			preview.setMsg(unzipFailed(err))
 			return preview
 		}
 		packDir = tmpDir
@@ -467,18 +524,31 @@ func PreviewPack(packPath string) PackPreview {
 	}
 
 	if preview.ProgramCount == 0 && preview.DriverCount == 0 {
-		preview.Message = "Paczka nie zawiera programs.json ani drivers.json albo pliki są niepoprawne"
+		preview.setMsg(uimsg.New("msg_impex_pack_empty", "Paczka nie zawiera programs.json ani drivers.json albo pliki są niepoprawne"))
 		return preview
 	}
 
 	preview.Success = true
-	preview.Message = fmt.Sprintf("Znaleziono: %d programów, %d typów sterowników", preview.ProgramCount, preview.DriverCount)
+	preview.setMsg(uimsg.New("msg_impex_preview_found",
+		fmt.Sprintf("Znaleziono w paczce. Programy: %d, typy sterowników: %d.", preview.ProgramCount, preview.DriverCount),
+		"programs", itoa(preview.ProgramCount), "drivers", itoa(preview.DriverCount)))
 	return preview
+}
+
+func tempDirFailed(err error) uimsg.Msg {
+	return uimsg.New("msg_impex_temp_failed", "Nie można utworzyć katalogu tymczasowego: "+err.Error(), "error", err.Error())
+}
+
+func unzipFailed(err error) uimsg.Msg {
+	if m := uimsg.From(err); m.Code != "" {
+		return m
+	}
+	return uimsg.New("msg_impex_unzip_failed", "Nie można rozpakować ZIP: "+err.Error(), "error", err.Error())
 }
 
 func importPrograms(packDir string, pd *programs.ProgramsData, req ImportPackRequest) (int, error) {
 	if pd == nil {
-		return 0, fmt.Errorf("brak katalogu programów")
+		return 0, uimsg.Errorf("msg_impex_no_programs_catalog", "Brak katalogu programów")
 	}
 	data, err := os.ReadFile(filepath.Join(packDir, "programs.json"))
 	if err != nil {
@@ -530,7 +600,7 @@ func importPrograms(packDir string, pd *programs.ProgramsData, req ImportPackReq
 
 func importDrivers(packDir string, dd *drivers.DriversData, req ImportPackRequest) (int, error) {
 	if dd == nil {
-		return 0, fmt.Errorf("brak katalogu sterowników")
+		return 0, uimsg.Errorf("msg_impex_no_drivers_catalog", "Brak katalogu sterowników")
 	}
 	data, err := os.ReadFile(filepath.Join(packDir, "drivers.json"))
 	if err != nil {
@@ -695,7 +765,7 @@ func exportPrograms(exeDir string, pd *programs.ProgramsData, names []string, ta
 	}
 
 	if len(filtered) == 0 {
-		return fmt.Errorf("nie znaleziono żadnego programu do eksportu")
+		return uimsg.Errorf("msg_impex_no_programs_found", "Nie znaleziono żadnego programu do eksportu")
 	}
 
 	if includeFiles {
@@ -789,7 +859,7 @@ func exportDrivers(exeDir string, dd *drivers.DriversData, typeKeys []string, se
 	}
 
 	if len(filteredTypes) == 0 {
-		return fmt.Errorf("nie znaleziono żadnego typu sterownika do eksportu")
+		return uimsg.Errorf("msg_impex_no_drivers_found", "Nie znaleziono żadnego typu sterownika do eksportu")
 	}
 
 	if includeFiles {
@@ -959,7 +1029,7 @@ func unzip(src, dst string) error {
 			return err
 		}
 		if !strings.HasPrefix(absPath, cleanDst+string(os.PathSeparator)) && absPath != cleanDst {
-			return fmt.Errorf("nieprawidłowa ścieżka w ZIP: %s", f.Name)
+			return uimsg.Errorf("msg_impex_zip_bad_path", "Nieprawidłowa ścieżka w ZIP: "+f.Name, "path", f.Name)
 		}
 
 		if f.FileInfo().IsDir() {

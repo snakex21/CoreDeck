@@ -110,7 +110,7 @@ func (a *API) PreviewTweaks(idsJSON string) string {
 	}
 	list, err := a.catalogueTweaks(ids)
 	if err != nil {
-		return jsonError(err.Error())
+		return jsonErr(err)
 	}
 	tweakApprovalMu.Lock()
 	approvals := a.loadTweakApprovals()

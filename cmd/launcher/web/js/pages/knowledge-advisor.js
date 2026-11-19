@@ -38,12 +38,12 @@
       worker.onmessage = event => {
         const message = event.data || {};
         if (message.requestId && message.requestId !== requestId) return;
-        if (message.type === 'status') setStatus('Doradca analizuje linki…');
+        if (message.type === 'status') setStatus(t('kb_adv_status_thinking'));
         if (message.type === 'result') renderAnswer(message);
       };
       worker.onerror = () => {
         elements.submit.disabled = false;
-        setStatus('Nie udało się uruchomić doradcy. Nadal możesz użyć zwykłej wyszukiwarki.');
+        setStatus(t('kb_adv_worker_failed'));
       };
     }
     if (data && data !== indexedData) {
@@ -61,17 +61,21 @@
       return `<article class="kb-advisor-pick">
         <div><div class="kb-advisor-pick-name">${escapeHtml(link.name)}</div>
         <div class="kb-advisor-pick-meta">${escapeHtml(meta)}</div>
-        <div class="kb-advisor-pick-reason">${escapeHtml(item.reason || '')}</div></div>
-        <button type="button" class="kb-advisor-open" data-url="${escapeHtml(link.url)}">Otwórz ↗</button>
+        <div class="kb-advisor-pick-reason">${escapeHtml(item.reasonKey ? t(item.reasonKey) : (item.reason || ''))}</div></div>
+        <button type="button" class="kb-advisor-open" data-url="${escapeHtml(link.url)}">${escapeHtml(t('open_link'))} ↗</button>
       </article>`;
     }).join('');
-    elements.results.innerHTML = `<div class="kb-advisor-message">${escapeHtml(message.answer || '')}</div>${picks || '<div class="kb-advisor-status">Brak pewnej rekomendacji — spróbuj doprecyzować pytanie.</div>'}`;
+    // The worker sends answerKey for its own fallback texts; answer holds the model's own words.
+    const answer = message.answerKey ? t(message.answerKey) : (message.answer || '');
+    elements.results.innerHTML = `<div class="kb-advisor-message">${escapeHtml(answer)}</div>${picks || `<div class="kb-advisor-status">${escapeHtml(t('kb_adv_no_picks'))}</div>`}`;
   }
 
   elements.toggle.addEventListener('click', () => {
     const isOpen = elements.root.classList.toggle('open');
     elements.toggle.setAttribute('aria-expanded', String(isOpen));
-    elements.toggle.textContent = isOpen ? 'Zamknij doradcę' : 'Zapytaj doradcę';
+    const toggleKey = isOpen ? 'kb_adv_toggle_close' : 'kb_adv_toggle_ask';
+    elements.toggle.setAttribute('data-i18n', toggleKey);
+    elements.toggle.textContent = t(toggleKey);
     if (isOpen) elements.input.focus();
   });
 
@@ -79,27 +83,27 @@
     event.preventDefault();
     const question = elements.input.value.trim();
     if (question.length < 3) {
-      setStatus('Napisz proszę trochę dokładniej, czego szukasz.');
+      setStatus(t('kb_adv_too_short'));
       return;
     }
     const data = window.knowledgeData || (typeof knowledgeData !== 'undefined' ? knowledgeData : null);
     if (!data?.categories?.length) {
-      setStatus('Baza Wiedzy nie jest jeszcze gotowa. Spróbuj ponownie za chwilę.');
+      setStatus(t('kb_adv_not_ready'));
       return;
     }
     elements.submit.disabled = true;
-    setStatus('Uruchamiam lokalne AI…');
+    setStatus(t('kb_adv_starting_ai'));
     requestId++;
     try {
       const server = await window.api?.ensure_llm_started?.();
       if (!server?.ready || !server.baseUrl) {
-        throw new Error(server?.error || 'Lokalne AI nie jest dostępne.');
+        throw new Error(tErr(server) || t('kb_adv_ai_unavailable'));
       }
-      setStatus('Szukam pasujących stron w Twojej Bazie Wiedzy…');
+      setStatus(t('kb_adv_searching'));
       ensureWorker(data).postMessage({ type: 'ask', question, requestId, serverUrl: server.baseUrl });
     } catch (error) {
       elements.submit.disabled = false;
-      setStatus(`Nie udało się uruchomić lokalnego AI: ${error.message || String(error)}`);
+      setStatus(t('kb_adv_ai_start_failed', { error: error.message || String(error) }));
     }
   });
 
