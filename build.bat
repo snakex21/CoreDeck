@@ -42,7 +42,9 @@ if not exist "%ROOT%data\tools" mkdir "%ROOT%data\tools"
 if exist "%LAUNCHER_NEW%" del /q "%LAUNCHER_NEW%"
 if exist "%HELPER_NEW%" del /q "%HELPER_NEW%"
 
-echo ==^> Testy skryptow Python
+echo ==^> Testy skryptow Python (w tym slownik i znaki diakrytyczne tlumaczen)
+REM UTF-8 na wyjsciu: komunikaty testow i18n zawieraja znaki spoza strony kodowej konsoli.
+set "PYTHONUTF8=1"
 python -m unittest discover -s "%ROOT%scripts" -q
 if errorlevel 1 goto :fail
 

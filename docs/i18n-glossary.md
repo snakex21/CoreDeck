@@ -7,6 +7,10 @@ as the grammar needs (case, plural, compounds), but do not swap in a synonym.
 
 `scripts/test_i18n_glossary.py` checks the most important parts of this file
 (tweak, driver, profile and update terms; the language decisions below).
+`scripts/test_i18n_diacritics.py` checks that every language keeps its own
+letters (no ASCII-folded text, no Russian letters in Ukrainian/Bulgarian,
+comma-below ș ț in Romanian, stress marks in Greek). Both run with the other
+script tests in `build.bat` and CI (`python -m unittest discover -s scripts`).
 
 ## Decisions
 
